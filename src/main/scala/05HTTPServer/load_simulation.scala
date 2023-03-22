@@ -1,0 +1,27 @@
+/***
+ * Excerpted from "Modern Systems Programming with Scala Native",
+ * published by The Pragmatic Bookshelf.
+ * Copyrights apply to this code. It may not be used to create training material,
+ * courses, books, articles, and the like. Contact us if you are in doubt.
+ * We make no guarantees that this code is fit for any purpose.
+ * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
+***/
+import io.gatling.core.Predef._
+import io.gatling.http.Predef._
+import scala.concurrent.duration._
+
+class GenericSimulation extends Simulation {
+  val url = System.getenv("GATLING_URL")
+  val requests = Integer.parseInt(System.getenv("GATLING_REQUESTS"))
+  val users = Integer.parseInt(System.getenv("GATLING_USERS"))
+  val reqs_per_user = requests / users
+  val rampTime = Integer.parseInt(System.getenv("GATLING_RAMP_TIME"))
+  val scn = scenario("Test scenario").repeat(reqs_per_user) {
+    exec(
+      http("Web Server")
+        .get(url)
+        .check(status.in(Seq(200,304)))
+    )
+  }
+  setUp(scn.inject(rampUsers(users) over (rampTime seconds)))
+}

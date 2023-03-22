@@ -190,19 +190,24 @@ def handleConnection(sock: Int, host: String, path: String): Unit =
 // uncomment @main, make sure all other @main s in other files are commented
 // use sbt> nativeLink to create executable
 // run it in two Terminal windows with:
-// nc -l -v 127.0.0.1 8080
-// ./target/scala-3.2.2/scala-native-out 127.0.0.1 8080
-// looking up address: 127.0.0.1 port: 8080
+// nc -l -v 127.0.0.1 8081
+// Listening on localhost 8081
+// Connection received on localhost 58200
+// GET / HTTP/1.1
+// Host: 127.0.0.1
+// ./target/scala-3.2.2/scala-native-out 127.0.0.1 8081 /
+// looking up address: 127.0.0.1 port: 8081
 // about to perform lookup
 // lookup returned 0
-// got addrinfo: flags 2, family 0, socktype 1,
-//       protocol 6
+// got addrinfo: flags 2, family 0, socktype 1, protocol 6
 // creating socket
 // socket returned fd 3
 // connecting
 // connect returned 0
-// I got a response: asd
-// done
+// wrote request
+// reading status line?
+// also use with:
+// ./target/scala-3.2.2/scala-native-out www.example.com 80 /
 @main
 def httpClient(args: String*): Unit =
   if args.length != 3 then

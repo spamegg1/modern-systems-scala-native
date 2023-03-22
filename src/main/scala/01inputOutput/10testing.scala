@@ -8,7 +8,7 @@ import stdio.*
 // @main
 def testNullTermination: Unit =
   val cString: CString = c"hello"
-  val strLen: CSize = strlen(cString)
+  val strLen: CSize = strlen(cString) // 6
   val buffer: Ptr[Byte] = malloc(strLen)
 
   strncpy(buffer, cString, strLen)
@@ -22,3 +22,10 @@ def testNullTermination: Unit =
       sizeof[CChar],
       chr
     )
+
+// the character 'h' is 1 bytes long and has binary value 104
+// the character 'e' is 1 bytes long and has binary value 101
+// the character 'l' is 1 bytes long and has binary value 108
+// the character 'l' is 1 bytes long and has binary value 108
+// the character 'o' is 1 bytes long and has binary value 111
+// the character '' is 1 bytes long and has binary value 0
