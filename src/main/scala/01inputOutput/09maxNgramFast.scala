@@ -1,7 +1,7 @@
 package `01inputOutput`
 
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
+import scalanative.unsafe.*
+import scalanative.libc.*
 import stdio.*
 
 // every line is of this form:
