@@ -1,43 +1,47 @@
-/***
- * Excerpted from "Modern Systems Programming with Scala Native",
- * published by The Pragmatic Bookshelf.
- * Copyrights apply to this code. It may not be used to create training material,
- * courses, books, articles, and the like. Contact us if you are in doubt.
- * We make no guarantees that this code is fit for any purpose.
- * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
-***/
-import scalanative.native._
-import slogging._
-import string._, stdlib._, stdio._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
-import scala.concurrent.Future
-import scala.concurrent.Promise
-import scala.util.{Try, Success, Failure}
-import scala.collection.mutable
-import LibUV._
-import LibUVConstants._
+package `07otherStuff`
 
-final case class RequestData(promise:Promise[String], var allocated:Long, var used:Long, var data:Ptr[Byte])
+import scalanative.unsafe.*
+import scalanative.libc.*
+// import slogging.*
+import string.*
+import stdlib.*
+import stdio.*
+import concurrent.{ExecutionContext, ExecutionContextExecutor}
+import concurrent.Future
+import concurrent.Promise
+import util.{Try, Success, Failure}
+import collection.mutable
+// import LibUV.*
+// import LibUVConstants.*
 
-object Curl extends LoopExtension with LazyLogging {
-  import LibCurl._, CurlConstants._
+final case class RequestData(
+    promise: Promise[String],
+    var allocated: Long,
+    var used: Long,
+    var data: Ptr[Byte]
+)
+
+object Curl extends LoopExtension with LazyLogging:
+  import LibCurl.*
+  import CurlConstants.*
 
   var activeRequests = 0
   var serial = 0L
   val requests = mutable.HashMap[Long,RequestData]()
   val loop = EventLoop.loop
-  var multi:MultiCurl = null
-  var handle:IdleHandle = null
-  def init():Unit = if (multi == null) {
-    global_init(1)
-    multi = multi_init()
-    handle = initDispatcher(loop,multi)
-    EventLoop.addExtension(this)
-    ()
-  }
+  var multi: MultiCurl = null
+  var handle: IdleHandle = null
+  def init(): Unit =
+    if multi == null then
+      global_init(1)
+      multi = multi_init()
+      handle = initDispatcher(loop, multi)
+      EventLoop.addExtension(this)
+      ()
 
-  def dataReady(ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Long]): CSize = {
-    printf(c"got back data ptr %p with private data %p %d\n",ptr, data, !data)
+
+  def dataReady(ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Long]): CSize =
+    stdio.printf(c"got back data ptr %p with private data %p %d\n", ptr, data, !data)
     val id = !data
     val request = requests(id)
     val read_size = size * nmemb
@@ -49,7 +53,7 @@ object Curl extends LoopExtension with LazyLogging {
       request.data = new_mem
       request.allocated = new_allocated_size
     }
-    memcpy(request.data + request.used, ptr, read_size)    
+    memcpy(request.data + request.used, ptr, read_size)
     // printf(c"req %d: got body line of size %d\n", !private_data._4, size)
     request.used = new_size
     val stringEnd = request.data + new_size
@@ -58,23 +62,21 @@ object Curl extends LoopExtension with LazyLogging {
     logger.debug(s"got data of size ${size} x ${nmemb} (req id: ${id}, used_size: ${request.used}, allocated_size: ${request.allocated})")
     // logger.trace(c"privateData address: %p, buffer address: %p\n", d, !d._1)
     return size * nmemb
-  }
+
 
   val write_cb = CFunctionPtr.fromFunction4(dataReady)
 
-  def writeHeader(ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[CurlBuffer]): CSize = {
-      // Refactor!
-      val len = stackalloc[Double]
-      !len = 0
-      println(easy_getinfo(data.cast[Ptr[Byte]], CONTENTLENGTHDOWNLOADT, len))
-      val byteSize = size * nmemb
-      printf(c"got header line of size %d, body length %f: ", !len, byteSize)
-      fwrite(ptr, size, nmemb, stdout)
-      return byteSize
-  }
+  def writeHeader(ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[CurlBuffer]): CSize =
+    // Refactor!
+    val len = stackalloc[Double](sizeof[Double])
+    !len = 0
+    println(easy_getinfo(data.cast[Ptr[Byte]], CONTENTLENGTHDOWNLOADT, len))
+    val byteSize = size * nmemb
+    stdio.printf(c"got header line of size %d, body length %f: ", !len, byteSize)
+    fwrite(ptr, size, nmemb, stdout)
+    byteSize
 
-
-  val makeRequest(method:Int, url:String, headers:Seq[(String,String)] = Seq(), body:Option[String] = None):CurlRequest = {
+  val makeRequest(method: Int, url:String, headers:Seq[(String,String)] = Seq(), body:Option[String] = None):CurlRequest =
     val data = RequestData(Promise[String](), 65536, 0, malloc(65536))
     val curlHandle = easy_init()
     Zone { implicit z =>
@@ -83,7 +85,7 @@ object Curl extends LoopExtension with LazyLogging {
     easy_setopt(curlHandle, WRITECALLBACK, write_cb)
     easy_setopt(curlHandle, WRITEDATA, idCell)
     easy_setopt(curlHandle, PRIVATEDATA, idCell)
-  }
+
 
   def simpleGet(url:String, headers:Seq[(String,String)]):CurlRequest = {
     simpleRequest(GET,url,headers,None)
@@ -94,7 +96,7 @@ object Curl extends LoopExtension with LazyLogging {
   }
 
   def makeRequestAsync(method:Int, url:String, headers:Seq[(String,String)] = Seq(), body:Option[String] = None):Future[String] = {
-    val id = serial 
+    val id = serial
     val idCell = malloc(sizeof[Long]).cast[Ptr[Long]]
     !idCell = id
     printf(c"created malloc cell at %p to hold serial # %d\n", idCell, id)
@@ -158,17 +160,18 @@ object Curl extends LoopExtension with LazyLogging {
   def close():Unit = {
     uv_idle_stop(handle)
   }
-}
+
 
 @link("curl")
-@extern object LibCurl {    
+@extern
+object LibCurl:
   type MultiCurl = Ptr[Byte]
   type CurlBuffer = CStruct2[CString, CSize]
   type CurlRequest = CStruct4[Ptr[Byte],Long,Long,Int]
-  type CurlMessage = CStruct3[Int, Curl, Ptr[Byte]]  
+  type CurlMessage = CStruct3[Int, Curl, Ptr[Byte]]
 
   type Curl = Ptr[Byte]
-  type CurlOption = CInt   
+  type CurlOption = CInt
   type CurlInfo = CInt
 
   @name("curl_global_init")
@@ -188,7 +191,7 @@ object Curl extends LoopExtension with LazyLogging {
 
   @name("curl_global_cleanup")
   def global_cleanup():Unit = extern
-  
+
   @name("curl_easy_cleanup")
   def easy_cleanup(handle: Curl): Unit = extern
 
@@ -216,12 +219,12 @@ object Curl extends LoopExtension with LazyLogging {
   @name("curl_multi_perform")
   def multi_perform(multi:MultiCurl, numhandles:Ptr[Int]):Int = extern // OMIT?
 
-}
+object CurlConstants:
+  import LibCurl.*
 
-object CurlConstants {
-  val URL:CurlOption = 10002
-  val PORT:CurlOption = 10003
-  val USERPASSWORD:CurlOption = 10005
+  val URL: CurlOption = 10002
+  val PORT: CurlOption = 10003
+  val USERPASSWORD: CurlOption = 10005
 
   val READDATA:CurlOption = 10009
   val HEADERDATA:CurlOption = 10029
@@ -243,7 +246,7 @@ object CurlConstants {
   val SOCKETFUNCTION:CurlOption = 20001
   type SocketCallback = Function5[Curl, Ptr[Byte], CurlAction, Ptr[Byte], Ptr[Byte], CInt]
   val TIMERFUNCTION:CurlOption = 20004
-  type TimerCallback = Function4[MultiCurl, Long, Ptr[Byte], CInt]
+  type TimerCallback = Function4[MultiCurl, Long, Ptr[Byte], CInt, Unit] // ???
 
   type CurlAction = CInt
   val POLL_NONE:CurlAction = 0
@@ -251,5 +254,3 @@ object CurlConstants {
   val POLL_OUT:CurlAction = 2
   val POLL_INOUT:CurlAction = 3
   val POLL_REMOVE:CurlAction = 4
-   
-}

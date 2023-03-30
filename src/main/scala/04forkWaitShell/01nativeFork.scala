@@ -10,7 +10,7 @@ case class Command(path: String, args: String, env: Map[String, String])
 
 import util.*
 
-@main
+// @main
 def nativeFork(args: String*): Unit =
   if args.size == 0 then
     println("bye")

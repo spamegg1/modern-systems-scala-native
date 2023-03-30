@@ -18,13 +18,17 @@ So I...
 
 I noticed many things have changed.
 
-- The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize` is actually `ULong`, so we need `.toULong` conversion. For this, we need to import:
+#### `CSize` instead of `Int`
+
+The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize` is actually `ULong`, so we need `.toULong` conversion. For this, we need to import:
 
 ```scala
 import scalanative.unsigned.UnsignedRichInt
 ```
 
-- There are many function calls in the book that only take type arguments and no value arguments, such as `stackalloc[Int]` etc. In current Scala Native, we need to provide value parameters:
+#### Type arguments alone not enough for `stackalloc`
+
+There are many function calls in the book that only take type arguments and no value arguments, such as `stackalloc[Int]` etc. In current Scala Native, we need to provide value parameters:
 
 ```scala
 stackalloc[Int](sizeof[Int])
@@ -32,7 +36,9 @@ stackalloc[Ptr[Byte]](sizeof[Ptr[Byte]])
 // etc.
 ```
 
-- Function pointer classes now have different syntax. The book overrides classes like `CFuncPtr2` by providing a custom `apply` method like so:
+#### Creating function pointers
+
+Function pointer classes now have different syntax. The book overrides classes like `CFuncPtr2` by providing a custom `apply` method like so:
 
 ```scala
 val by_count = new CFuncPtr2[Ptr[Byte],Ptr[Byte],Int] {
@@ -57,7 +63,9 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int](
  )
 ```
 
-- The book uses the usual C idiom of *allocating memory that is 1 more than the length of a string, copying it, then manually null-terminating the new copy*:
+#### String copying and null-terminating
+
+The book uses the usual C idiom of *allocating memory that is 1 more than the length of a string, copying it, then manually null-terminating the new copy*:
 
 ```scala
 val string_ptr = toCString(arg) // prepare pointer for malloc
@@ -67,9 +75,9 @@ string.strncpy(dest_str, string_ptr, arg.size + 1) // copy
 dest_str(string_len) = 0 // manually null-terminate the new copy
 ```
 
-If you do this you'll get errors: first is the `CSize` errors, for which you have to use `.toULong`; the second is `none of the overloaded alternatives for method update of Ptr[Byte]...` which complains about the null termination. We can't use an `Int` to update the value at a pointer / array location. It wants `Word` or `UWord` but conversion methods don't work.
+If you do this you'll get errors: first is the `CSize` errors, for which you have to use `.toULong`; the second is `none of the overloaded alternatives for method update of Ptr[Byte]...` which complains about the null termination. We can't use an `Int` to update the value at a pointer / array location. It wants `Word` or `UWord` for the index input, but conversion methods from `Int` to `Word` don't exist.
 
-I tested it, and using `strncpy` copies the null-termination of the original string too! Here's the test code:
+I tested it, and using `strncpy` copies the null-termination of the original string too! Here's the test code (notice Scala 3 syntax):
 
 ```scala
 @main
@@ -111,5 +119,24 @@ val stringPtr = toCString(arg) // create pointer
 val stringLen = string.strlen(stringPtr) // calculate length
 val destString = stdlib.malloc(stringLen).asInstanceOf[Ptr[Byte]] // allocate
 string.strncpy(destString, stringPtr, arg.size.toULong) // copy
+```
+
+#### Command line arguments: `String*` instead of `Array[String]`
+
+The book uses the old-school C-style "`argv`" approach to command-line arguments from Scala 2:
+
+```scala
+def main(args: Array[String]): Unit = {
+  ...  
+```
+
+This does not work with Scala 3 `@main` annotations, as it will complain about `no given instance of type scala.util.CommandLineParser.fromString[Array[String]]...` Things have changed in Scala 3 when it comes to main methods, command line arguments and code-running. They have been greatly simplified, the main method no longer has to be named "main", and now there is greater capability to use any user-defined type for the command-line arguments, but the compiler has to be "taught" how to do it. 
+
+We could do that by providing the given instance... but instead we fall back on the "arbitrary number of parameters of the same type" approach (and rename the method while we're at it):
+
+```scala
+@main
+def nativePipeTwo(args: String*): Unit =
+  ...
 ```
 

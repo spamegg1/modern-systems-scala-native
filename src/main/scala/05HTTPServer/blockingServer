@@ -1,0 +1,57 @@
+package `05blockingServer`
+
+import scalanative.unsafe.*
+import scalanative.unsigned.*
+import scalanative.libc.*
+// import scalanative.native.*
+import stdio.*, string.*, stdlib.*
+import scalanative.posix.unistd.*
+import scalanative.posix.sys.socket.*
+import scalanative.posix.netinet.in.*
+import scalanative.posix.arpa.inet.*
+
+def serve(port: UShort): Unit =
+  // Allocate and initialize the server address
+  val addrSize = sizeof[sockaddr_in]
+  val serverAddress = malloc(addrSize).cast[Ptr[sockaddr_in]]
+  !serverAddress._1 = AF_INET.toUShort // IP Socket
+  !serverAddress._2 = htons(port) // port
+  !serverAddress._3._1 = INADDR_ANY // bind to 0.0.0.0
+
+  // Bind and listen on a socket
+  val sockFd = socket(AF_INET, SOCK_STREAM, 0)
+  val serverSockAddr = serverAddress.cast[Ptr[sockaddr]]
+  val bindResult = bind(sockFd, serverSockAddr, addrSize.toUInt)
+  println(s"bind returned $bindResult")
+
+  val listenResult = listen(sockFd, 128)
+  println(s"listen returned $listenResult")
+  println(s"accepting connections on port $port")
+
+  // Main accept() loop
+  while true
+  do
+    val connectionFd = accept(sockFd, null, null)
+    println(s"accept returned fd $connectionFd")
+    // we will replace handleConnection with fork_and_handle shortly
+    handleConnection(connectionFd)
+
+  close(sockFd)
+
+def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
+  val message =
+    c"Connection accepted!  Enter a message and it will be echoed back\n"
+
+  val prompt_write = write(connSocket, message, strlen(message))
+
+  val lineBuffer = malloc(maxSize)
+  while true
+  do
+    val bytesRead = read(connSocket, lineBuffer, maxSize)
+    println(s"read $bytesRead bytes")
+
+    // This means the connection has been closed by the client
+    if bytesRead == EOF then return
+
+    val bytesWritten = write(connSocket, lineBuffer, bytesRead)
+    println(s"wrote $bytesWritten bytes")

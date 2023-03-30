@@ -1,0 +1,24 @@
+object PipeStream:
+  def makeStream[T]
+  def fromSeq[T](s: Seq[T])(using e: EncodeJSON[T]): PipeStream[T]
+
+case class PipeStream[T](inFd:Ptr[File], outFd:Ptr[File]):
+  def map[U](f: T -> U)(using d: DecodeJSON[T], e: EncodeJSON[U]): PipeStream[U]
+  def reduce[U](init: U, accum: (T, U) -> U): U
+
+def map[I, O](list: List[I], f: I => O): List[O] = for i <- list yield f(i)
+
+def reduce[I](list: List[I], f: (I, O) => O, init: O): O =
+  var accum = init
+  for i <- list do accum = accum(i, accum)
+  accum
+
+def readAHugeFile(filename:String) = ???
+
+val files = Seq("big_file_1", "big_file_2", "big_file_3", "big_file_4")
+
+for (filename <- files) do readAHugeFile(filename)
+
+val processIds = files.map(filename => doFork{readAHugeFile(filename)})
+
+for pid <- processIds do await(pid)

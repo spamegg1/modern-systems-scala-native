@@ -1,0 +1,24 @@
+package `05acceptExample`
+
+import scalanative.unsafe.*
+import scalanative.unsigned.*
+import scalanative.libc.*
+// import scalanative.native.*
+import stdio.*, string.*, stdlib.*
+import scalanative.posix.unistd.*
+import scalanative.posix.sys.socket.*
+import scalanative.posix.netinet.in.*
+import scalanative.posix.arpa.inet.*
+
+val clientAddress = stackalloc[sockaddr_in](sizeof[sockaddr_in])
+val clientSockAddr = clientAddress.cast[Ptr[sockaddr]]
+val clientAddrSize = stackalloc[UInt]
+!clientAddrSize = sizeof[sockaddr_in].toUInt
+
+val connectionSocket = accept(serverSocket, clientSockAddr,
+                               clientAddrSize)
+println(
+  s"""accept returned fd $connectionSocket;
+     |connected client address is
+     |${format_sockaddr_in(clientAddress)}""".stripMargin
+)

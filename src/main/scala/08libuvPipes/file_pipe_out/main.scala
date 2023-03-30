@@ -1,174 +1,130 @@
-/***
- * Excerpted from "Modern Systems Programming with Scala Native",
- * published by The Pragmatic Bookshelf.
- * Copyrights apply to this code. It may not be used to create training material,
- * courses, books, articles, and the like. Contact us if you are in doubt.
- * We make no guarantees that this code is fit for any purpose.
- * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
-***/
-import scala.scalanative.unsafe._
-import scala.scalanative.libc._
+package `08filePipeOut`
+
+import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
+import scalanative.unsafe.*
+import scalanative.libc.*
 import collection.mutable
-import scala.util.{Try,Success,Failure}
-import scala.concurrent.{Future,ExecutionContext}
-import scala.concurrent.{Promise}
+import scala.util.{Try, Success, Failure}
+import concurrent.{Future, ExecutionContext, Promise}
 
-trait Pipe[T,U] {
-  val handlers = mutable.Set[Pipe[U,_]]()
+trait Pipe[T, U]:
+  val handlers = mutable.Set[Pipe[U, _]]()
+  def feed(input: T): Unit
+  def done(): Unit = for h <- handlers do h.done()
 
-  def feed(input:T):Unit
-  def done():Unit = {
-    for (h <- handlers) {
-      h.done()
-    }
-  }
-
-  def addDestination[V](dest:Pipe[U,V]):Pipe[U,V] = {
+  def addDestination[V](dest: Pipe[U, V]): Pipe[U, V] =
     handlers += dest
     dest
-  }
 
-  case class SyncPipe[T,U](f:T => U) extends Pipe[T,U] {
-    override def feed(input:T):Unit = {
+  case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
+    override def feed(input: T): Unit =
       val output = f(input)
-      for (h <- handlers) {
-        h.feed(output)
-      }
-    }
-  }
+      for h <- handlers do h.feed(output)
 
-  def map[V](g:U => V):Pipe[U,V] = {
-    addDestination(SyncPipe(g))
-  }
+  def map[V](g: U => V): Pipe[U, V] = addDestination(SyncPipe(g))
 
-  case class ConcatPipe[T,U](f:T => Seq[U]) extends Pipe[T,U] {
-    override def feed(input:T):Unit = {
+  case class ConcatPipe[T, U](f: T => Seq[U]) extends Pipe[T, U]:
+    override def feed(input: T): Unit =
       val output = f(input)
-      for (h <- handlers;
-           o <- output) {
-        h.feed(o)
-      }
-    }
-  }
+      for
+        h <- handlers
+        o <- output
+      do h.feed(o)
 
-  def mapConcat[V](g:U => Seq[V]):Pipe[U,V] = {
-    addDestination(ConcatPipe(g))
-  }
+  def mapConcat[V](g: U => Seq[V]): Pipe[U, V] = addDestination(ConcatPipe(g))
 
-  case class OptionPipe[T,U](f:T => Option[U]) extends Pipe[T,U] {
-    override def feed(input:T):Unit = {
+  case class OptionPipe[T, U](f: T => Option[U]) extends Pipe[T, U]:
+    override def feed(input: T): Unit =
       val output = f(input)
-      for (h <- handlers;
-           o <- output) {
-        h.feed(o)
-      }
-    }
-  }
+      for
+        h <- handlers
+        o <- output
+      do h.feed(o)
 
-  def mapOption[V](g:U => Option[V]):Pipe[U,V] = {
+  def mapOption[V](g: U => Option[V]): Pipe[U, V] =
     addDestination(OptionPipe(g))
-  }
 
-  case class AsyncPipe[T,U](f:T => Future[U])(implicit ec:ExecutionContext) extends Pipe[T,U] {
-    override def feed(input:T):Unit = {
-      f(input).map { o =>
-        for (h <- handlers) {
-          h.feed(o)
-        }
-      }
-    }
-  }
+  case class AsyncPipe[T, U](f: T => Future[U])(implicit ec: ExecutionContext)
+      extends Pipe[T, U]:
+    override def feed(input: T): Unit =
+      f(input).map(o => for h <- handlers do h.feed(o))
 
-  def mapAsync[V](g:U => Future[V])(implicit ec:ExecutionContext):Pipe[U,V] = {
-    addDestination(AsyncPipe(g))
-  }
+  def mapAsync[V](g: U => Future[V])(implicit
+      ec: ExecutionContext
+  ): Pipe[U, V] = addDestination(AsyncPipe(g))
 
-  def onComplete(implicit ec:ExecutionContext):Future[Unit] = {
+  def onComplete(implicit ec: ExecutionContext): Future[Unit] =
     val sink = OnComplete[U]()
     addDestination(sink)
-    return sink.promise.future
-  }
-}
+    sink.promise.future
 
-case class OnComplete[T]()(implicit ec:ExecutionContext) extends Pipe[T,Unit] {
+case class OnComplete[T]()(implicit ec: ExecutionContext) extends Pipe[T, Unit]:
   val promise = Promise[Unit]()
-  override def feed(input:T) = {}
-
-  override def done() = {
+  override def feed(input: T) = {}
+  override def done() =
     println("done, completing promise")
     promise.success(())
-  }
-}
 
-case class CounterSink[T]() extends Pipe[T,Nothing] {
+case class CounterSink[T]() extends Pipe[T, Nothing]:
   var counter = 0
-  override def feed(input:T) = {
-    counter += 1
-  }
-}
+  override def feed(input: T) = counter += 1
 
-case class FileOutputPipe(fd:Int, serial:Int, async:Boolean) 
-  extends Pipe[String,Unit] {
-  import LibUV._, LibUVConstants._
-  import stdlib._, string._
+case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
+    extends Pipe[String, Unit]:
+  import LibUV.*, LibUVConstants.*
+  import stdlib.*, string.*
   var offset = 0L
 
-  val writeCB = if (async) { FileOutputPipe.writeCB } else null
+  val writeCB = if async then FileOutputPipe.writeCB else null
 
-  override def feed(input:String):Unit = {
-    val output_size = input.size
+  override def feed(input: String): Unit =
+    val outputSize = input.size
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
 
-    val output_buffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    output_buffer._1 = malloc(output_size)
+    val outputBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
+    outputBuffer._1 = malloc(outputSize.toULong)
     Zone { implicit z =>
-      val output_string = toCString(input)
-      strncpy(output_buffer._1, output_string, output_size)
+      val outputString = toCString(input)
+      strncpy(outputBuffer._1, outputString, outputSize.toULong)
     }
-    output_buffer._2 = output_size
-    !req = output_buffer.asInstanceOf[Ptr[Byte]]
+    outputBuffer._2 = outputSize.toULong
+    !req = outputBuffer.asInstanceOf[Ptr[Byte]]
 
-    uv_fs_write(EventLoop.loop,req,fd,output_buffer,1,offset,writeCB)
-    offset += output_size
-  }
+    uv_fs_write(EventLoop.loop, req, fd, outputBuffer, 1, offset, writeCB)
+    offset += outputSize
 
-  override def done():Unit = {
+  override def done(): Unit =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
-    uv_fs_close(EventLoop.loop,req,fd,null)
-    FileOutputPipe.active_streams -= serial
-  }
-}
+    uv_fs_close(EventLoop.loop, req, fd, null)
+    FileOutputPipe.activeStreams -= serial
 
-object FileOutputPipe {
-  import LibUV._, LibUVConstants._
-  import stdlib._
+object FileOutputPipe:
+  import LibUV.*, LibUVConstants.*
+  import stdlib.*
 
-  var active_streams:mutable.Set[Int] = mutable.Set()
+  var activeStreams: mutable.Set[Int] = mutable.Set()
   var serial = 0
 
-  def apply(path:CString, async:Boolean = true):FileOutputPipe = {
-    active_streams += serial
+  def apply(path: CString, async: Boolean = true): FileOutputPipe =
+    activeStreams += serial
 
     stdio.printf(c"opening %s for writing..\n", path)
-    val fd = util.open(path,O_RDWR + O_CREAT,default_permissions)
+    val fd = util.open(path, O_RDWR + O_CREAT, default_permissions)
     println(s"got back fd: $fd")
 
-
-    val pipe = FileOutputPipe(fd,serial,async)
+    val pipe = FileOutputPipe(fd, serial, async)
     serial += 1
     println(s"initialized $pipe")
     pipe
-  }
 
-  val writeCB = new FSCB {
-    def apply(req:FSReq):Unit = {
-      println("write completed")
-      val resp_buffer = (!req).asInstanceOf[Ptr[Buffer]]
-      stdlib.free(resp_buffer._1)
-      stdlib.free(resp_buffer.asInstanceOf[Ptr[Byte]])
-      stdlib.free(req.asInstanceOf[Ptr[Byte]])
-    }
-  }
+  // val writeCB = new FSCB:
+  val writeCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]((req: FSReq) =>
+    println("write completed")
+    val resp_buffer = (!req).asInstanceOf[Ptr[Buffer]]
+    stdlib.free(resp_buffer._1)
+    stdlib.free(resp_buffer.asInstanceOf[Ptr[Byte]])
+    stdlib.free(req.asInstanceOf[Ptr[Byte]])
+  )
 
   // def on_shutdown(shutdownReq:ShutdownReq, status:Int):Unit = {
   //   val client = (!shutdownReq).cast[PipeHandle]
@@ -181,117 +137,86 @@ object FileOutputPipe {
   //   stdlib.free(client.cast[Ptr[Byte]])
   // }
   // val closeCB = CFunctionPtr.fromFunction1(on_close)
-}
 
-case class Tokenizer(separator:String) extends Pipe[String,String] {
+case class Tokenizer(separator: String) extends Pipe[String, String]:
   var buffer = ""
 
-  def scan(input:String):Seq[String] = {
-      println(s"scanning: '$input'")
-      buffer = buffer + input
-      var o:Seq[String] = Seq()
-      while (buffer.contains(separator)) {
-        val space_position = buffer.indexOf(separator)
-        val word = buffer.substring(0,space_position)
+  def scan(input: String): Seq[String] =
+    println(s"scanning: '$input'")
+    buffer = buffer + input
+    var o: Seq[String] = Seq()
+    while buffer.contains(separator) do
+      val space_position = buffer.indexOf(separator)
+      val word = buffer.substring(0, space_position)
+      o = o :+ word
+      buffer = buffer.substring(space_position + 1)
+    o
 
-        o = o :+ word
+  override def feed(input: String): Unit =
+    for
+      h <- handlers
+      word <- scan(input)
+    do h.feed(word)
 
-        buffer = buffer.substring(space_position + 1)
-      }
-      o
-
-  }
-  override def feed(input:String):Unit = {
-    for (h    <- handlers;
-         word <- scan(input)) {
-           h.feed(word)
-    }
-  }
-
-  override def done():Unit = {
+  override def done(): Unit =
     println(s"done!  current buffer: $buffer")
-    for (h <- handlers) {
-           h.feed(buffer)
-           h.done()
-    }
-  }
-}
-
-case class FoldPipe[I,O](init:O)(f:(O,I) => O) extends Pipe[I,O] {
-  var accum = init
-
-  override def feed(input:I):Unit = {
-    accum = f(accum,input)
-    for (h <- handlers) {
-      h.feed(accum)
-    }
-  }
-
-  override def done():Unit = {
-    for (h <- handlers) {
+    for h <- handlers do
+      h.feed(buffer)
       h.done()
-    }
-  }
-}
 
-object Pipe {
-  case class PipeSource[I]() extends Pipe[I,I] {
-    override def feed(input:I):Unit = {
-      for (h <- handlers) {
-        h.feed(input)
-      }
-    }
-  }
-  def source[I]:Pipe[I,I] = {
-    PipeSource[I]()
-  }
-}
+case class FoldPipe[I, O](init: O)(f: (O, I) => O) extends Pipe[I, O]:
+  var accum = init
+  override def feed(input: I): Unit =
+    accum = f(accum, input)
+    for h <- handlers do h.feed(accum)
 
-case class FilePipe(serial:Long) extends Pipe[String,String] {
-  override def feed(input:String):Unit = {
-    for (h <- handlers) {
-      h.feed(input)
-    }
-  }
-}
+  override def done(): Unit = for h <- handlers do h.done()
 
-object FilePipe {
-  import LibUV._, LibUVConstants._
-  type FilePipeState = CStruct3[Int,Ptr[Buffer],Long] // fd, buffer, offset
+object Pipe:
+  case class PipeSource[I]() extends Pipe[I, I]:
+    override def feed(input: I): Unit = for (h <- handlers) do h.feed(input)
 
-  var active_streams:mutable.Set[Int] = mutable.Set()
-  var handlers = mutable.HashMap[Int,Pipe[String,String]]()
+  def source[I]: Pipe[I, I] = PipeSource[I]()
+
+case class FilePipe(serial: Long) extends Pipe[String, String]:
+  override def feed(input: String): Unit = for h <- handlers do h.feed(input)
+
+object FilePipe:
+  import LibUV.*, LibUVConstants.*
+  type FilePipeState = CStruct3[Int, Ptr[Buffer], Long] // fd, buffer, offset
+
+  var activeStreams: mutable.Set[Int] = mutable.Set()
+  var handlers = mutable.HashMap[Int, Pipe[String, String]]()
   var serial = 0
 
+  def apply(path: CString): Pipe[String, String] =
+    val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
+    println("opening file")
+    val fd = util.open(path, 0, 0)
+    stdio.printf(c"open file at %s returned %d\n", path, fd)
 
-def apply(path:CString):Pipe[String,String] = {
-  val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
-  println("opening file")
-  val fd = util.open(path,0,0)
-  stdio.printf(c"open file at %s returned %d\n", path, fd)
+    val state = stdlib
+      .malloc(sizeof[FilePipeState])
+      .asInstanceOf[Ptr[FilePipeState]]
+    val buf = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
+    buf._1 = stdlib.malloc(4096.toULong)
+    buf._2 = 4095.toULong
+    state._1 = fd
+    state._2 = buf
+    state._3 = 0L
+    !req = state.asInstanceOf[Ptr[Byte]]
 
-  val state = stdlib.malloc(sizeof[FilePipeState])
-    .asInstanceOf[Ptr[FilePipeState]]
-  val buf = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-  buf._1 = stdlib.malloc(4096)
-  buf._2 = 4095
-  state._1 = fd
-  state._2 = buf
-  state._3 = 0L
-  !req = state.asInstanceOf[Ptr[Byte]]
+    println("about to read")
+    uv_fs_read(EventLoop.loop, req, fd, buf, 1, -1, readCB)
+    println("read started")
+    val pipe = Pipe.source[String]
+    handlers(fd) = pipe
+    println("about to return")
+    activeStreams += fd
+    pipe
 
-  println("about to read")
-  uv_fs_read(EventLoop.loop,req,fd,buf,1,-1,readCB)
-  println("read started")
-  val pipe = Pipe.source[String]
-  handlers(fd) = pipe
-  println("about to return")
-  active_streams += fd
-  pipe
-}
-
-val readCB:FSCB = new FSCB {
-  def apply(req:FSReq):Unit = {
+  // val readCB: FSCB = new FSCB:
+  val readCB: FSCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]((req: FSReq) =>
     println("read callback fired!")
     val res = uv_fs_get_result(req)
     println(s"got result: $res")
@@ -302,99 +227,104 @@ val readCB:FSCB = new FSCB {
     val offset = state_ptr._3
     printf("state: fd %d, offset %d\n", fd, offset.toInt)
 
-    if (res > 0) {
+    if res > 0 then
       println("producing string")
-      (buf._1)(res) = 0
+      // (buf._1)(res) = 0 // null termination?
       val output = fromCString(buf._1)
       val pipe = handlers(fd)
       pipe.feed(output)
       println("continuing")
       state_ptr._3 = state_ptr._3 + res
-      uv_fs_read(EventLoop.loop,req,fd,state_ptr._2,1,state_ptr._3,readCB)
-    } else if (res == 0) {
+      uv_fs_read(
+        EventLoop.loop,
+        req,
+        fd,
+        state_ptr._2,
+        1,
+        state_ptr._3,
+        readCB
+      )
+    else if res == 0 then
       println("done")
       val pipe = handlers(fd)
       pipe.done()
-      active_streams -= fd
-    } else {
+      activeStreams -= fd
+    else
       println("error")
-      active_streams -= fd
-    }
-  }
-}
-}
+      activeStreams -= fd
+  )
 
-object SyncPipe {
-  import LibUV._, LibUVConstants._
+object SyncPipe:
+  import LibUV.*, LibUVConstants.*
 
-  var active_streams:mutable.Set[Int] = mutable.Set()
-  var handlers = mutable.HashMap[Int,Pipe[String,String]]()
+  var activeStreams: mutable.Set[Int] = mutable.Set()
+  var handlers = mutable.HashMap[Int, Pipe[String, String]]()
   var serial = 0
 
-  def stream(fd:Int):Pipe[String,String] = {
+  def stream(fd: Int): Pipe[String, String] =
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
-    uv_pipe_init(EventLoop.loop,handle,0)
-    val pipe_data = handle.asInstanceOf[Ptr[Int]]
-    !pipe_data = serial
-    active_streams += serial
+    uv_pipe_init(EventLoop.loop, handle, 0)
+    val pipeData = handle.asInstanceOf[Ptr[Int]]
+    !pipeData = serial
+    activeStreams += serial
     val pipe = Pipe.source[String]
     handlers(serial) = pipe
 
     serial += 1
-    uv_pipe_open(handle,fd)
-    uv_read_start(handle,allocCB,readCB)
+    uv_pipe_open(handle, fd)
+    uv_read_start(handle, allocCB, readCB)
     pipe
-  }
 
-  val allocCB = new AllocCB {
-    def apply(client:PipeHandle, size:CSize, buffer:Ptr[Buffer]):Unit = {
-      val buf = stdlib.malloc(4096)
-      buffer._1 = buf
-      buffer._2 = 4096
-    }
-  }
+  // val allocCB = new AllocCB:
+  val allocCB =
+    CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
+      (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
+        val buf = stdlib.malloc(4096.toULong)
+        buffer._1 = buf
+        buffer._2 = 4096.toULong
+    )
 
-  val readCB = new ReadCB {
-    def apply(handle:PipeHandle,size:CSize,buffer:Ptr[Buffer]):Unit = {
-      val pipe_data = handle.asInstanceOf[Ptr[Int]]
-      val pipe_id = !pipe_data
-      println(s"read $size bytes from pipe $pipe_id")
-      if (size < 0) {
-        println("size < 0, closing")
-        active_streams -= pipe_id
-        val pipe_destination = handlers(pipe_id)
-        pipe_destination.done()
-        handlers.remove(pipe_id)
-      } else {
-        val data_buffer = stdlib.malloc(size + 1)
-        string.strncpy(data_buffer, buffer._1, size + 1)
-        val data_string = fromCString(data_buffer)
-        stdlib.free(data_buffer)
-        val pipe_destination = handlers(pipe_id)
-        pipe_destination.feed(data_string.trim())
-      }
-    }
-  }
-}
+  // val readCB = new ReadCB:
+  val readCB: ReadCB =
+    CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit](
+      (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
+        val pipeData = handle.asInstanceOf[Ptr[Int]]
+        val pipeId = !pipeData
+        println(s"read $size bytes from pipe $pipeId")
 
-object Main {
-  import LibUV._, LibUVConstants._
-  implicit val ec = EventLoop
-  def main(args:Array[String]):Unit = {
-    val p = FilePipe(c"./data.txt")
-    .map { d =>
+        if size < 0 then
+          println("size < 0, closing")
+          activeStreams -= pipeId
+          val pipeDestination = handlers(pipeId)
+          pipeDestination.done()
+          handlers.remove(pipeId)
+        else
+          val dataBuffer = stdlib.malloc(size.toULong) // removed +1
+          string.strncpy(dataBuffer, buffer._1, size.toULong) // removed +1
+          val dataString = fromCString(dataBuffer)
+          stdlib.free(dataBuffer)
+          val pipeDestination = handlers(pipeId)
+          pipeDestination.feed(dataString.trim())
+    )
+
+import LibUV.*, LibUVConstants.*
+implicit val ec: ExecutionContext = EventLoop
+
+// @main
+def filePipeOut(args: String*): Unit =
+  val p = FilePipe(c"./data.txt")
+    .map(d =>
       println(s"consumed $d")
       d
-    }.addDestination(Tokenizer("\n"))
+    )
+    .addDestination(Tokenizer("\n"))
     .addDestination(Tokenizer(" "))
-    .map { d => d + "\n" }
+    .map(d => d + "\n")
     .addDestination(FileOutputPipe(c"./output.txt", false))
-    println("running")
-    uv_run(EventLoop.loop,UV_RUN_DEFAULT)
-  }
-}
+
+  println("running")
+  uv_run(EventLoop.loop, UV_RUN_DEFAULT)
 
 @extern
-object util {
-  def open(path:CString, flags:Int, mode:Int):Int = extern
-}
+object util:
+  def open(path: CString, flags: Int, mode: Int): Int = extern

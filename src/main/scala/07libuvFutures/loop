@@ -1,30 +1,24 @@
-/***
- * Excerpted from "Modern Systems Programming with Scala Native",
- * published by The Pragmatic Bookshelf.
- * Copyrights apply to this code. It may not be used to create training material,
- * courses, books, articles, and the like. Contact us if you are in doubt.
- * We make no guarantees that this code is fit for any purpose.
- * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
-***/
-object EventLoop extends ExecutionContextExecutor {
-  import LibUV._, LibUVConstants._
+package `07otherStuff`
+
+object EventLoop extends ExecutionContextExecutor:
+  import LibUV.*
+  import LibUVConstants.*
+
   val loop = uv_default_loop()
   private val taskQueue = ListBuffer[Runnable]()
   private val extensions = ListBuffer[LoopExtension]()
 
-  private def dispatch(handle:PrepareHandle):Unit = {
-    while (taskQueue.nonEmpty) {
+  private def dispatch(handle:PrepareHandle):Unit =
+    while taskQueue.nonEmpty do
       val runnable = taskQueue.remove(0)
-      try {
+      try
         runnable.run()
-      } catch {
+      catch
         case t: Throwable => reportFailure(t)
-      }
-    }
-    if (taskQueue.isEmpty) {
-      LibUV.uv_prepare_stop(handle)
-    }
-  }
+
+
+    if taskQueue.isEmpty then LibUV.uv_prepare_stop(handle)
+
 
   private val dispatch_cb = CFunctionPtr.fromFunction1(dispatch)
 
@@ -32,22 +26,20 @@ object EventLoop extends ExecutionContextExecutor {
   uv_prepare_init(loop, handle)
   uv_prepare_start(handle, dispatch_cb)
 
-  def execute(runnable: Runnable): Unit =
-    taskQueue += runnable
+  def execute(runnable: Runnable): Unit = taskQueue += runnable
 
-  def reportFailure(t: Throwable): Unit =
-    t.printStackTrace()
+  def reportFailure(t: Throwable): Unit = t.printStackTrace()
 
-  def run(mode:Int = UV_RUN_DEFAULT):Unit = {
+  def run(mode:Int = UV_RUN_DEFAULT):Unit =
     var continue = 1
-    while (continue != 0) {
-        continue = uv_run(loop, mode)
-    }
-  }
-}
+    while continue != 0 do
+      continue = uv_run(loop, mode)
+
+
+
 
 @extern
-object LibUV {
+object LibUV:
   type Loop = Ptr[Byte]
 
   def uv_default_loop(): Loop = extern
@@ -71,10 +63,10 @@ object LibUV {
   def uv_prepare_init(loop:Loop, handle:PrepareHandle):Int = extern
   def uv_prepare_start(handle:PrepareHandle, cb: PrepareCB):Int = extern
   def uv_prepare_stop(handle:PrepareHandle):Unit = extern
-}
 
-object LibUVConstants {
-  import LibUV._
+
+object LibUVConstants:
+  import LibUV.*
 
   // uv_run_mode
   val UV_RUN_DEFAULT = 0
@@ -100,16 +92,12 @@ object LibUVConstants {
   val UV_DISCONNECT = 4
   val UV_PRIORITIZED = 8
 
-  def check_error(v:Int, label:String):Int = {
-      if (v == 0) {
-        // println(s"$label returned $v")
-        v
-      } else {
-        val error = fromCString(uv_err_name(v))
-        val message = fromCString(uv_strerror(v))
-        println(s"$label returned $v: $error: $message")
-        v
-      }
-  }
-}
-
+  def check_error(v: Int, label: String): Int =
+    if v == 0 then
+      // println(s"$label returned $v")
+      v
+    else
+      val error = fromCString(uv_err_name(v))
+      val message = fromCString(uv_strerror(v))
+      println(s"$label returned $v: $error: $message")
+      v

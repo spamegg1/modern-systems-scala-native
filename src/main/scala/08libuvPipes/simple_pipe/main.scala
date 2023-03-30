@@ -1,118 +1,101 @@
-/***
- * Excerpted from "Modern Systems Programming with Scala Native",
- * published by The Pragmatic Bookshelf.
- * Copyrights apply to this code. It may not be used to create training material,
- * courses, books, articles, and the like. Contact us if you are in doubt.
- * We make no guarantees that this code is fit for any purpose.
- * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
-***/
-import scala.scalanative.unsafe._
-import scala.scalanative.libc.stdlib
-import scala.scalanative.libc.string
+package `08simplePipe`
+
+import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
+import scalanative.unsafe.*
+import scalanative.libc.stdlib
+import scalanative.libc.string
 import collection.mutable
-import scala.util.{Try,Success,Failure}
+import scala.util.{Try, Success, Failure}
 
-trait Pipe[T,U] {
-  val handlers = mutable.Set[Pipe[U,_]]()
+trait Pipe[T, U]:
+  val handlers = mutable.Set[Pipe[U, _]]()
 
-  def feed(input:T):Unit
-  def done():Unit = {
-    for (h <- handlers) {
-      h.done()
-    }
-  }
+  def feed(input: T): Unit
+  def done(): Unit = for h <- handlers do h.done()
 
-  def addDestination[V](dest:Pipe[U,V]):Pipe[U,V] = {
+  def addDestination[V](dest: Pipe[U, V]): Pipe[U, V] =
     handlers += dest
     dest
-  }
+
   // ...
-  def map[V](g:U => V):Pipe[U,V] = {
+  def map[V](g: U => V): Pipe[U, V] =
     val destination = SyncPipe(g)
     handlers += destination
     destination
-  }
-}
 
-case class SyncPipe[T,U](f:T => U) extends Pipe[T,U] {
-  def feed(input:T):Unit = {
+case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
+  def feed(input: T): Unit =
     val output = f(input)
-    for (h <- handlers) {
-      h.feed(output)
-    }
-  }
-}
+    for h <- handlers do h.feed(output)
 
-object SyncPipe {
-  import LibUV._, LibUVConstants._
+object SyncPipe:
+  import LibUV.*, LibUVConstants.*
 
-  var active_streams:mutable.Set[Int] = mutable.Set()
-  var handlers = mutable.HashMap[Int,SyncPipe[String,String]]()
+  var activeStreams: mutable.Set[Int] = mutable.Set()
+  var handlers = mutable.HashMap[Int, SyncPipe[String, String]]()
   var serial = 0
 
-  def apply(fd:Int):SyncPipe[String,String] = {
+  def apply(fd: Int): SyncPipe[String, String] =
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
-    uv_pipe_init(EventLoop.loop,handle,0)
-    val pipe_data = handle.asInstanceOf[Ptr[Int]]
-    !pipe_data = serial
-    active_streams += serial
-    val pipe = SyncPipe[String,String]{ s => s }
+    uv_pipe_init(EventLoop.loop, handle, 0)
+    val pipeData = handle.asInstanceOf[Ptr[Int]]
+    !pipeData = serial
+    activeStreams += serial
+    val pipe = SyncPipe[String, String] { s => s }
     handlers(serial) = pipe
 
     serial += 1
-    uv_pipe_open(handle,fd)
-    uv_read_start(handle,SyncPipe.allocCB,SyncPipe.readCB)
+    uv_pipe_open(handle, fd)
+    uv_read_start(handle, SyncPipe.allocCB, SyncPipe.readCB)
     pipe
-  }
 
-  val allocCB = new AllocCB {
-    def apply(client:PipeHandle, size:CSize, buffer:Ptr[Buffer]):Unit = {
-      val buf = stdlib.malloc(4096)
-      buffer._1 = buf
-      buffer._2 = 4096
-    }
-  }
+  // val allocCB = new AllocCB:
+  val allocCB =
+    CFuncPtr3.fromScalaFunction[PipeHandle, CSize, Ptr[Buffer], Unit](
+      (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
+        val buf = stdlib.malloc(4096.toULong)
+        buffer._1 = buf
+        buffer._2 = 4096.toULong
+    )
 
-  val readCB = new ReadCB {
-    def apply(handle:PipeHandle,size:CSize,buffer:Ptr[Buffer]):Unit = {
-      val pipe_data = handle.asInstanceOf[Ptr[Int]]
-      val pipe_id = !pipe_data
-      println(s"read $size bytes from pipe $pipe_id")
-      if (size < 0) {
-        println("size < 0, closing")
-        active_streams -= pipe_id
-        handlers.remove(pipe_id)
-      } else {
-        val data_buffer = stdlib.malloc(size + 1)
-        string.strncpy(data_buffer, buffer._1, size + 1)
-        val data_string = fromCString(data_buffer)
-        stdlib.free(data_buffer)
-        val pipe_destination = handlers(pipe_id)
-        pipe_destination.feed(data_string.trim())
-      }
-    }
-  }
-}
+  // val readCB = new ReadCB:
+  val readCB: ReadCB =
+    CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit](
+      (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
+        val pipeData = handle.asInstanceOf[Ptr[Int]]
+        val pipeId = !pipeData
+        println(s"read $size bytes from pipe $pipeId")
+        if size < 0 then
+          println("size < 0, closing")
+          activeStreams -= pipeId
+          handlers.remove(pipeId)
+        else
+          val dataBuffer = stdlib.malloc(size.toULong) // removed +1
+          string.strncpy(dataBuffer, buffer._1, size.toULong) // removed +1
+          val dataString = fromCString(dataBuffer)
+          stdlib.free(dataBuffer)
+          val pipeDestination = handlers(pipeId)
+          pipeDestination.feed(dataString.trim())
+    )
 
-object Main {
-  import LibUV._, LibUVConstants._
-  def main(args:Array[String]):Unit = {
-    println("hello!")
-    val p = SyncPipe(0)
-    val q = p.map { d =>
+import LibUV.*, LibUVConstants.*
+@main
+def simplePipe(args: String*): Unit =
+  println("hello!")
+  val p = SyncPipe(0)
+  val q = p
+    .map(d =>
       println(s"consumed $d")
       d
-    }.map { d =>
-      val parsed = Try {
-        d.toInt
-      }
+    )
+    .map(d =>
+      val parsed = Try(d.toInt)
       println(s"parsed: $parsed")
       parsed
-    }.map {
+    )
+    .map {
       case Success(i) => println(s"saw number $i")
       case Failure(f) => println(s"error: $f")
     }
-    uv_run(EventLoop.loop,UV_RUN_DEFAULT)
-    println("done")
-  }
-}
+  uv_run(EventLoop.loop, UV_RUN_DEFAULT)
+  println("done")

@@ -208,7 +208,7 @@ def handleConnection(sock: Int, host: String, path: String): Unit =
 // reading status line?
 // also use with:
 // ./target/scala-3.2.2/scala-native-out www.example.com 80 /
-@main
+// @main
 def httpClient(args: String*): Unit =
   if args.length != 3 then
     println(s"${args.length} {args}")
