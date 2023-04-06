@@ -87,13 +87,15 @@ dest_str(string_len) = 0
 ```
 We can't use an `Int` as an array index / offset to update the value at a pointer / array location. (But we can use an `Int` as an offset / array index to ACCESS a value. Weird!) The overloaded alternatives to the `update` method want `Word` or `UWord` for the index input, but conversion methods from `Int` to `UWord` don't exist. The documentation [says](https://javadoc.io/doc/org.scala-native/nativelib_native0.4_3/latest/scala/scalanative/unsafe.html#UWord-0) that `UWord` is `ULong` on 64-bit systems. So we need to use `ULong` for pointer-array-access-update.
 
+One more issue is that we cannot use `Int` as the updated value, it has to be `Byte`.
+
 Fixing all these problems and rewriting in Scala 3 style, we get:
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
 val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen) // copy JUST the string, not \0
-destStr(strLen.toULong) = 0 // manually null-terminate the new copy
+destStr(strLen.toULong) = 0.toByte // manually null-terminate the new copy
 ```
 or we can simply copy the string, including the null-terminator:
 ```scala
@@ -108,7 +110,7 @@ val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
 val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen + 1) // copy, including \0
-destStr(strLen.toULong) = 0 // manually null-terminate the new copy JUST IN CASE
+destStr(strLen.toULong) = 0.toByte // null-terminate the new copy, JUST IN CASE!
 ```
 Now it's null terminated twice: once with the copying, then again manually.
 
