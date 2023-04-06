@@ -79,7 +79,8 @@ object SyncPipe:
     )
 
 import LibUV.*, LibUVConstants.*
-@main
+
+// @main
 def simplePipe(args: String*): Unit =
   println("hello!")
   val p = SyncPipe(0)

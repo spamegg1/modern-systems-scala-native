@@ -1,17 +1,17 @@
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
 - [Scala](https://www.scala-lang.org/) 3.2.2,
-- [Scala Native](https://scala-native.org/en/stable/) version 0.4.11, 
+- [Scala Native](https://scala-native.org/en/stable/) version 0.4.11,
 - `sbt` version 1.8.2, and
 - not using the Docker container provided by the [book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
 
-So I... 
+So I...
 
 - changed the syntax to Scala 3 syntax:
-- removed all the optional braces, 
+- removed all the optional braces,
 - replaced `if (...) {...} else {...}` with `if ... then ... else ...` everywhere, using Python-style indentation,
-- removed the `return` keyword, 
-- changed all the `snake_case` names to `camelCase`, 
-- got rid of unnecessary `main` object wrappings and used `@main` annotations instead, 
+- removed the `return` keyword,
+- changed all the `snake_case` names to `camelCase`,
+- got rid of unnecessary `main` object wrappings and used `@main` annotations instead,
 - and so on.
 
 ### Differences from the book
@@ -75,62 +75,56 @@ string.strncpy(dest_str, string_ptr, arg.size + 1) // copy
 dest_str(string_len) = 0 // manually null-terminate the new copy
 ```
 
-If you do this you'll get errors: first is the `CSize` errors, for which you have to use `.toULong`; the second is `none of the overloaded alternatives for method update of Ptr[Byte]...` which complains about the null termination. We can't use an `Int` to update the value at a pointer / array location. It wants `Word` or `UWord` for the index input, but conversion methods from `Int` to `Word` don't exist.
-
-I tested it, and using `strncpy` copies the null-termination of the original string too! Here's the test code (notice Scala 3 syntax):
-
+If you do this you'll get errors: first is the `CSize` errors:
 ```scala
-@main
-def testNullTermination: Unit =
-  val cString: CString = c"hello"
-  val strLen: CSize = strlen(cString) // this is 6! not 5!
-  val buffer: Ptr[Byte] = malloc(strLen) // no need to "add 1"
-
-  strncpy(buffer, cString, strLen)
-
-  for offset <- 0L to strLen.toLong
-  do
-    val chr: CChar = buffer(offset)
-    stdio.printf(
-      c"the character '%c' is %d bytes long and has binary value %d\n",
-      chr,
-      sizeof[CChar],
-      chr
-    )
+arg.size + 1
 ```
+when you are trying to add 1, which is `Int`, to `string_len`, which is `CSize`, for which you have to use `.toULong`.
 
-This prints:
-
-```
-the character 'h' is 1 bytes long and has binary value 104
-the character 'e' is 1 bytes long and has binary value 101
-the character 'l' is 1 bytes long and has binary value 108
-the character 'l' is 1 bytes long and has binary value 108
-the character 'o' is 1 bytes long and has binary value 111
-the character '' is 1 bytes long and has binary value 0
-```
-
-As you can see, the string had length 6 including the null character at the end, and the new `buffer` also received a copy of the null termination.
-
-So we don't have to do this manually anymore. The above code from the book can become:
-
+The second is `none of the overloaded alternatives for method update of Ptr[Byte]...` which complains when we are trying to manually null-terminate the new copy of the string:
 ```scala
-val stringPtr = toCString(arg) // create pointer
-val stringLen = string.strlen(stringPtr) // calculate length
-val destString = stdlib.malloc(stringLen).asInstanceOf[Ptr[Byte]] // allocate
-string.strncpy(destString, stringPtr, arg.size.toULong) // copy
+dest_str(string_len) = 0
 ```
+We can't use an `Int` as an array index / offset to update the value at a pointer / array location. (But we can use an `Int` as an offset / array index to ACCESS a value. Weird!) The overloaded alternatives to the `update` method want `Word` or `UWord` for the index input, but conversion methods from `Int` to `UWord` don't exist. The documentation [says](https://javadoc.io/doc/org.scala-native/nativelib_native0.4_3/latest/scala/scalanative/unsafe.html#UWord-0) that `UWord` is `ULong` on 64-bit systems. So we need to use `ULong` for pointer-array-access-update.
+
+Fixing all these problems and rewriting in Scala 3 style, we get:
+```scala
+val stringPtr = toCString(arg) // prepare pointer for malloc
+val strLen = string.strlen(stringPtr) // calculate length of string to be copied
+val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
+string.strncpy(destStr, stringPtr, strLen) // copy JUST the string, not \0
+destStr(strLen.toULong) = 0 // manually null-terminate the new copy
+```
+or we can simply copy the string, including the null-terminator:
+```scala
+val stringPtr = toCString(arg) // prepare pointer for malloc
+val strLen = string.strlen(stringPtr) // calculate length of string to be copied
+val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
+string.strncpy(destStr, stringPtr, strLen + 1.toULong) // copy, including \0
+```
+If we for some reason don't trust `strncpy` and want extra super-duper safety, we can do both:
+```scala
+val stringPtr = toCString(arg) // prepare pointer for malloc
+val strLen = string.strlen(stringPtr) // calculate length of string to be copied
+val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
+string.strncpy(destStr, stringPtr, strLen + 1) // copy, including \0
+destStr(strLen.toULong) = 0 // manually null-terminate the new copy JUST IN CASE
+```
+Now it's null terminated twice: once with the copying, then again manually.
 
 #### Command line arguments: `String*` instead of `Array[String]`
 
 The book uses the old-school C-style "`argv`" approach to command-line arguments from Scala 2:
 
 ```scala
-def main(args: Array[String]): Unit = {
-  ...  
+object Main {
+  def main(args: Array[String]): Unit = {
+    ...
+  }
+}
 ```
 
-This does not work with Scala 3 `@main` annotations, as it will complain about `no given instance of type scala.util.CommandLineParser.fromString[Array[String]]...` Things have changed in Scala 3 when it comes to main methods, command line arguments and code-running. They have been greatly simplified, the main method no longer has to be named "main", and now there is greater capability to use any user-defined type for the command-line arguments, but the compiler has to be "taught" how to do it. 
+This does not work with Scala 3 `@main` annotations, as it will complain about `no given instance of type scala.util.CommandLineParser.fromString[Array[String]]...` Things have changed in Scala 3 when it comes to main methods, command line arguments and code-running. They have been greatly simplified, the main method no longer has to be named "main", and now there is greater capability to use any user-defined type for the command-line arguments, but the compiler has to be "taught" how to do it.
 
 We could do that by providing the given instance... but instead we fall back on the "arbitrary number of parameters of the same type" approach (and rename the method while we're at it):
 

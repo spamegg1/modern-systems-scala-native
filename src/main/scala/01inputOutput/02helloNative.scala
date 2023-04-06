@@ -1,8 +1,16 @@
-package `01inputOutput`
+package `01inputOutputHelloNative`
 
-import scalanative.unsafe.*
-import scalanative.libc.*
+import scalanative.unsafe.CQuote
+import scalanative.libc.stdio.printf
 
-// @main
+// @main // don't forget to comment/uncomment!
 def helloNative: Unit =
-  stdio.printf(c"hello native %s!\n", c"world")
+  printf(c"hello native %s!\n", c"world")
+
+// here CQuote is needed for the c string interpolator, and
+// libc.StdioHelpers.printf has signature:
+//   def printf(format: CString, args: CVarArg*): CInt
+// libc.stdio.printf has signature:
+//   def printf(format: CString, vargs: Any*): CInt
+
+// CString is an unsafe, mutable byte buffer with few methods.
