@@ -4,9 +4,9 @@ import scalanative.libc.{string, stdio, stdlib}
 
 // Testing how malloc and strncpy work, how to handle null termination
 
-// @main
+// @main // remember to comment / uncomment!
 def testNullTermination: Unit =
-  val cString: CString = c"hello"
+  val cString: CString = c"hello" // uses CQuote
   val strLen: CSize = string.strlen(cString) // 5
   val buffer: Ptr[Byte] = stdlib.malloc(strLen + 1.toULong)
 
@@ -42,3 +42,6 @@ def testNullTermination: Unit =
 // the character 'l' is 1 bytes long and has binary value 108
 // the character 'o' is 1 bytes long and has binary value 111
 // the character '{' is 1 bytes long and has binary value 123
+
+// I checked this program with valgrind, and it found 0 leaks / errors.
+// The mystery is: how is my malloc-ed memory being freed?

@@ -1,6 +1,6 @@
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
 - [Scala](https://www.scala-lang.org/) 3.2.2,
-- [Scala Native](https://scala-native.org/en/stable/) version 0.4.11,
+- [Scala Native](https://scala-native.org/en/stable/) version 0.4.12,
 - `sbt` version 1.8.2, and
 - not using the Docker container provided by the [book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
 
@@ -25,6 +25,8 @@ The book uses `Int`s for a lot of calculations such as string length, how much m
 ```scala
 import scalanative.unsigned.UnsignedRichInt
 ```
+
+Apparently, in Scala Native 0.5 and onwards, there will be a new type `Size` that governs everything related to sizes. (That's what I heard from the devs on Discord.)
 
 #### Type arguments alone not enough for `stackalloc`
 
@@ -136,3 +138,20 @@ def nativePipeTwo(args: String*): Unit =
   ...
 ```
 
+#### Unable to reliably reproduce segmentation faults
+
+In Scala 3.2.2, Native 0.4.12, the `bad_sscanf_string_parse` example given in the book does not cause a segfault like it does in the book. Or rather, we have to use a *very long* string to get a segfault, like 180 characters. If we use the author's version (Scala 2.11, Native 0.4.0, and some old SBT version) then it works; we get a segfault immediately with as few as 8 characters every time. It's possible that I'm not able to make the segfault happen as it should; due to the missing arguments of `stackalloc[CString]` in the book, I had to guess some values. But it won't segfault even with `stackalloc[CString](1)`.
+
+So I'm gonna drop down into C to see some reliable, reproducible segfault examples.
+
+Well... that produced the same result, only for large string inputs (around 30 characters but not reliably).
+```
+./segfault
+dddddddddddddddddddddddddd
+scan results: dddddddddddddddddddddddd
+ddddddddddddddddddddddddddd
+scan results: ddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddd
+malloc(): corrupted top size
+Aborted (core dumped)
+```
