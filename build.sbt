@@ -1,3 +1,3 @@
-scalaVersion := "3.2.2"
+scalaVersion := "3.3.1"
 enablePlugins(ScalaNativePlugin)
-libraryDependencies += "io.argonaut" %% "argonaut" % "6.3.8"
+libraryDependencies += "io.argonaut" %% "argonaut" % "6.3.9"

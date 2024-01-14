@@ -1,13 +1,13 @@
-package `01inputOutputCstring2`
+package ch01.cStringExpr2
 
 import scalanative.unsafe.{CQuote, CString, CSize, CChar, Ptr, sizeof}
 import scalanative.libc.{stdio, string}
 
-// @main
-def cStringExperiment2 =
+@main
+def cStringExperiment2: Unit =
   // CStrings are unsafe mutable byte buffers: CString = Ptr[CChar] = Ptr[Byte]
   val str: Ptr[Byte] = c"hello, world" // CQuote is needed for c"..."
-  val strLen: CSize = string.strlen(str) // 12 bytes long
+  val strLen: CSize = string.strlen(str) // 12 bytes long, 13 chars with null
 
   stdio.printf(
     c"the string '%s' at address %p is %d bytes long\n",
@@ -23,14 +23,16 @@ def cStringExperiment2 =
   )
 
   // dereferencing, or "looking up" is done with the ! operator.
-  stdio.printf(c"dereferencing the pointer: %d\n", !str)
+  // it gives the first character of the string.
+  val char = !str
+  stdio.printf(c"dereferencing the pointer: %c\n", char)
 
-  for offset <- 0 until strLen.toInt + 1 // let's also check null termination
+  for offset <- 0L until strLen.toLong + 1L // let's also check null termination
   do
-    val charAddress: Ptr[Byte] = str + offset // Ptr[Byte] + Int = Ptr[Byte]
+    val charAddress: Ptr[Byte] = str + offset // Ptr[Byte] + Long = Ptr[Byte]
     val char: Byte = !charAddress
     stdio.printf(
-      c"'%c'(%d) at address %p is %d bytes long\n",
+      c"'%c'(%d) at address %p is %d byte long\n",
       char, // the character itself, using %c
       char, // the ASCII value of the character, using %d
       charAddress, // the address of the character, using %p

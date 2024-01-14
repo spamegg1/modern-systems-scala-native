@@ -1,10 +1,12 @@
+package `01inputOutputTesting`
+
 import scalanative.unsigned.UnsignedRichInt // convert Int to ULong to use _+_
 import scalanative.unsafe.{CQuote, CString, CSize, Ptr, CChar, sizeof}
 import scalanative.libc.{string, stdio, stdlib}
 
 // Testing how malloc and strncpy work, how to handle null termination
 
-// @main // remember to comment / uncomment!
+@main // remember to comment / uncomment!
 def testNullTermination: Unit =
   val cString: CString = c"hello" // uses CQuote
   val strLen: CSize = string.strlen(cString) // 5

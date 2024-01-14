@@ -1,28 +1,32 @@
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
+package `01inputOutputGoodSscanf`
+
+import scala.scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, CSize}
+import scala.scalanative.libc.{stdio, string}
 
 def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
-  val tempBuffer: Ptr[Byte] = stackalloc[Byte](1024)
+  // note that 1024 is not related to bufferSize. It's just a large enough safe number.
+  val tempBuffer: Ptr[Byte] = stackalloc[Byte](1024) // no need to free.
   val maxWordLength = bufferSize - 1
-  val scanResult = stdio.sscanf(line, c"%1023s\n", tempBuffer)
 
+  val scanResult = stdio.sscanf(line, c"%1023s\n", tempBuffer)
   if scanResult < 1 then throw new Exception(s"bad scanf result: $scanResult")
 
   val wordLength: CSize = string.strlen(tempBuffer)
-  if wordLength.toInt >= maxWordLength then
-    throw new Exception(
-      s"word length $wordLength exceeds max buffer size $bufferSize"
-    )
+  if wordLength.toInt >= maxWordLength then // disallow segfault
+    throw Exception(s"word length $wordLength exceeds max buffer size $bufferSize")
 
   //              dest      source     destSize
-  string.strncpy(wordOut, tempBuffer, wordLength)
+  string.strncpy(wordOut, tempBuffer, wordLength) // can't return tempBuffer, so copy it.
 
-// @main
+// first,  stdin        -> lineInBuffer,  using fgets
+// second, lineInBuffer -> tempBuffer,    using sscanf
+// third,  tempBuffer   -> wordOutBuffer, using strncpy
+@main
 def goodSscanfStringParse: Unit =
-  val lineInBuffer = stackalloc[Byte](1024)
-  val wordOutBuffer = stackalloc[Byte](32)
+  val lineInBuffer = stackalloc[Byte](1024) // this size matches tempBuffer
+  val wordOutBuffer = stackalloc[Byte](32) // to store result of parseLine
 
   while stdio.fgets(lineInBuffer, 1023, stdio.stdin) != null
   do
-    parseLine(lineInBuffer, wordOutBuffer, 32)
+    parseLine(lineInBuffer, wordOutBuffer, 32) // now, user inputs >= 32 chars will fail!
     stdio.printf(c"read word: '%s'\n", wordOutBuffer)

@@ -1,17 +1,19 @@
+package ch01.sscanfInt
+
 import scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, sizeof, CInt}
 import scalanative.libc.stdio
 
 // def fgets(str: CString, count: CInt, stream: Ptr[FILE]): CString
-// fgets will read one line of text of no more than n characters from file
+// fgets will read one line of text of no more than count characters from file
 // stream, and store it in the string str. str must already be allocated with at
 // least count + 1 bytes of storage. fgets cannot check the bounds of the buffer
 // for you. If fgets succeeds, it returns the pointer to buffer. If fgets fails,
-// it returns null. Checking for failures is important—null is returned most
+// it returns null. Checking for failures is important: null is returned most
 // commonly when fgets reaches the end of a file, or EOF.
 
-// @main
+@main
 def sscanfIntExample: Unit =
-  // allocate space on the stack for a line of input from user
+  // allocate space on the stack for a line of up to 1KB input from user
   // inline def stackalloc[T](n: CSize = 1.toULong)(using Tag[T]): Ptr[T]
   val lineInBuffer: Ptr[Byte] = stackalloc[Byte](1024)
 
@@ -23,9 +25,8 @@ def sscanfIntExample: Unit =
 
 // here line: CString = Ptr[CChar] = Ptr[Byte]
 def parseIntLine(line: CString): Int =
-  // allocate space on the stack for the pointer to the integer
-  // that the user will input
-  val intPointer: Ptr[Int] = stackalloc[Int](sizeof[Int])
+  // allocate space on the stack for the pointer to the integer that the user will input
+  val intPointer: Ptr[Int] = stackalloc[Int](1)
 
   // line comes from fgets, it contains the line the user inputted. Scan it.
   // here line is a pointer to the beginning of a string.

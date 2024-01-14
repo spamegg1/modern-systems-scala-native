@@ -1,13 +1,15 @@
-package `01inputOutputCstring1`
+package ch01.cStringExpr1
 
 import scalanative.unsafe.{CString, CChar, CQuote, sizeof, CSize}
 import scalanative.libc.{string, stdio}
 
-// @main
+@main
 def cStringExperiment1: Unit =
   // a CString always has trailing 0 (null termination) by default.
   // type CString = Ptr[CChar] = Ptr[Byte]
   val str: CString = c"hello, world" // the c interpolator uses CQuote
+
+  // def strlen(str: CString): CSize
   val strLen: CSize = string.strlen(str) // this is 12
 
   stdio.printf(
@@ -17,6 +19,7 @@ def cStringExperiment1: Unit =
     strLen // this is CSize 12
   )
 
+  // def sizeof[T](implicit tag: Tag[T]): CSize
   stdio.printf(
     c"the CString value str itself is %d bytes long\n",
     sizeof[CString] // this is CSize 8, 64-bit unsigned integer, using %d
@@ -46,4 +49,5 @@ def cStringExperiment1: Unit =
 // the character 'r' is 1 bytes long and has binary value 114    9
 // the character 'l' is 1 bytes long and has binary value 108    10
 // the character 'd' is 1 bytes long and has binary value 100    11
-// the character '' is 1 bytes long and has binary value 0       12
+// the character ' ' is 1 bytes long and has binary value 0      12
+// with the null terminator, there are 13 characters.

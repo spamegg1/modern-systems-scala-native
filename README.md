@@ -1,7 +1,10 @@
+# Scala Native, using Scala 3
+
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
-- [Scala](https://www.scala-lang.org/) 3.2.2,
-- [Scala Native](https://scala-native.org/en/stable/) version 0.4.12,
-- `sbt` version 1.8.2, and
+
+- [Scala](https://www.scala-lang.org/) 3.3.1+,
+- [Scala Native](https://scala-native.org/en/stable/) version 0.4.16+,
+- `sbt` version 1.9.8+, and
 - not using the Docker container provided by the [book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
 
 So I...
@@ -14,11 +17,11 @@ So I...
 - got rid of unnecessary `main` object wrappings and used `@main` annotations instead,
 - and so on.
 
-### Differences from the book
+## Differences from the book
 
 I noticed many things have changed.
 
-#### `CSize` instead of `Int`
+### `CSize` instead of `Int`
 
 The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize` is actually `ULong`, so we need `.toULong` conversion. For this, we need to import:
 
@@ -28,17 +31,20 @@ import scalanative.unsigned.UnsignedRichInt
 
 Apparently, in Scala Native 0.5 and onwards, there will be a new type `Size` that governs everything related to sizes. (That's what I heard from the devs on Discord.)
 
-#### Type arguments alone not enough for `stackalloc`
+### Type arguments alone not enough for `stackalloc`
 
-There are many function calls in the book that only take type arguments and no value arguments, such as `stackalloc[Int]` etc. In current Scala Native, we need to provide value parameters:
+There are many function calls in the book that only take type arguments and no value arguments, such as `stackalloc[Int]` etc. This is because there is a default argument `n` with value `1` if none is provided, and in Scala 2 we can drop empty parentheses: `stackalloc[Int]` instead of `stackalloc[Int]()`.
+
+In Scala 3, we need to provide the empty parentheses for the default parameter of `1`, or just provide `1` as an argument:
 
 ```scala
-stackalloc[Int](sizeof[Int])
-stackalloc[Ptr[Byte]](sizeof[Ptr[Byte]])
+stackalloc[Int] // does not work in Scala 3
+stackalloc[Int]() // this defaults to an argument n = 1.toULong
+stackalloc[Int](1) // same as previous
 // etc.
 ```
 
-#### Creating function pointers
+### Creating function pointers
 
 Function pointer classes now have different syntax. The book overrides classes like `CFuncPtr2` by providing a custom `apply` method like so:
 
@@ -65,7 +71,7 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int](
  )
 ```
 
-#### String copying and null-terminating
+### String copying and null-terminating
 
 The book uses the usual C idiom of *allocating memory that is 1 more than the length of a string, copying it, then manually null-terminating the new copy*:
 
@@ -78,20 +84,25 @@ dest_str(string_len) = 0 // manually null-terminate the new copy
 ```
 
 If you do this you'll get errors: first is the `CSize` errors:
+
 ```scala
 arg.size + 1
 ```
+
 when you are trying to add 1, which is `Int`, to `string_len`, which is `CSize`, for which you have to use `.toULong`.
 
 The second is `none of the overloaded alternatives for method update of Ptr[Byte]...` which complains when we are trying to manually null-terminate the new copy of the string:
+
 ```scala
 dest_str(string_len) = 0
 ```
+
 We can't use an `Int` as an array index / offset to update the value at a pointer / array location. (But we can use an `Int` as an offset / array index to ACCESS a value. Weird!) The overloaded alternatives to the `update` method want `Word` or `UWord` for the index input, but conversion methods from `Int` to `UWord` don't exist. The documentation [says](https://javadoc.io/doc/org.scala-native/nativelib_native0.4_3/latest/scala/scalanative/unsafe.html#UWord-0) that `UWord` is `ULong` on 64-bit systems. So we need to use `ULong` for pointer-array-access-update.
 
 One more issue is that we cannot use `Int` as the updated value, it has to be `Byte`.
 
 Fixing all these problems and rewriting in Scala 3 style, we get:
+
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
@@ -99,14 +110,18 @@ val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen) // copy JUST the string, not \0
 destStr(strLen.toULong) = 0.toByte // manually null-terminate the new copy
 ```
+
 or we can simply copy the string, including the null-terminator:
+
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
 val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen + 1.toULong) // copy, including \0
 ```
+
 If we for some reason don't trust `strncpy` and want extra super-duper safety, we can do both:
+
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
@@ -114,16 +129,17 @@ val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen + 1) // copy, including \0
 destStr(strLen.toULong) = 0.toByte // null-terminate the new copy, JUST IN CASE!
 ```
+
 Now it's null terminated twice: once with the copying, then again manually.
 
-#### Command line arguments: `String*` instead of `Array[String]`
+### Command line arguments: `String*` instead of `Array[String]`
 
 The book uses the old-school C-style "`argv`" approach to command-line arguments from Scala 2:
 
 ```scala
 object Main {
   def main(args: Array[String]): Unit = {
-    ...
+    ???
   }
 }
 ```
@@ -135,17 +151,18 @@ We could do that by providing the given instance... but instead we fall back on 
 ```scala
 @main
 def nativePipeTwo(args: String*): Unit =
-  ...
+  ???
 ```
 
-#### Unable to reliably reproduce segmentation faults
+### Unable to reliably reproduce segmentation faults
 
-In Scala 3.2.2, Native 0.4.12, the `bad_sscanf_string_parse` example given in the book does not cause a segfault like it does in the book. Or rather, we have to use a *very long* string to get a segfault, like 180 characters. If we use the author's version (Scala 2.11, Native 0.4.0, and some old SBT version) then it works; we get a segfault immediately with as few as 8 characters every time. It's possible that I'm not able to make the segfault happen as it should; due to the missing arguments of `stackalloc[CString]` in the book, I had to guess some values. But it won't segfault even with `stackalloc[CString](1)`.
+In Scala 3.3.1, Native 0.4.16, the `bad_sscanf_string_parse` example given in the book does not cause a segfault like it does in the book. Or rather, we have to use a *very long* string to get a segfault, like > 100 characters. If we use the author's version (Scala 2.11, Native 0.4.0, and some old SBT version) then it works; we get a segfault immediately with as few as 8 characters every time. It won't segfault even with `stackalloc[CString](1)`.
 
 So I'm gonna drop down into C to see some reliable, reproducible segfault examples.
 
 Well... that produced the same result, only for large string inputs (around 30 characters but not reliably).
-```
+
+```bash
 ./segfault
 dddddddddddddddddddddddddd
 scan results: dddddddddddddddddddddddd

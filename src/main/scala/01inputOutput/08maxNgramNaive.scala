@@ -1,3 +1,5 @@
+package `01inputOutputMaxNgramNaive`
+
 // import scalanative.unsafe.*
 // import scalanative.libc.*
 // import stdio.*

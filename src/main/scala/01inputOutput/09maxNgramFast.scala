@@ -1,4 +1,4 @@
-package `01inputOutput`
+package `01inputOutputMaxNgramFast`
 
 import scalanative.unsafe.*
 import scalanative.libc.*
