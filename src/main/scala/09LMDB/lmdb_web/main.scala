@@ -76,14 +76,14 @@ object Server:
   val loop = uv_default_loop()
 
   // val connectionCB = new ConnectionCB:
-  val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit](
-    (handle: TCPHandle, status: Int) =>
+  val connectionCB =
+    CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]((handle: TCPHandle, status: Int) =>
       // println("received connection")
       val client = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
       check_error(uv_tcp_init(loop, client), "uv_tcp_init(client)")
       check_error(uv_accept(handle, client), "uv_accept")
       check_error(uv_read_start(client, allocCB, readCB), "uv_read_start")
-  )
+    )
 
   var router: RequestHandler = (_ => ???)
 
@@ -112,9 +112,9 @@ object Server:
   val allocCB =
     CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
       (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
-        val buf = stdlib.malloc(4096.toULong)
+        val buf = stdlib.malloc(4096.toUSize) // 0.5
         buffer._1 = buf
-        buffer._2 = 4096.toULong
+        buffer._2 = 4096.toUSize // 0.5
     )
 
   def append_data(
@@ -123,14 +123,14 @@ object Server:
       buffer: Ptr[Buffer]
   ): Unit =
     val copyPosition = state._1 + state._3
-    string.strncpy(copyPosition, buffer._1, size.toULong)
-    state._3 = state._3 + size.toULong
+    string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
+    state._3 = state._3 + size.toUSize // 0.5
 
   def send_response(client: TCPHandle, response: HttpResponse): Unit =
     val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
     val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    responseBuffer._1 = malloc(4096.toULong)
-    responseBuffer._2 = 4096.toULong
+    responseBuffer._1 = malloc(4096.toUSize) // 0.5
+    responseBuffer._2 = 4096.toUSize // 0.5
     HTTP.make_response(response, responseBuffer)
     responseBuffer._2 = string.strlen(responseBuffer._1)
     !req = responseBuffer.asInstanceOf[Ptr[Byte]]
@@ -149,7 +149,7 @@ object Server:
         if size < 0 then shutdown(client)
         else
           try
-            val parsed_request = HTTP.parseRequest(buffer._1, size)
+            val parsed_request = HTTP.parseRequest(buffer._1, size.toLong) // 0.5
             val response = router(parsed_request)
             send_response(client, response)
             shutdown(client)
@@ -160,14 +160,14 @@ object Server:
     )
 
   // val writeCB = new WriteCB:
-  val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit](
-    (writeReq: WriteReq, status: Int) =>
+  val writeCB =
+    CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]((writeReq: WriteReq, status: Int) =>
       // println("write completed")
       val responseBuffer = (!writeReq).asInstanceOf[Ptr[Buffer]]
       stdlib.free(responseBuffer._1)
       stdlib.free(responseBuffer.asInstanceOf[Ptr[Byte]])
       stdlib.free(writeReq.asInstanceOf[Ptr[Byte]])
-  )
+    )
 
   // val shutdownCB = new ShutdownCB:
   val shutdownCB = CFuncPtr2.fromScalaFunction[ShutdownReq, Int, Unit](

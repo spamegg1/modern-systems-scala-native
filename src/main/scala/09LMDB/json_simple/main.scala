@@ -19,7 +19,7 @@ def jsonSimple(args: String*): Unit =
   printfJson(m)
 
 def printfJson[T](data: T)(implicit e: EncodeJson[T]): Unit =
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     val stringData = data.asJson.spaces2
     val cstring = toCString(stringData)
     stdio.printf(c"rendered json: %s\n", cstring)

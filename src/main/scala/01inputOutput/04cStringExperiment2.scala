@@ -27,9 +27,11 @@ def cStringExperiment2: Unit =
   val char = !str
   stdio.printf(c"dereferencing the pointer: %c\n", char)
 
-  for offset <- 0L until strLen.toLong + 1L // let's also check null termination
+  // for offset <- 0L until strLen.toLong + 1L // let's also check null termination
+  for offset <- 0 until strLen.toInt + 1 // let's also check null termination
   do
-    val charAddress: Ptr[Byte] = str + offset // Ptr[Byte] + Long = Ptr[Byte]
+    // val charAddress: Ptr[Byte] = str + offset // 0.4.17: Ptr[Byte] + Long = Ptr[Byte]
+    val charAddress: Ptr[Byte] = str + offset // 0.5: Ptr[Byte] + Int = Ptr[Byte]
     val char: Byte = !charAddress
     stdio.printf(
       c"'%c'(%d) at address %p is %d byte long\n",

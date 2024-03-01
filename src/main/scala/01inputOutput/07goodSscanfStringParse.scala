@@ -1,4 +1,4 @@
-package `01inputOutputGoodSscanf`
+package ch01.goodSscanf
 
 import scala.scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, CSize}
 import scala.scalanative.libc.{stdio, string}
@@ -17,6 +17,7 @@ def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
 
   //              dest      source     destSize
   string.strncpy(wordOut, tempBuffer, wordLength) // can't return tempBuffer, so copy it.
+  // wordOut is also stack allocated, but it comes from a function that calls this one.
 
 // first,  stdin        -> lineInBuffer,  using fgets
 // second, lineInBuffer -> tempBuffer,    using sscanf

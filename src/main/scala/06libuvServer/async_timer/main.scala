@@ -3,11 +3,10 @@ package `06asyncTimer`
 import scala.scalanative.unsafe.*
 import scala.scalanative.libc.*
 
-import LibUV.*
-import LibUVConstants.*
+@main
+def asyncTimer: Unit =
+  import LibUV.*, LibUVConstants.*
 
-// @main
-def asyncTimer(args: Array[String]): Unit =
   println("hello, world!")
   val loop = uv_default_loop()
   val timer = stdlib.malloc(uv_handle_size(UV_TIMER_T))
@@ -24,7 +23,7 @@ def asyncTimer(args: Array[String]): Unit =
 
 // val timerCB = new TimerCB:
 val timerCB =
-  CFuncPtr1.fromScalaFunction[TimerHandle, Unit]((handle: TimerHandle) =>
+  CFuncPtr1.fromScalaFunction[LibUV.TimerHandle, Unit]((handle: LibUV.TimerHandle) =>
     println("timer fired!")
   )
 

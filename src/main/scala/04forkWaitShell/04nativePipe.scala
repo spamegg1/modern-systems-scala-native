@@ -36,8 +36,7 @@ def await(pid: Int): Int =
   waitpid(pid, status, 0)
   val statusCode = !status
 
-  if statusCode != 0 then
-    throw new Exception(s"Child process returned error $statusCode")
+  if statusCode != 0 then throw new Exception(s"Child process returned error $statusCode")
 
   !status
 
@@ -51,7 +50,7 @@ def runCommand(
 ): Int =
   if args.size == 0 then throw new Exception("bad arguments of length 0")
 
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     println(
       s"- proc ${unistd.getpid()}: running command ${args.head} with args ${args}"
     )
@@ -72,17 +71,17 @@ def runCommand(
 def stringSeqToStringArray(args: Seq[String]): Ptr[CString] =
   val pid = unistd.getpid()
   val destArray = stdlib
-    .malloc(sizeof[Ptr[CString]] * args.size.toULong)
+    .malloc(sizeof[Ptr[CString]] * args.size.toUSize) // 0.5
     .asInstanceOf[Ptr[CString]]
   val count = args.size
 
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     for (arg, i) <- args.zipWithIndex
     do
       val stringPtr = toCString(arg)
       val stringLen = string.strlen(stringPtr)
       val destString = stdlib.malloc(stringLen).asInstanceOf[Ptr[Byte]]
-      string.strncpy(destString, stringPtr, arg.size.toULong)
+      string.strncpy(destString, stringPtr, arg.size.toUSize) // 0.5
       // destString(stringLen) = 0
       destArray(i) = destString
     ()
@@ -95,7 +94,7 @@ def runOneAtATime(commands: Seq[Seq[String]]) =
   for command <- commands
   do doAndAwait(() => runCommand(command))
 
-//TODO: TEST
+// TODO: TEST
 def runSimultaneously(commands: Seq[Seq[String]]) =
   val pids =
     for command <- commands
@@ -147,7 +146,8 @@ def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
 
   outputFds += output
 
-  val procsWithFds = (procs, inputFds, outputFds).zipped
+  // val procsWithFds = (procs, inputFds, outputFds).zipped
+  val procsWithFds = procs.lazyZip(inputFds).lazyZip(outputFds)
   val pids =
     for (proc, inputFd, outputFd) <- procsWithFds
     yield doFork { () =>

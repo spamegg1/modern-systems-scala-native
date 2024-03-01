@@ -1,10 +1,10 @@
-package `01inputOutputBadStuff`
+package ch01.badStuff
 
 import scalanative.unsigned.UnsignedRichInt // convert Int to ULong
 import scalanative.unsafe.{CQuote, CString, CSize, Ptr, CChar, sizeof}
 import scalanative.libc.{string, stdio, stdlib}
 
-// @main // remember to comment / uncomment!
+@main // remember to comment / uncomment!
 def testingBadStuff: Unit =
   // 1. Writing to read-only memory:
   // val string: Ptr[CChar] = c"hello"
@@ -31,22 +31,27 @@ def testingBadStuff: Unit =
   // val str5: Ptr[CChar] = c"Hello world"
   // stdio.printf(c"attempting to access beyond the end of an array!\n")
   // val char: CChar = str5(20.toULong) // no errors!
-  // stdio.printf(c"%c\n", char)
+  // stdio.printf(c"%c\n", char) // segfault if 20 is a large number, otherwise print junk
 
   // 6. Accessing an address that has been freed
-  val intPtr: Ptr[Int] = stdlib.malloc(sizeof[Ptr[Int]]).asInstanceOf[Ptr[Int]]
+  val intPtr = stdlib.malloc(sizeof[Int])
   !intPtr = 2
   stdio.printf(c"The value of the int: %d\n", (!intPtr).toInt)
 
   stdio.printf(c"freeing the memory allocated to the integer pointer!\n")
-  stdlib.free(intPtr.asInstanceOf[Ptr[Byte]])
+  stdlib.free(intPtr)
 
   stdio.printf(c"attempting to update the integer that was just freed!\n")
   !intPtr = 34 // no errors!
-  stdio.printf(c"The value of the int: %d\n", (!intPtr).toInt)
+  stdio.printf(c"The value of the int: %d\n", (!intPtr).toInt) // prints 34
+  // despite no segfault, valgrind correctly finds the 2 errors (invalid read / write)
 
   // 7. Improper use of scanf
   // int n = 2;
   // scanf(" ", n); // no segfault! Damn.
+
+  // 8. Not freeing malloc-ed memory
+  // val x = stdlib.malloc(1000.toULong)
+  // stdlib.free(x) // without this, valgrind finds 1000 bytes "definitely lost"
 
   stdio.printf(c"all the bad stuff finished.\n")

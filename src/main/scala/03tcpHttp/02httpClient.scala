@@ -45,7 +45,7 @@ def writeRequest(
     socketFileDescriptor: Ptr[FILE],
     request: HttpRequest
 ): Unit =
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     writeRequestLine(
       socketFileDescriptor,
       toCString(request.method),
@@ -85,7 +85,7 @@ def parseHeaderLine(line: CString): (String, String) =
     (keyString, valueString)
 
 def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
-  val lineBuffer = stdlib.malloc(4096.toULong)
+  val lineBuffer = stdlib.malloc(4096.toUSize) // 0.5
   println("reading status line?")
 
   var readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
@@ -112,12 +112,12 @@ def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
       headers("Content-Length:").toInt
     else 65535
 
-  val bodyBuffer = stdlib.malloc((contentLength + 1).toULong)
+  val bodyBuffer = stdlib.malloc((contentLength + 1).toUSize) // 0.5
   val bodyReadResult =
     stdio.fread(
       bodyBuffer,
-      1.toULong,
-      contentLength.toULong,
+      1.toUSize,
+      contentLength.toUSize,
       socketFileDescriptor
     )
 
@@ -215,7 +215,7 @@ def httpClient(args: String*): Unit =
     println("Usage: ./tcp_test [address] [port] [path]")
     ()
 
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     val address = toCString(args(0))
     val host = args(0)
     val port = toCString(args(1))

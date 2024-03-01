@@ -60,8 +60,8 @@ def makeConnection(address: CString, port: CString): Int =
     sock
 
 def makeRequest(sock: Ptr[FILE], request: String): String =
-  val responseBuffer = stdlib.malloc(2048.toULong)
-  val response = Zone { implicit z =>
+  val responseBuffer = stdlib.malloc(2048.toUSize) // 0.5 .toUSize
+  val response = Zone { // implicit z => // 0.5, we don't need to spell out implicit param
     val requestCstring = toCString(request)
     stdio.fprintf(sock, requestCstring)
     val responseCstring = fgets(responseBuffer, 4095, sock)
@@ -71,7 +71,7 @@ def makeRequest(sock: Ptr[FILE], request: String): String =
   response
 
 def handleConnection(sock: Int): Unit =
-  val responseBuffer = malloc(4096.toULong)
+  val responseBuffer = malloc(4096.toUSize) // 0.5
   val socketFileDescriptor = util.fdopen(sock, c"r+")
   val resp = makeRequest(socketFileDescriptor, "hello?  is anybody there?\n")
   println(s"I got a response: ${resp.trim()}")
@@ -100,7 +100,7 @@ def tcpClient(args: String*): Unit =
     println("Usage: ./tcp_test [address] [port]")
     ()
 
-  val sock = Zone { implicit z =>
+  val sock = Zone { // implicit z => 0.5
     val address = toCString(args(0))
     val port = toCString(args(1))
     stdio.printf(c"looking up address: %s port: %s\n", address, port)

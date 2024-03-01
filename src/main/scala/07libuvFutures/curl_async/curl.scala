@@ -63,7 +63,7 @@ object Curl:
     slist
 
   def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] = Zone {
-    implicit z => slist_append(slist, toCString(header))
+    slist_append(slist, toCString(header)) // 0.5
   }
 
   def startRequest(
@@ -71,7 +71,7 @@ object Curl:
       url: String,
       headers: Seq[String] = Seq.empty,
       body: String = ""
-  ): Future[ResponseState] = Zone { implicit z =>
+  ): Future[ResponseState] = Zone { // implicit z => // 0.5
     init
     val curlHandle = easy_init()
     serial += 1
@@ -285,14 +285,14 @@ object Curl:
 
   def bufferToString(ptr: Ptr[Byte], size: CSize, nmemb: CSize): String =
     val byteSize = size * nmemb
-    val buffer = malloc(byteSize + 1.toULong)
-    strncpy(buffer, ptr, byteSize + 1.toULong)
+    val buffer = malloc(byteSize + 1.toUSize) // 0.5
+    strncpy(buffer, ptr, byteSize + 1.toUSize) // 0.5
     val res = fromCString(buffer)
     free(buffer)
     return (res)
 
   def multi_setopt(curl: MultiCurl, option: CInt, parameters: CVarArg*): Int =
-    Zone { implicit z =>
+    Zone { // implicit z => // 0.5
       curl_multi_setopt(curl, option, toCVarArgList(parameters.toSeq))
     }
 

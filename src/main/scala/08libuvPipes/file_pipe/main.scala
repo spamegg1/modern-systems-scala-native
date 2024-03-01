@@ -139,8 +139,8 @@ object FilePipe:
     val state =
       stdlib.malloc(sizeof[FilePipeState]).asInstanceOf[Ptr[FilePipeState]]
     val buf = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    buf._1 = stdlib.malloc(4096.toULong)
-    buf._2 = 4095.toULong
+    buf._1 = stdlib.malloc(4096.toUSize) // 0.5
+    buf._2 = 4095.toUSize // 0.5
     state._1 = fd
     state._2 = buf
     state._3 = 0L
@@ -222,9 +222,9 @@ object SyncPipe:
   val allocCB =
     CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
       (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
-        val buf = stdlib.malloc(4096.toULong)
+        val buf = stdlib.malloc(4096.toUSize) // 0.5
         buffer._1 = buf
-        buffer._2 = 4096.toULong
+        buffer._2 = 4096.toUSize // 0.5
     )
 
   // val readCB = new ReadCB:
@@ -241,8 +241,8 @@ object SyncPipe:
           pipeDestination.done()
           handlers.remove(pipeId)
         else
-          val dataBuffer = stdlib.malloc(size.toULong)
-          string.strncpy(dataBuffer, buffer._1, size.toULong)
+          val dataBuffer = stdlib.malloc(size.toUSize) // 0.5
+          string.strncpy(dataBuffer, buffer._1, size.toUSize) // 0.5
           val data_string = fromCString(dataBuffer)
           stdlib.free(dataBuffer)
           val pipeDestination = handlers(pipeId)

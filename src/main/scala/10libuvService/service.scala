@@ -2,7 +2,7 @@ package `10libUvService`
 
 import scalanative.unsafe.*
 import scalanative.libc.*
-import util.control.NonLocalReturns.returning
+import util.boundary, boundary.break
 import concurrent.{Future, ExecutionContext}
 import argonaut.*
 import Argonaut.*
@@ -30,12 +30,13 @@ case class Service(routes: Seq[Route] = Seq.empty)(using
     ec: ExecutionContext
 ):
   def dispatch(req: Request[String]): Route =
-    for route <- routes do
-      if req.method == route.method && req.url.startsWith(route.path) then
-        println(s"matched route ($route)")
-        returning(route) // NonLocal return! Not sure what I'm doing.
+    boundary:
+      for route <- routes do
+        if req.method == route.method && req.url.startsWith(route.path) then
+          println(s"matched route ($route)")
+          break(route)
 
-    throw new Exception("no match!")
+    throw Exception("no match!")
 
   def run(port: Int) = Server.init(port, this.dispatch)
 

@@ -54,14 +54,16 @@ int main(int argc, char *argv[])
     // char c = s[20]; // clang compiles with warnings, not always segfaults.
 
     // Accessing an address that has been freed
-    int *p = malloc(8); // allocating memory to p
-    *p = 100;
-    free(p);  // deallocated the space allocated to p
-    *p = 110; // no segfault on clang or gcc. Why?
+    int *p = malloc(sizeof(int)); // allocating memory to p
+    *p = 2;
+    printf("The value of the int: %d\n", *p); // prints 2
+    free(p);                                  // deallocated the space allocated to p
+    *p = 34;                                  // no segfault on clang or gcc. Why?
+    printf("The value of the int: %d\n", *p); // prints 34, no problems!
 
     // Improper use of scanf
-    int n = 2;
-    scanf(" ", n); // no segfault! Damn.
+    // int n = 2;
+    // scanf(" ", n); // no segfault! Damn.
 
     return EXIT_SUCCESS;
 }

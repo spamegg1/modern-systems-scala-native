@@ -1,4 +1,4 @@
-package `01inputOutputTesting`
+package ch01.testing
 
 import scalanative.unsigned.UnsignedRichInt // convert Int to ULong to use _+_
 import scalanative.unsafe.{CQuote, CString, CSize, Ptr, CChar, sizeof}
@@ -10,12 +10,14 @@ import scalanative.libc.{string, stdio, stdlib}
 def testNullTermination: Unit =
   val cString: CString = c"hello" // uses CQuote
   val strLen: CSize = string.strlen(cString) // 5
-  val buffer: Ptr[Byte] = stdlib.malloc(strLen + 1.toULong)
+  // val buffer: Ptr[Byte] = stdlib.malloc(strLen + 1.toULong) // 0.4.17
+  val buffer: Ptr[Byte] = stdlib.malloc(strLen + 1.toUSize) // 0.5
 
   // buffer(strLen.toULong) = 123.toByte // we can "update" a location like this
 
   // string.strncpy(buffer, cString, strLen) // copy, excluding \0
-  string.strncpy(buffer, cString, strLen + 1.toULong) // copy, including \0
+  // string.strncpy(buffer, cString, strLen + 1.toULong) // 0.4.17
+  string.strncpy(buffer, cString, strLen + 1.toUSize) // 0.5: copy, including \0
 
   // buffer(strLen.toULong) = 0.toByte // if we want to be super safe with \0
 

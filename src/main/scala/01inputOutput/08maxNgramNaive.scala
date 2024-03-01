@@ -1,20 +1,15 @@
-package `01inputOutputMaxNgramNaive`
+package ch01.maxNgramNaive
 
-// import scalanative.unsafe.*
-// import scalanative.libc.*
-// import stdio.*
-
-// every line is of this form:
-// ngram TAB year TAB match_count TAB volume_count NEWLINE
-// Such as:
-// A'Aang_NOUN 1879 45 5
+// every line is of this form: ngram TAB year TAB match_count TAB volume_count NEWLINE
+// Such as: A'Aang_NOUN 1879 45 5
 // compile this, then from the root directory, run with:
-// ./target/scala-3.2.1/scala-native-out ./src/main/resources/googlebooks-eng-all-1gram-20120701-a
+// ./target/scala-3.3.1/modern-systems-scala-native-out <
+// ./src/main/resources/googlebooks-eng-all-1gram-20120701-a
 // it took 7316 seconds.
 // max count: and, 2008; 470825580 occurrences
 // 7315929 ms elapsed total.
 
-// @main
+@main // comment / uncomment
 def maxNgramNaive(args: String*): Unit =
   var max = 0
   var maxWord = ""
@@ -23,10 +18,11 @@ def maxNgramNaive(args: String*): Unit =
   val readStart = System.currentTimeMillis()
   var linesRead = 0
 
+  // we will feed the input file into stdin, then read it from there.
   for line <- io.Source.stdin.getLines
   do
     val splitFields = line.split("\\s+")
-    if splitFields.size != 4 then throw new Exception("Parse Error")
+    if splitFields.size != 4 then throw Exception("Parse Error")
 
     val word = splitFields(0)
     val year = splitFields(1).toInt

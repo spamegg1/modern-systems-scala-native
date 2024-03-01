@@ -29,13 +29,13 @@ object LMDB:
     putString(env, key, valueString)
 
   def getString(env: Env, key: String): String =
-    Zone { implicit z =>
+    Zone { // implicit z => // 0.5
       val k = toCString(key)
       fromCString(get(env, k))
     }
 
   def putString(env: Env, key: String, value: String): Unit =
-    Zone { implicit z =>
+    Zone { // implicit z => // 0.5
       val k = toCString(key)
       val v = toCString(value)
       put(env, k, v)
@@ -79,14 +79,13 @@ object LMDB:
     check(mdb_get(transaction, database, rKey, rValue), "mdb_get")
 
     stdio.printf(c"key: %s value: %s\n", rKey._2, rValue._2)
-    val output = stdlib.malloc(rValue._1.toULong)
-    string.strncpy(output, rValue._2, rValue._1.toULong)
+    val output = stdlib.malloc(rValue._1.toUSize) // 0.5
+    string.strncpy(output, rValue._2, rValue._1.toUSize) // 0.5
     check(mdb_txn_abort(transaction), "mdb_txn_abort")
     output
 
   def check(result: Int, label: String): Unit =
-    if result != 0 then
-      throw new Exception(s"bad LMDB call: $label returned $result")
+    if result != 0 then throw new Exception(s"bad LMDB call: $label returned $result")
     else println(s"$label returned $result")
 
 @link("lmdb")

@@ -17,7 +17,7 @@ object curlBasic:
     slist
 
   def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] =
-    Zone(implicit z => slist_append(slist, toCString(header)))
+    Zone(slist_append(slist, toCString(header))) // 0.5
 
   var request_serial = 0L
   val responses = HashMap[Long, ResponseState]()
@@ -29,10 +29,10 @@ object curlBasic:
     responses(request_serial) = ResponseState()
     val curl = easy_init()
 
-    Zone(implicit z =>
+    Zone { // implicit z => // 0.5
       val url_str = toCString(url)
       println(curl_easy_setopt(curl, URL, url_str))
-    )
+    }
     curl_easy_setopt(curl, WRITECALLBACK, Curl.func_to_ptr(writeCB))
     curl_easy_setopt(curl, WRITEDATA, req_id_ptr.asInstanceOf[Ptr[Byte]])
     curl_easy_setopt(curl, HEADERCALLBACK, Curl.func_to_ptr(headerCB))

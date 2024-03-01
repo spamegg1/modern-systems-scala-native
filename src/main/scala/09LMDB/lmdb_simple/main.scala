@@ -8,10 +8,10 @@ import argonaut.*
 import Argonaut.*
 import LMDB.*
 
-val lineBuffer = stdlib.malloc(1024.toULong)
-val getKeyBuffer = stdlib.malloc(512.toULong)
-val putKeyBuffer = stdlib.malloc(512.toULong)
-val valueBuffer = stdlib.malloc(512.toULong)
+val lineBuffer = stdlib.malloc(1024.toUSize) // 0.5
+val getKeyBuffer = stdlib.malloc(512.toUSize) // 0.5
+val putKeyBuffer = stdlib.malloc(512.toUSize) // 0.5
+val valueBuffer = stdlib.malloc(512.toUSize) // 0.5
 
 // @main
 def lmdbSimple(args: String*): Unit =
@@ -97,14 +97,13 @@ object LMDB:
     check(mdb_get(transaction, database, rk, rv), "mdb_get")
 
     stdio.printf(c"key: %s value: %s\n", rk._2, rv._2)
-    val output = stdlib.malloc(rv._1.toULong)
-    string.strncpy(output, rv._2, rv._1.toULong)
+    val output = stdlib.malloc(rv._1.toUSize) // 0.5
+    string.strncpy(output, rv._2, rv._1.toUSize) // 0.5
     check(mdb_transactionn_abort(transaction), "mdb_transactionn_abort")
     output
 
   def check(result: Int, label: String): Unit =
-    if result != 0 then
-      throw new Exception(s"bad LMDB call: $label returned $result")
+    if result != 0 then throw new Exception(s"bad LMDB call: $label returned $result")
     else println(s"$label returned $result")
 
 @link("lmdb")

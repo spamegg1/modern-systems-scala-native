@@ -82,12 +82,12 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
 
     val outputBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    outputBuffer._1 = malloc(outputSize.toULong)
-    Zone { implicit z =>
+    outputBuffer._1 = malloc(outputSize.toUSize) // 0.5
+    Zone { // implicit z => // 0.5
       val outputString = toCString(input)
-      strncpy(outputBuffer._1, outputString, outputSize.toULong)
+      strncpy(outputBuffer._1, outputString, outputSize.toUSize) // 0.5
     }
-    outputBuffer._2 = outputSize.toULong
+    outputBuffer._2 = outputSize.toUSize // 0.5
     !req = outputBuffer.asInstanceOf[Ptr[Byte]]
 
     uv_fs_write(EventLoop.loop, req, fd, outputBuffer, 1, offset, writeCB)
@@ -199,8 +199,8 @@ object FilePipe:
       .malloc(sizeof[FilePipeState])
       .asInstanceOf[Ptr[FilePipeState]]
     val buf = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    buf._1 = stdlib.malloc(4096.toULong)
-    buf._2 = 4095.toULong
+    buf._1 = stdlib.malloc(4096.toUSize) // 0.5
+    buf._2 = 4095.toUSize // 0.5
     state._1 = fd
     state._2 = buf
     state._3 = 0L
@@ -279,9 +279,9 @@ object SyncPipe:
   val allocCB =
     CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
       (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
-        val buf = stdlib.malloc(4096.toULong)
+        val buf = stdlib.malloc(4096.toUSize) // 0.5
         buffer._1 = buf
-        buffer._2 = 4096.toULong
+        buffer._2 = 4096.toUSize // 0.5
     )
 
   // val readCB = new ReadCB:
@@ -299,8 +299,8 @@ object SyncPipe:
           pipeDestination.done()
           handlers.remove(pipeId)
         else
-          val dataBuffer = stdlib.malloc(size.toULong) // removed +1
-          string.strncpy(dataBuffer, buffer._1, size.toULong) // removed +1
+          val dataBuffer = stdlib.malloc(size.toUSize) // removed +1 // 0.5
+          string.strncpy(dataBuffer, buffer._1, size.toUSize) // removed +1 // 0.5
           val dataString = fromCString(dataBuffer)
           stdlib.free(dataBuffer)
           val pipeDestination = handlers(pipeId)

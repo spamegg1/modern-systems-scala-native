@@ -56,7 +56,7 @@ object Parsing:
 
   def parseRequest(conn: Int): Option[HttpRequest] =
     val socketFd = util.fdopen(conn, c"r")
-    val lineBuffer = stdlib.malloc(4096.toULong) // fix
+    val lineBuffer = stdlib.malloc(4096.toUSize) // fix // 0.5
     var readResult = stdio.fgets(lineBuffer, 4096, socketFd)
 
     val (method, url) = parseRequestLine(lineBuffer)
@@ -78,7 +78,7 @@ object Parsing:
 
   def writeResponse(conn: Int, resp: HttpResponse): Unit =
     val socketFd = util.fdopen(conn, c"r+")
-    Zone { implicit z =>
+    Zone { // implicit z => // 0.5
       stdio.fprintf(socketFd, c"%s %s %s\r\n", c"HTTP/1.1", c"200", c"OK")
 
       for (k, v) <- resp.headers
@@ -88,7 +88,6 @@ object Parsing:
       stdio.fprintf(socketFd, toCString(resp.body))
     }
     fclose(socketFd)
-    ()
 
 // @main
 def httpServer05(args: String*): Unit = serve(8082.toUShort)

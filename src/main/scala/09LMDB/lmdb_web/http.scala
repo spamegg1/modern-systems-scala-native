@@ -40,8 +40,8 @@ object HTTP:
   val MAX_URI_SIZE = 2048
   val MAX_METHOD_SIZE = 8
 
-  val method_buffer = malloc(16.toULong)
-  val uri_buffer = malloc(4096.toULong)
+  val method_buffer = malloc(16.toUSize) // 0.5
+  val uri_buffer = malloc(4096.toUSize) // 0.5
 
   def scan_request_line(line: CString): (String, String, Int) =
     val lineLen = stackalloc[Int](sizeof[Int])
@@ -86,7 +86,7 @@ object HTTP:
       !lineLen
     else throw new Exception("bad header line")
 
-  val lineBuffer = malloc(1024.toULong)
+  val lineBuffer = malloc(1024.toUSize) // 0.5
 
   def parseRequest(req: CString, size: Long): HttpRequest =
     // req(size) = 0 // ensure null termination
@@ -121,27 +121,27 @@ object HTTP:
 
     throw new Exception(s"bad scan, exceeded $size bytes")
 
-  val keyBuffer = malloc(512.toULong)
-  val valueBuffer = malloc(512.toULong)
-  val bodyBuffer = malloc(4096.toULong)
+  val keyBuffer = malloc(512.toUSize) // 0.5
+  val valueBuffer = malloc(512.toUSize) // 0.5
+  val bodyBuffer = malloc(4096.toUSize) // 0.5
 
   def make_response(response: HttpResponse, buffer: Ptr[Buffer]): Unit =
-    stdio.snprintf(buffer._1, 4096.toULong, c"HTTP/1.1 200 OK\r\n")
+    stdio.snprintf(buffer._1, 4096.toUSize, c"HTTP/1.1 200 OK\r\n") // 0.5
     var headerPos = 0
     val bufferStart = buffer._1
     var bytesWritten = strlen(bufferStart)
     var lastPos = bufferStart + bytesWritten
-    var bytesRemaining = 4096.toULong - bytesWritten
+    var bytesRemaining = 4096.toUSize - bytesWritten // 0.5
     val headers = response.headers.keys.toSeq
 
     while headerPos < response.headers.size do
       val k = headers(headerPos)
       val v = response.headers(k)
-      Zone { implicit z =>
+      Zone { // implicit z => // 0.5
         val keyTemp = toCString(k)
         val valueTemp = toCString(v)
-        strncpy(keyBuffer, keyTemp, 512.toULong)
-        strncpy(valueBuffer, valueTemp, 512.toULong)
+        strncpy(keyBuffer, keyTemp, 512.toUSize) // 0.5
+        strncpy(valueBuffer, valueTemp, 512.toUSize) // 0.5
       }
       stdio.snprintf(
         lastPos,
@@ -151,14 +151,14 @@ object HTTP:
         valueBuffer
       )
       val len = strlen(lastPos)
-      bytesWritten = bytesWritten + len + 1.toULong
-      bytesRemaining = 4096.toULong - bytesWritten
+      bytesWritten = bytesWritten + len + 1.toUSize // 0.5
+      bytesRemaining = 4096.toUSize - bytesWritten // 0.5
       lastPos = lastPos + len
       headerPos += 1
 
-    Zone { implicit z =>
+    Zone { // implicit z => // 0.5
       val body = toCString(response.body)
       val body_len = strlen(body)
-      strncpy(bodyBuffer, body, 4096.toULong)
+      strncpy(bodyBuffer, body, 4096.toUSize) // 0.5
     }
     stdio.snprintf(lastPos, bytesRemaining, c"\r\n%s", bodyBuffer)

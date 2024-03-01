@@ -14,7 +14,7 @@ def curlAsync(args: String*): Unit =
   println("initializing loop")
   implicit val loop = EventLoop
 
-  val resp = Zone { implicit z =>
+  val resp = Zone { // implicit z => // 0.5
     for arg <- args do
       val url = arg
       val resp = Curl.startRequest(GET, url)

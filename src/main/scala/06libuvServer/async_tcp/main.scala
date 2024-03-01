@@ -39,8 +39,8 @@ def serveTcp(
   ()
 
 // val connectionCB = new ConnectionCB:
-val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit](
-  (handle: TCPHandle, status: Int) =>
+val connectionCB =
+  CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]((handle: TCPHandle, status: Int) =>
     println("received connection")
 
     // initialize the new client tcp handle and its state
@@ -54,7 +54,7 @@ val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit](
     checkError(uv_accept(handle, client), "uv_accept")
     // set up callbacks for incoming data
     checkError(uv_read_start(client, allocCB, readCB), "uv_read_start")
-)
+  )
 
 def initialize_client_state(client: TCPHandle): Ptr[ClientState] =
   val clientStatePtr =
@@ -65,10 +65,10 @@ def initialize_client_state(client: TCPHandle): Ptr[ClientState] =
     clientStatePtr,
     client
   )
-  val client_state_data = stdlib.malloc(4096.toULong)
+  val client_state_data = stdlib.malloc(4096.toUSize) // 0.5
   clientStatePtr._1 = client_state_data
-  clientStatePtr._2 = 4096.toULong // total
-  clientStatePtr._3 = 0.toULong // used
+  clientStatePtr._2 = 4096.toUSize // total  // 0.5
+  clientStatePtr._3 = 0.toUSize // used  // 0.5
   !client = clientStatePtr.asInstanceOf[Ptr[Byte]]
   clientStatePtr
 
@@ -76,9 +76,9 @@ def initialize_client_state(client: TCPHandle): Ptr[ClientState] =
 val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
   (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
     println("allocating 4096 bytes")
-    val buf = stdlib.malloc(4096.toULong)
+    val buf = stdlib.malloc(4096.toUSize) // 0.5
     buffer._1 = buf
-    buffer._2 = 4096.toULong
+    buffer._2 = 4096.toUSize // 0.5
 )
 
 // val readCB = new ReadCB:
@@ -102,9 +102,9 @@ def appendData(
     buffer: Ptr[Buffer]
 ): Unit =
   val copy_position = state._1 + state._3
-  string.strncpy(copy_position, buffer._1, size.toULong)
+  string.strncpy(copy_position, buffer._1, size.toUSize) // 0.5
   // be sure to update the length of the data since we have copied into it
-  state._3 = state._3 + size.toULong
+  state._3 = state._3 + size.toUSize // 0.5
   stdio.printf(c"client %x: %d/%d bytes used\n", state, state._3, state._2)
 
 def sendResponse(client: TCPHandle, state: Ptr[ClientState]): Unit =
@@ -122,14 +122,14 @@ def make_response(state: Ptr[ClientState]): CString =
   response_data
 
 // val writeCB = new WriteCB:
-val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit](
-  (writeReq: WriteReq, status: Int) =>
+val writeCB =
+  CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]((writeReq: WriteReq, status: Int) =>
     println("write completed")
     val resp_buffer = (!writeReq).asInstanceOf[Ptr[Buffer]]
     stdlib.free(resp_buffer._1)
     stdlib.free(resp_buffer.asInstanceOf[Ptr[Byte]])
     stdlib.free(writeReq.asInstanceOf[Ptr[Byte]])
-)
+  )
 
 def shutdown(client: TCPHandle): Unit =
   val shutdown_req = malloc(uv_req_size(UV_SHUTDOWN_REQ_T))

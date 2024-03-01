@@ -8,7 +8,7 @@ import scalanative.posix.unistd
 
 import util.*
 
-// @main
+@main
 def badExec(args: String*): Unit =
   println("about to exec")
   runCommand(Seq("/bin/ls", "-l", "."))
@@ -20,7 +20,7 @@ def runCommand(
 ): Int =
   if args.size == 0 then throw new Exception("bad arguments of length 0")
 
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     val fname = toCString(args.head)
     val argArray = makeStringArray(args)
     val envStrings = env.map { case (k, v) => s"$k=$v" }
@@ -37,18 +37,18 @@ def runCommand(
 def makeStringArray(args: Seq[String]): Ptr[CString] =
   val pid = unistd.getpid()
   val destArray = stdlib
-    .malloc(sizeof[Ptr[CString]] * args.size.toULong)
+    .malloc(sizeof[Ptr[CString]] * args.size.toUSize) // 0.5
     .asInstanceOf[Ptr[CString]]
   val count = args.size
 
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     for (arg, i) <- args.zipWithIndex
     do
       val stringPtr = toCString(arg)
       val stringLen = string.strlen(stringPtr)
-      val destStr = stdlib.malloc(stringLen.toULong).asInstanceOf[Ptr[Byte]]
-      string.strncpy(destStr, stringPtr, arg.size.toULong)
-      // destStr(stringLen) = 0
+      val destStr = stdlib.malloc(stringLen) // .asInstanceOf[Ptr[Byte]] // 0.5
+      string.strncpy(destStr, stringPtr, arg.size.toUSize) // 0.5
+      // destStr(stringLen.toUInt) = 0 // 0.5
       destArray(i) = destStr
     ()
   }

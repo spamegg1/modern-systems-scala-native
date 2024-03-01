@@ -36,8 +36,7 @@ def await(pid: Int): Int =
   val status = stackalloc[Int](sizeof[Int])
   waitpid(pid, status, 0)
   val statusCode = !status
-  if statusCode != 0 then
-    throw new Exception(s"Child process returned error $statusCode")
+  if statusCode != 0 then throw new Exception(s"Child process returned error $statusCode")
   !status
 
 def doAndAwait(task: Function0[Int]): Int =
@@ -49,7 +48,7 @@ def runCommand(
     env: Map[String, String] = Map.empty
 ): Int =
   if args.size == 0 then throw new Exception("bad arguments of length 0")
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     val fname = toCString(args.head)
     val argArray = makeStringArray(args)
     val envStrings = env.map { case (k, v) => s"$k=$v" }
@@ -65,17 +64,17 @@ def runCommand(
 
 def makeStringArray(args: Seq[String]): Ptr[CString] =
   val pid = unistd.getpid()
-  val size = sizeof[Ptr[CString]] * args.size.toULong + 1.toULong
+  val size = sizeof[Ptr[CString]] * args.size.toUSize + 1.toUSize // 0.5
   val destArray = stdlib.malloc(size).asInstanceOf[Ptr[CString]]
   val count = args.size
 
-  Zone { implicit z =>
+  Zone { // implicit z => // 0.5
     for (arg, i) <- args.zipWithIndex
     do
       val stringPtr = toCString(arg)
       val stringLen = string.strlen(stringPtr)
       val destString = stdlib.malloc(stringLen).asInstanceOf[Ptr[Byte]]
-      string.strncpy(destString, stringPtr, arg.size.toULong)
+      string.strncpy(destString, stringPtr, arg.size.toUSize) // 0.5
       // destString(stringLen) = 0
       destArray(i) = destString
       // ()
