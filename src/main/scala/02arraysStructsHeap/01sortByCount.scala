@@ -1,6 +1,6 @@
 package ch02.sortByCount
 
-import scalanative.unsigned.UnsignedRichInt // .toULong
+import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.{Ptr, sizeof, CString, CStruct4, CFuncPtr2, CQuote, extern}
 import scalanative.libc.{stdio, stdlib, string}
 import scala.scalanative.unsigned.{ULong, USize}

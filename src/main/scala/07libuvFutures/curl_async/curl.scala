@@ -2,7 +2,6 @@ package `07curlAsync`
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
-import scalanative.unsigned.*
 import collection.mutable
 import scalanative.libc.stdlib.*
 import scalanative.libc.string.*

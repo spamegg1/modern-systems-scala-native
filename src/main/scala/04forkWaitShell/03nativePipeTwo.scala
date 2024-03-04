@@ -1,16 +1,14 @@
 package `04nativePipeTwo`
 
 import scalanative.unsigned.UnsignedRichInt
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
-// import scalanative.native.*
-import scala.scalanative.posix.unistd
+import scalanative.unsafe.*
+import scalanative.libc.*
+import scalanative.posix.unistd
+import util.*
 
 case class Command(path: String, args: String, env: Map[String, String])
 
-import util.*
-
-// @main
+@main
 def nativePipeTwo(args: String*): Unit =
   println("about to fork")
   val status =

@@ -3,7 +3,7 @@ package `03http`
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.libc.*
-import stdio.*, string.*, stdlib.*
+import stdio.*
 import scalanative.posix.unistd.*
 import scalanative.posix.sys.socket.*
 import scalanative.posix.netinet.in.*

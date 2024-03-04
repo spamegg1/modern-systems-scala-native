@@ -1,15 +1,13 @@
 package `04nativePipe`
 
 import scalanative.unsigned.UnsignedRichInt
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
-// import scalanative.native.*
-import scala.scalanative.posix.unistd
-import scala.collection.mutable
+import scalanative.unsafe.*
+import scalanative.libc.*
+import scalanative.posix.unistd
+import collection.mutable
+import util.*
 
 case class Command(path: String, args: String, env: Map[String, String])
-
-import util.*
 
 // @main
 def nativePipe(args: String*): Unit =

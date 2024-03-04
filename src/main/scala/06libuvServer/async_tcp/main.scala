@@ -1,10 +1,8 @@
 package `06asyncTcp`
 
 import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsigned.UnsignedRichLong
 import scalanative.unsafe.*
 import scalanative.libc.*
-// import scalanative.native.*
 import stdlib.*
 import LibUV.*, LibUVConstants.*
 

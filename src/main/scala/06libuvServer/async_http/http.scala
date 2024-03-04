@@ -1,12 +1,10 @@
 package `06libuvHttp`
 
-import scalanative.unsigned.UnsignedRichInt
+import scalanative.unsigned.{UnsignedRichInt, UShort}
 import scalanative.unsafe.*
 import scalanative.libc.*
-import scalanative.unsigned.*
-import stdio.*
-import stdlib.*
-import string.*
+import stdlib.malloc
+import string.{strlen, strncpy}
 import collection.mutable
 
 case class HeaderLine(

@@ -3,8 +3,8 @@ package `03tcp`
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.libc.*
-// import scalanative.native.*
-import stdio.*, string.*, stdlib.*
+import stdio.*
+import stdlib.malloc
 import scalanative.posix.unistd.*
 import scalanative.posix.sys.socket.*
 import scalanative.posix.netinet.in.*

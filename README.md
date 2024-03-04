@@ -2,9 +2,9 @@
 
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
 
-- [Scala](https://www.scala-lang.org/) 3.3.1+,
-- [Scala Native](https://scala-native.org/en/stable/) version 0.4.16+,
-- `sbt` version 1.9.8+, and
+- [Scala](https://www.scala-lang.org/) 3.4.0+,
+- [Scala Native](https://scala-native.org/en/stable/) version 0.5.0+,
+- `scala-cli` version 1.2.0+, and
 - not using the Docker container provided by the [book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
 
 So I...
@@ -23,13 +23,17 @@ I noticed many things have changed.
 
 ### `CSize` instead of `Int`
 
-The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize` is actually `ULong`, so we need `.toULong` conversion. For this, we need to import:
+The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize / USize` are actually `ULong`, so we need `.toUSize` conversion. For this, we need to import:
+
+```scala
+import scalanative.unsigned.UnsignedRichLong
+```
+
+This also works:
 
 ```scala
 import scalanative.unsigned.UnsignedRichInt
 ```
-
-Apparently, in Scala Native 0.5 and onwards, there will be a new type `Size` that governs everything related to sizes. (That's what I heard from the devs on Discord.)
 
 ### Type arguments alone not enough for `stackalloc`
 
@@ -89,7 +93,7 @@ If you do this you'll get errors: first is the `CSize` errors:
 arg.size + 1
 ```
 
-when you are trying to add 1, which is `Int`, to `string_len`, which is `CSize`, for which you have to use `.toULong`.
+when you are trying to add 1, which is `Int`, to `string_len`, which is `CSize`, for which you have to use `.toUSize`.
 
 The second is `none of the overloaded alternatives for method update of Ptr[Byte]...` which complains when we are trying to manually null-terminate the new copy of the string:
 
@@ -106,9 +110,9 @@ Fixing all these problems and rewriting in Scala 3 style, we get:
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
-val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
+val destStr = stdlib.malloc(strLen + 1.toUSize) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen) // copy JUST the string, not \0
-destStr(strLen.toULong) = 0.toByte // manually null-terminate the new copy
+destStr(strLen.toUSize) = 0.toByte // manually null-terminate the new copy
 ```
 
 or we can simply copy the string, including the null-terminator:
@@ -116,8 +120,8 @@ or we can simply copy the string, including the null-terminator:
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
-val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
-string.strncpy(destStr, stringPtr, strLen + 1.toULong) // copy, including \0
+val destStr = stdlib.malloc(strLen + 1.toUSize) // alloc 1 more
+string.strncpy(destStr, stringPtr, strLen + 1.toUSize) // copy, including \0
 ```
 
 If we for some reason don't trust `strncpy` and want extra super-duper safety, we can do both:
@@ -125,7 +129,7 @@ If we for some reason don't trust `strncpy` and want extra super-duper safety, w
 ```scala
 val stringPtr = toCString(arg) // prepare pointer for malloc
 val strLen = string.strlen(stringPtr) // calculate length of string to be copied
-val destStr = stdlib.malloc(strLen + 1.toULong) // alloc 1 more
+val destStr = stdlib.malloc(strLen + 1.toUSize) // alloc 1 more
 string.strncpy(destStr, stringPtr, strLen + 1) // copy, including \0
 destStr(strLen.toULong) = 0.toByte // null-terminate the new copy, JUST IN CASE!
 ```

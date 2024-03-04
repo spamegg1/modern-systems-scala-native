@@ -2,7 +2,6 @@ package ch01.badSscanf
 
 import scalanative.unsafe.{CString, CQuote, Ptr, stackalloc, sizeof}
 import scalanative.libc.stdio
-// import scalanative.unsigned.UnsignedRichInt
 
 // here line: CString = Ptr[CChar] = Ptr[Byte]
 def parseStrLine(line: CString): Unit =

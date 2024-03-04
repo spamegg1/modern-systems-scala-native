@@ -1,7 +1,6 @@
 package `08filePipe`
 
 import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsigned.UnsignedRichLong
 import scalanative.unsafe.*
 import scalanative.libc.*
 import collection.mutable

@@ -1,11 +1,9 @@
 package `06libuvHttp`
 
 import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsigned.UnsignedRichLong
 import scalanative.unsafe.*
 import scalanative.libc.*
-import string.*
-import stdlib.*
+import stdlib.malloc
 
 import LibUV.*, LibUVConstants.*
 import HTTP.RequestHandler
@@ -97,7 +95,7 @@ val connectionCB =
 
 def initializeClientState(client: TCPHandle): Ptr[ClientState] =
   val clientStatePtr =
-    stdlib.malloc(sizeof[ClientState]).asInstanceOf[Ptr[ClientState]]
+    malloc(sizeof[ClientState]).asInstanceOf[Ptr[ClientState]]
 
   stdio.printf(
     c"allocated data at %x; assigning into handle storage at %x\n",
@@ -105,7 +103,7 @@ def initializeClientState(client: TCPHandle): Ptr[ClientState] =
     client
   )
 
-  val clientStateData = stdlib.malloc(4096.toUSize) // 0.5
+  val clientStateData = malloc(4096.toUSize) // 0.5
   clientStatePtr._1 = clientStateData
   clientStatePtr._2 = 4096.toUSize // total // 0.5
   clientStatePtr._3 = 0.toUSize // used // 0.5
@@ -117,7 +115,7 @@ def initializeClientState(client: TCPHandle): Ptr[ClientState] =
 val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
   (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
     println("allocating 4096 bytes")
-    val buf = stdlib.malloc(4096.toUSize) // 0.5
+    val buf = malloc(4096.toUSize) // 0.5
     buffer._1 = buf
     buffer._2 = 4096.toUSize // 0.5
 )

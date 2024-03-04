@@ -1,11 +1,10 @@
 package `05httpServer`
 
-import scalanative.unsigned.UnsignedRichInt
+import scalanative.unsigned.{UnsignedRichInt, UInt, UShort}
 import scalanative.unsafe.*
-import scalanative.unsigned.*
 import scalanative.libc.*
-// import scalanative.native.*
-import stdio.*, string.*, stdlib.*
+import stdio.{FILE, fclose}
+import stdlib.malloc
 import scalanative.posix.unistd.*
 import scalanative.posix.sys.socket.*
 import scalanative.posix.netinet.in.*

@@ -5,7 +5,6 @@ import scalanative.unsafe.*
 import scalanative.libc.*
 import scalanative.libc.stdio
 import scalanative.posix.unistd
-
 import util.*
 
 @main

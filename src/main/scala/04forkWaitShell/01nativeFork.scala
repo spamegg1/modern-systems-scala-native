@@ -3,14 +3,12 @@ package `03nativeFork`
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.libc.*
-// import scalanative.native.*
 import scalanative.posix.unistd
+import util.*
 
 case class Command(path: String, args: String, env: Map[String, String])
 
-import util.*
-
-// @main
+@main
 def nativeFork(args: String*): Unit =
   if args.size == 0 then
     println("bye")

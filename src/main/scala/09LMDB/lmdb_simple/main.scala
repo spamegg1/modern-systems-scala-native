@@ -1,6 +1,6 @@
 package `09lmdbSimple`
 
-import scalanative.unsigned.UnsignedRichInt
+import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.*
 import scalanative.libc.*
 import scalanative.unsigned.*
