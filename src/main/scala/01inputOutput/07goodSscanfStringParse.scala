@@ -1,7 +1,7 @@
 package ch01.goodSscanf
 
-import scala.scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, CSize}
-import scala.scalanative.libc.{stdio, string}
+import scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, CSize}
+import scalanative.libc.{stdio, string}
 
 def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
   // note that 1024 is not related to bufferSize. It's just a large enough safe number.
@@ -13,10 +13,16 @@ def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
 
   val wordLength: CSize = string.strlen(tempBuffer)
   if wordLength.toInt >= maxWordLength then // disallow segfault
-    throw Exception(s"word length $wordLength exceeds max buffer size $bufferSize")
+    throw Exception(
+      s"word length $wordLength exceeds max buffer size $bufferSize"
+    )
 
   //              dest      source     destSize
-  string.strncpy(wordOut, tempBuffer, wordLength) // can't return tempBuffer, so copy it.
+  string.strncpy(
+    wordOut,
+    tempBuffer,
+    wordLength
+  ) // can't return tempBuffer, so copy it.
   // wordOut is also stack allocated, but it comes from a function that calls this one.
 
 // first,  stdin        -> lineInBuffer,  using fgets
@@ -29,5 +35,9 @@ def goodSscanfStringParse: Unit =
 
   while stdio.fgets(lineInBuffer, 1023, stdio.stdin) != null
   do
-    parseLine(lineInBuffer, wordOutBuffer, 32) // now, user inputs >= 32 chars will fail!
+    parseLine(
+      lineInBuffer,
+      wordOutBuffer,
+      32
+    ) // now, user inputs >= 32 chars will fail!
     stdio.printf(c"read word: '%s'\n", wordOutBuffer)

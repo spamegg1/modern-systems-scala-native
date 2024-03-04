@@ -26,7 +26,8 @@ def maxNgramFast(args: String*): Unit =
   val maxYear: Ptr[Int] = stackalloc[Int]()
 
   // to be used in sscanf, temporary storage.
-  val lineBuffer: Ptr[Byte] = stackalloc[Byte](1024) // we know lines in file are short.
+  val lineBuffer: Ptr[Byte] =
+    stackalloc[Byte](1024) // we know lines in file are short.
   val tempWord: Ptr[Byte] = stackalloc[Byte](1024) // this matches maxWord.
   val tempCount: Ptr[Int] = stackalloc[Int]()
   val tempYear: Ptr[Int] = stackalloc[Int]()
@@ -92,7 +93,9 @@ def parseAndCompare(
 
     val wordLength = string.strlen(tempWord).toInt
     if wordLength >= maxWordBufferSize - 1 then
-      throw Exception(s"length $wordLength exceeded buffer size $maxWordBufferSize")
+      throw Exception(
+        s"length $wordLength exceeded buffer size $maxWordBufferSize"
+      )
 
     // update max values
     string.strncpy(maxWord, tempWord, string.strlen(lineBuffer))

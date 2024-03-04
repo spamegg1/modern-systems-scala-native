@@ -8,7 +8,7 @@ import scala.util.{Try, Success, Failure}
 import concurrent.{Future, ExecutionContext, Promise}
 
 trait Pipe[T, U]:
-  val handlers = mutable.Set[Pipe[U, _]]()
+  val handlers = mutable.Set[Pipe[U, ?]]()
   def feed(input: T): Unit
   def done(): Unit = for h <- handlers do h.done()
 

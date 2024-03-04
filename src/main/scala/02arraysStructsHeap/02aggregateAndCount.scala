@@ -135,10 +135,10 @@ def addNewItem(
 ): Unit =
   val tempWord: CString = tempItem._1
   val newWordLength = string.strlen(tempWord) // USize
-  val newWordBuffer: Ptr[Byte] = stdlib.malloc(newWordLength) // + 1.toUSize)
+  val newWordBuffer: Ptr[Byte] = stdlib.malloc(newWordLength + 1.toUSize) // 0.5
 
   string.strncpy(newWordBuffer, tempWord, newWordLength)
-  // newWordBuffer(newWordLength.toULong) = 0 // null terminating the string
+  newWordBuffer(newWordLength.toInt) = 0.toByte // null terminating the string // 0.5
 
   nextItem._1 = newWordBuffer
   nextItem._2 = tempItem._2
