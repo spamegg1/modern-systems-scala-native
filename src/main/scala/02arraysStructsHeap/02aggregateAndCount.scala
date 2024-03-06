@@ -52,8 +52,7 @@ def aggregateAndCount(args: String*): Unit =
   val linesRead = readAllLines(stdio.stdin, array) // NEW, different
   val readElapsed = System.currentTimeMillis() - readStart
 
-  println(s"""done. read $linesRead lines, ${array.used} unique words.
-          $readElapsed ms""")
+  println(s"""done. read $linesRead lines, ${array.used} unique words. $readElapsed ms""")
 
   val sortStart = System.currentTimeMillis() // same
   qsort.qsort(
@@ -138,7 +137,7 @@ def addNewItem(
   val newWordBuffer: Ptr[Byte] = stdlib.malloc(newWordLength + 1.toUSize) // 0.5
 
   string.strncpy(newWordBuffer, tempWord, newWordLength)
-  newWordBuffer(newWordLength.toInt) = 0.toByte // null terminating the string // 0.5
+  newWordBuffer(newWordLength) = 0.toByte // null terminating the string
 
   nextItem._1 = newWordBuffer
   nextItem._2 = tempItem._2

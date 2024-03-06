@@ -1,4 +1,4 @@
-package `04nativePipe`
+package ch04.nativePipe
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
@@ -11,14 +11,7 @@ case class Command(path: String, args: String, env: Map[String, String])
 
 // @main
 def nativePipe(args: String*): Unit =
-  val status = pipeMany(
-    0,
-    1,
-    Seq(
-      Seq("/bin/ls", "."),
-      Seq("/usr/bin/sort", "-r")
-    )
-  )
+  val status = pipeMany(0, 1, Seq(Seq("/bin/ls", "."), Seq("/usr/bin/sort", "-r")))
   println(s"- wait returned ${status}")
 
 def doFork(task: Function0[Int]): Int =
@@ -30,40 +23,32 @@ def doFork(task: Function0[Int]): Int =
     res
 
 def await(pid: Int): Int =
-  val status = stackalloc[Int](sizeof[Int])
+  val status = stackalloc[Int]()
   waitpid(pid, status, 0)
   val statusCode = !status
-
-  if statusCode != 0 then throw new Exception(s"Child process returned error $statusCode")
-
+  if statusCode != 0 then throw Exception(s"Child process returned error $statusCode")
   !status
 
 def doAndAwait(task: Function0[Int]): Int =
   val pid = doFork(task)
   await(pid)
 
-def runCommand(
-    args: Seq[String],
-    env: Map[String, String] = Map.empty
-): Int =
-  if args.size == 0 then throw new Exception("bad arguments of length 0")
+def runCommand(args: Seq[String], env: Map[String, String] = Map.empty): Int =
+  if args.size == 0 then throw Exception("bad arguments of length 0")
 
   Zone { // implicit z => // 0.5
-    println(
-      s"- proc ${unistd.getpid()}: running command ${args.head} with args ${args}"
-    )
+    println(s"- proc ${unistd.getpid()}: running command ${args.head} with args ${args}")
     val fname = toCString(args.head)
     val argArray = stringSeqToStringArray(args)
-    val envStrings = env.map { case (k, v) => s"$k=$v" }
+    val envStrings = env.map((k, v) => s"$k=$v")
     val envArray = stringSeqToStringArray(envStrings.toSeq)
 
     val r = execve(fname, argArray, envArray)
     if r != 0 then
       val err = errno.errno
       stdio.printf(c"error: %d %d\n", err, string.strerror(err))
-      throw new Exception(s"bad execve: returned $r")
+      throw Exception(s"bad execve: returned $r")
   }
-
   ??? // This will never be reached.
 
 def stringSeqToStringArray(args: Seq[String]): Ptr[CString] =
@@ -78,26 +63,21 @@ def stringSeqToStringArray(args: Seq[String]): Ptr[CString] =
     do
       val stringPtr = toCString(arg)
       val stringLen = string.strlen(stringPtr)
-      val destString = stdlib.malloc(stringLen).asInstanceOf[Ptr[Byte]]
+      val destString = stdlib.malloc(stringLen) // 0.5
       string.strncpy(destString, stringPtr, arg.size.toUSize) // 0.5
-      // destString(stringLen) = 0
+      destString(stringLen) = 0.toByte
       destArray(i) = destString
-    ()
   }
   // destArray(count) = null
   destArray
 
 // TODO: TEST
 def runOneAtATime(commands: Seq[Seq[String]]) =
-  for command <- commands
-  do doAndAwait(() => runCommand(command))
+  for command <- commands do doAndAwait(() => runCommand(command))
 
 // TODO: TEST
 def runSimultaneously(commands: Seq[Seq[String]]) =
-  val pids =
-    for command <- commands
-    yield doFork(() => runCommand(command))
-
+  val pids = for command <- commands yield doFork(() => runCommand(command))
   for pid <- pids do await(pid)
 
 def awaitAny(pids: Set[Int]): Set[Int] =
@@ -105,38 +85,29 @@ def awaitAny(pids: Set[Int]): Set[Int] =
   var running = pids
   !status = 0
   val finished = waitpid(-1, status, 0)
+
   if running.contains(finished) then
     val statusCode = !status
-    if statusCode != 0 then
-      throw new Exception(s"Child process returned error $statusCode")
-    else return pids - finished
-  else
-    throw new Exception(
-      s"error: reaped process ${finished}, expected one of $pids"
-    )
+    if statusCode != 0 then throw Exception(s"Child process returned error $statusCode")
+    else pids - finished
+  else throw Exception(s"error: reaped process ${finished}, expected one of $pids")
 
 def awaitAll(pids: Set[Int]): Unit =
   var running = pids
-  while running.nonEmpty
-  do
+  while running.nonEmpty do
     println(s"- waiting for $running")
     running = awaitAny(running)
-
   println("- Done!")
 
-// TODO
-def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
-
-// TODO
-def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
+def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ??? // TODO
+def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ??? // TODO
 
 def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
   val pipeArray = stackalloc[Int](2 * (procs.size - 1))
   var inputFds = mutable.ArrayBuffer[Int](input)
   var outputFds = mutable.ArrayBuffer[Int]()
-  // create our array of pipes
-  for i <- 0 until procs.size - 1
-  do
+
+  for i <- 0 until procs.size - 1 do // create our array of pipes
     val arrayOffset = i * 2
     val pipeRet = util.pipe(pipeArray + arrayOffset)
     outputFds += pipeArray(arrayOffset + 1)
@@ -148,10 +119,9 @@ def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
   val procsWithFds = procs.lazyZip(inputFds).lazyZip(outputFds)
   val pids =
     for (proc, inputFd, outputFd) <- procsWithFds
-    yield doFork { () =>
+    yield doFork: () =>
       // close all pipes that this process won't be using.
-      for p <- 0 until 2 * (procs.size - 1)
-      do
+      for p <- 0 until 2 * (procs.size - 1) do
         if pipeArray(p) != inputFd && pipeArray(p) != outputFd then
           unistd.close(pipeArray(p))
 
@@ -166,30 +136,25 @@ def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
         util.dup2(outputFd, unistd.STDOUT_FILENO)
 
       runCommand(proc)
-    }
 
   for i <- 0 until 2 * (procs.size - 1) do unistd.close(pipeArray(i))
 
   unistd.close(input)
 
   var waitingFor = pids.toSet
-  while !waitingFor.isEmpty
-  do
+  while !waitingFor.isEmpty do
     val waitResult = waitpid(-1, null, 0)
     println(s"- waitpid returned ${waitResult}")
     waitingFor = waitingFor - waitResult
-
   0
 
 @extern
 object util:
-  def execve(filename: CString, args: Ptr[CString], env: Ptr[CString]): Int =
-    extern
+  def execve(filename: CString, args: Ptr[CString], env: Ptr[CString]): Int = extern
   def execvp(path: CString, args: Ptr[CString]): Int = extern
   def fork(): Int = extern
   def getpid(): Int = extern
   def waitpid(pid: Int, status: Ptr[Int], options: Int): Int = extern
   def strerror(errno: Int): CString = extern
-
   def pipe(pipes: Ptr[Int]): Int = extern
   def dup2(oldfd: Int, newfd: Int): Int = extern

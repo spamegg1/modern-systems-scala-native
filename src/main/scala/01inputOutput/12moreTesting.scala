@@ -9,13 +9,13 @@ import scalanative.libc.{stdio, stdlib}
 def run =
   val intPtr = stdlib.malloc(sizeof[Int])
   !intPtr = 2
-  stdio.printf(c"The value of the int: %d\n", (!intPtr).toInt) // prints 2, OK
+  stdio.printf(c"The value of the int: %d\n", !intPtr) // prints 2, OK
 
   stdio.printf(c"freeing the memory allocated to the integer!\n")
   stdlib.free(intPtr)
 
   stdio.printf(c"attempting to update the integer that was just freed!\n")
   !intPtr = 34
-  stdio.printf(c"The value of the int: %d\n", (!intPtr).toInt) // prints 34
+  stdio.printf(c"The value of the int: %d\n", !intPtr) // prints 34
   // CANNOT GET SEGFAULT NO MATTER WHAT!
   // I give up, moving on.

@@ -19,7 +19,6 @@ final case class WrappedArray[T]( // here T = NGramData
 // allocate an array of uninitialized NGramData structs. size = how many NGrams we want.
 def makeWrappedArray(size: Int): WrappedArray[NGramData] =
   val data: Ptr[NGramData] = stdlib
-    // .malloc(size.toULong * sizeof[NGramData].toULong)
     .malloc(size.toUSize * sizeof[NGramData]) // 0.5: use .toUSize
     .asInstanceOf[Ptr[NGramData]]
   WrappedArray[NGramData](data, 0, size) // when we free this, we will free data only.
@@ -27,7 +26,6 @@ def makeWrappedArray(size: Int): WrappedArray[NGramData] =
 // Grow an array's capacity by given size. realloc copies existing data if necessary.
 def growWrappedArray(array: WrappedArray[NGramData], size: Int): Unit =
   val newCapacity: Int = array.capacity + size
-  // val newSize: ULong = newCapacity.toULong * sizeof[NGramData]
   val newSize: USize = newCapacity.toUSize * sizeof[NGramData] // 0.5: use .toUSize
   val newData: Ptr[Byte] = stdlib.realloc(array.data.asInstanceOf[Ptr[Byte]], newSize)
   array.data = newData.asInstanceOf[Ptr[NGramData]] // update in-place

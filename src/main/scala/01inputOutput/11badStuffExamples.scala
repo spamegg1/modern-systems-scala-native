@@ -51,7 +51,7 @@ def testingBadStuff: Unit =
   // scanf(" ", n); // no segfault! Damn.
 
   // 8. Not freeing malloc-ed memory
-  // val x = stdlib.malloc(1000.toULong)
+  // val x = stdlib.malloc(1000.toUSize)
   // stdlib.free(x) // without this, valgrind finds 1000 bytes "definitely lost"
 
   stdio.printf(c"all the bad stuff finished.\n")

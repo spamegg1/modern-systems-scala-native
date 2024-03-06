@@ -1,4 +1,4 @@
-package `03http`
+package ch03.http
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
@@ -62,15 +62,11 @@ def writeRequest(
 def parseStatusLine(line: CString): Int =
   println("parsing status")
   val protocolPtr = stackalloc[Byte](64)
-  val codePtr = stackalloc[Int](sizeof[Int])
+  val codePtr = stackalloc[Int]()
   val descPtr = stackalloc[Byte](128)
-  val scanResult =
-    stdio.sscanf(line, c"%s %d %s\n", protocolPtr, codePtr, descPtr)
+  val scanResult = stdio.sscanf(line, c"%s %d %s\n", protocolPtr, codePtr, descPtr)
 
-  if scanResult < 3 then throw new Exception("bad status line")
-  else
-    val code = !codePtr
-    code
+  if scanResult < 3 then throw Exception("bad status line") else !codePtr
 
 def parseHeaderLine(line: CString): (String, String) =
   val keyBuffer = stackalloc[Byte](64)
@@ -78,11 +74,8 @@ def parseHeaderLine(line: CString): (String, String) =
   stdio.printf(c"about to sscanf line: '%s'\n", line)
 
   val scanResult = stdio.sscanf(line, c"%s %s\n", keyBuffer, valueBuffer)
-  if scanResult < 2 then throw new Exception("bad header line")
-  else
-    val keyString = fromCString(keyBuffer)
-    val valueString = fromCString(valueBuffer)
-    (keyString, valueString)
+  if scanResult < 2 then throw Exception("bad header line")
+  else (fromCString(keyBuffer), fromCString(valueBuffer))
 
 def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
   val lineBuffer = stdlib.malloc(4096.toUSize) // 0.5
@@ -96,8 +89,7 @@ def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
   readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
   var lineLength = string.strlen(lineBuffer)
 
-  while lineLength.toInt > 2
-  do
+  while lineLength.toInt > 2 do
     val (k, v) = parseHeaderLine(lineBuffer)
     println(s"${(k, v)}")
     headers(k) = v
@@ -110,41 +102,39 @@ def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
     if headers.contains("Content-Length:") then
       println("saw content-length")
       headers("Content-Length:").toInt
-    else 65535
+    else 65536 - 1
 
   val bodyBuffer = stdlib.malloc((contentLength + 1).toUSize) // 0.5
   val bodyReadResult =
     stdio.fread(
       bodyBuffer,
-      1.toUSize,
+      1.toUSize, // 0.5
       contentLength.toUSize,
       socketFileDescriptor
     )
 
   val bodyLength = string.strlen(bodyBuffer)
   if bodyLength.toULong != contentLength.toULong then
-    println("""Warning: saw ${bodyLength} bytes, but expected
-                      ${contentLength}""")
+    println(s"Warning: saw ${bodyLength} bytes, but expected ${contentLength}")
 
-  val body = fromCString(bodyBuffer)
-  HttpResponse(code, headers, body)
+  HttpResponse(code, headers, fromCString(bodyBuffer))
 
 def makeConnection(address: CString, port: CString): Int =
-  val hints = stackalloc[addrinfo](sizeof[addrinfo])
+  val hints = stackalloc[addrinfo]()
   string.memset(hints.asInstanceOf[Ptr[Byte]], 0, sizeof[addrinfo])
   hints.ai_family = AF_UNSPEC
   hints.ai_socktype = SOCK_STREAM
-  val addrInfoPtr: Ptr[Ptr[addrinfo]] =
-    stackalloc[Ptr[addrinfo]](sizeof[Ptr[addrinfo]])
 
+  val addrInfoPtr: Ptr[Ptr[addrinfo]] = stackalloc[Ptr[addrinfo]]()
   println("about to perform lookup")
+
   val lookupResult = getaddrinfo(address, port, hints, addrInfoPtr)
   println(s"lookup returned ${lookupResult}")
 
   if lookupResult != 0 then
     val errString = util.gai_strerror(lookupResult)
     stdio.printf(c"errno: %d %s\n", lookupResult, errString)
-    throw new Exception("no address found")
+    throw Exception("no address found")
   else
     val addrInfo = !addrInfoPtr
     stdio.printf(
@@ -156,10 +146,9 @@ def makeConnection(address: CString, port: CString): Int =
     )
 
     println("creating socket")
-    val sock =
-      socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
+    val sock = socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
     println(s"socket returned fd $sock")
-    if sock < 0 then throw new Exception("error in creating socket")
+    if sock < 0 then throw Exception("error in creating socket")
 
     println("connecting")
     val connectResult = connect(sock, addrInfo.ai_addr, addrInfo.ai_addrlen)
@@ -169,8 +158,7 @@ def makeConnection(address: CString, port: CString): Int =
       val err = errno.errno
       val errString = string.strerror(err)
       stdio.printf(c"errno: %d %s\n", err, errString)
-
-      throw new Exception("connection failed")
+      throw Exception("connection failed")
 
     sock
 

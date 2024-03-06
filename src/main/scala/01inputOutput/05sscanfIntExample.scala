@@ -36,7 +36,7 @@ def parseIntLine(line: CString): Int =
   // because of c"%d\n" the input must be exactly 1 integer per line.
   // If the format string was, say, c"%d %d\n" then we'd need 2 storage pointers
   // sscanf returns the count of items successfully matched. If 0, then error.
-  if scanResult == 0 then throw new Exception("parse error in sscanf")
+  if scanResult == 0 then throw Exception("parse error in sscanf")
 
   // Note that we are reusing the same address for intPointer, over and over.
   // So the next call allocates the SAME space. So the previous value will still

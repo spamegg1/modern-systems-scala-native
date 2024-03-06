@@ -18,11 +18,7 @@ def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
     )
 
   //              dest      source     destSize
-  string.strncpy(
-    wordOut,
-    tempBuffer,
-    wordLength
-  ) // can't return tempBuffer, so copy it.
+  string.strncpy(wordOut, tempBuffer, wordLength) // can't return tempBuffer, so copy it.
   // wordOut is also stack allocated, but it comes from a function that calls this one.
 
 // first,  stdin        -> lineInBuffer,  using fgets
@@ -35,9 +31,5 @@ def goodSscanfStringParse: Unit =
 
   while stdio.fgets(lineInBuffer, 1023, stdio.stdin) != null
   do
-    parseLine(
-      lineInBuffer,
-      wordOutBuffer,
-      32
-    ) // now, user inputs >= 32 chars will fail!
+    parseLine(lineInBuffer, wordOutBuffer, 32) // now, user inputs >= 32 chars will fail!
     stdio.printf(c"read word: '%s'\n", wordOutBuffer)

@@ -1,4 +1,4 @@
-package `03tcp`
+package ch03.tcp
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
@@ -19,8 +19,7 @@ def makeConnection(address: CString, port: CString): Int =
   hints.ai_family = AF_UNSPEC
   hints.ai_socktype = SOCK_STREAM
 
-  val addrInfoPtr: Ptr[Ptr[addrinfo]] =
-    stackalloc[Ptr[addrinfo]](sizeof[Ptr[addrinfo]])
+  val addrInfoPtr: Ptr[Ptr[addrinfo]] = stackalloc[Ptr[addrinfo]](1)
   println("about to perform lookup")
 
   val lookupResult = getaddrinfo(address, port, hints, addrInfoPtr)
@@ -29,12 +28,11 @@ def makeConnection(address: CString, port: CString): Int =
   if lookupResult != 0 then
     val errString = util.gai_strerror(lookupResult)
     stdio.printf(c"errno: %d %s\n", lookupResult, errString)
-    throw new Exception("no address found")
+    throw Exception("no address found")
   else
     val addrInfo = !addrInfoPtr
     stdio.printf(
-      c"""got addrinfo: flags %d, family %d, socktype %d,
-      protocol %d\n""",
+      c"got addrinfo: flags %d, family %d, socktype %d, protocol %d\n",
       addrInfo.ai_family,
       addrInfo.ai_flags,
       addrInfo.ai_socktype,
@@ -42,8 +40,7 @@ def makeConnection(address: CString, port: CString): Int =
     )
 
     println("creating socket")
-    val sock =
-      socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
+    val sock = socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
     println(s"socket returned fd $sock")
     if sock < 0 then throw new Exception("error in creating socket")
 
@@ -64,7 +61,7 @@ def makeRequest(sock: Ptr[FILE], request: String): String =
   val response = Zone { // implicit z => // 0.5, we don't need to spell out implicit param
     val requestCstring = toCString(request)
     stdio.fprintf(sock, requestCstring)
-    val responseCstring = fgets(responseBuffer, 4095, sock)
+    val responseCstring = fgets(responseBuffer, 4096 - 1, sock)
     fromCString(responseBuffer)
   }
   stdlib.free(responseBuffer)
@@ -96,11 +93,9 @@ def handleConnection(sock: Int): Unit =
 // done
 // @main
 def tcpClient(args: String*): Unit =
-  if args.length != 2 then
-    println("Usage: ./tcp_test [address] [port]")
-    ()
+  if args.length != 2 then println("Usage: ./tcp_test [address] [port]")
 
-  val sock = Zone { // implicit z => 0.5
+  val sock = Zone { // implicit z => // 0.5
     val address = toCString(args(0))
     val port = toCString(args(1))
     stdio.printf(c"looking up address: %s port: %s\n", address, port)
