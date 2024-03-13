@@ -1,4 +1,4 @@
-package `05httpServer`
+package ch05.httpServer
 
 import scalanative.unsigned.{UnsignedRichInt, UInt, UShort}
 import scalanative.unsafe.*
@@ -30,7 +30,7 @@ object Parsing:
     val valueBuffer = stackalloc[Byte](64)
     val scanResult = stdio.sscanf(line, c"%s %s\n", keyBuffer, valueBuffer)
 
-    if scanResult < 2 then throw new Exception("bad header line")
+    if scanResult < 2 then throw Exception("bad header line")
     else
       val keyString = fromCString(keyBuffer)
       val valueString = fromCString(valueBuffer)
@@ -47,7 +47,7 @@ object Parsing:
       urlBuffer,
       protocolBuffer
     )
-    if scanResult < 3 then throw new Exception("bad request line")
+    if scanResult < 3 then throw Exception("bad request line")
     else
       val method = fromCString(methodBuffer)
       val url = fromCString(urlBuffer)
@@ -66,8 +66,7 @@ object Parsing:
     readResult = stdio.fgets(lineBuffer, 4096, socketFd)
 
     var lineLength = string.strlen(lineBuffer)
-    while lineLength > 2.toULong
-    do
+    while lineLength > 2.toULong do
       val (k, v) = parseHeaderLine(lineBuffer)
       headers(k) = v
       readResult = stdio.fgets(lineBuffer, 4096, socketFd)
@@ -88,7 +87,7 @@ object Parsing:
     }
     fclose(socketFd)
 
-// @main
+@main
 def httpServer05(args: String*): Unit = serve(8082.toUShort)
 
 def serve(port: UShort): Unit =
@@ -113,8 +112,7 @@ def serve(port: UShort): Unit =
   println(s"accepting connections on port $port")
 
   // Main accept() loop
-  while true
-  do
+  while true do
     println(s"accepting")
     val connectionFd = accept(sockFd, incoming, incSz)
     println(s"accept returned fd $connectionFd")
@@ -130,17 +128,17 @@ def serve(port: UShort): Unit =
 
   close(sockFd)
 
-import Parsing.*
+import Parsing.*, scala.util.boundary, boundary.break
+
 def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
-  while true
-  do
-    parseRequest(connSocket) match
-      case Some(request) =>
-        val response = handleRequest(request)
-        writeResponse(connSocket, response)
-        return
-      case None =>
-        return
+  boundary:
+    while true do
+      parseRequest(connSocket) match
+        case Some(request) =>
+          val response = handleRequest(request)
+          writeResponse(connSocket, response)
+          break() // replaced return
+        case None => break() // replaced return
 
 def handleRequest(request: HttpRequest): HttpResponse =
   val headers = Map("Content-type" -> "text/html")

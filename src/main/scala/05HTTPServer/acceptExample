@@ -10,13 +10,12 @@ import scalanative.posix.sys.socket.*
 import scalanative.posix.netinet.in.*
 import scalanative.posix.arpa.inet.*
 
-val clientAddress = stackalloc[sockaddr_in](sizeof[sockaddr_in])
+val clientAddress = stackalloc[sockaddr_in]()
 val clientSockAddr = clientAddress.cast[Ptr[sockaddr]]
-val clientAddrSize = stackalloc[UInt]
+val clientAddrSize = stackalloc[UInt]()
 !clientAddrSize = sizeof[sockaddr_in].toUInt
 
-val connectionSocket = accept(serverSocket, clientSockAddr,
-                               clientAddrSize)
+val connectionSocket = accept(serverSocket, clientSockAddr, clientAddrSize)
 println(
   s"""accept returned fd $connectionSocket;
      |connected client address is

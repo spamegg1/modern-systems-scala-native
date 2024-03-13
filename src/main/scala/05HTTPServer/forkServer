@@ -1,16 +1,19 @@
 def forkAndHandle(connectionFd: Int, maxSize: Int = 1024): Unit =
-  val pid = fork()
-  if pid != 0 then
-    // In parent process
-    println("forked pid $pid to handle connection")
-    close(connectionFd)
-    cleanupChildren
-    return
-  else
-    // In child process
-    println("fork returned $pid, in child process")
-    handleConnection(connectionFd, maxSize)
-    sys.exit()
+  import scala.util.boundary, boundary.break
+
+  boundary:
+    val pid = fork()
+    if pid != 0 then
+      // In parent process
+      println("forked pid $pid to handle connection")
+      close(connectionFd)
+      cleanupChildren
+      break()
+    else
+      // In child process
+      println("fork returned $pid, in child process")
+      handleConnection(connectionFd, maxSize)
+      sys.exit()
 
 def cleanupChildren: Unit =
   val childPid = waitpid(-1, NULL, WNOHANG)

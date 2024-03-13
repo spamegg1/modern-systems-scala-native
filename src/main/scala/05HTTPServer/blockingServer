@@ -1,4 +1,4 @@
-package `05blockingServer`
+package ch05.blockingServer
 
 import scalanative.unsafe.*
 import scalanative.unsigned.*
@@ -29,8 +29,7 @@ def serve(port: UShort): Unit =
   println(s"accepting connections on port $port")
 
   // Main accept() loop
-  while true
-  do
+  while true do
     val connectionFd = accept(sockFd, null, null)
     println(s"accept returned fd $connectionFd")
     // we will replace handleConnection with fork_and_handle shortly
@@ -39,19 +38,19 @@ def serve(port: UShort): Unit =
   close(sockFd)
 
 def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
-  val message =
-    c"Connection accepted!  Enter a message and it will be echoed back\n"
+  import scala.util.boundary, boundary.break
 
+  val message = c"Connection accepted!  Enter a message and it will be echoed back\n"
   val prompt_write = write(connSocket, message, strlen(message))
-
   val lineBuffer = malloc(maxSize)
-  while true
-  do
-    val bytesRead = read(connSocket, lineBuffer, maxSize)
-    println(s"read $bytesRead bytes")
 
-    // This means the connection has been closed by the client
-    if bytesRead == EOF then return
+  boundary:
+    while true do
+      val bytesRead = read(connSocket, lineBuffer, maxSize)
+      println(s"read $bytesRead bytes")
 
-    val bytesWritten = write(connSocket, lineBuffer, bytesRead)
-    println(s"wrote $bytesWritten bytes")
+      // This means the connection has been closed by the client
+      if bytesRead == EOF then break()
+
+      val bytesWritten = write(connSocket, lineBuffer, bytesRead)
+      println(s"wrote $bytesWritten bytes")

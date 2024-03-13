@@ -66,16 +66,15 @@ def makeStringArray(args: Seq[String]): Ptr[CString] =
   val destArray = stdlib.malloc(size).asInstanceOf[Ptr[CString]]
   val count = args.size
 
-  Zone { // implicit z => // 0.5
-    for (arg, i) <- args.zipWithIndex
-    do
+  Zone:
+    for (arg, i) <- args.zipWithIndex do
       val stringPtr = toCString(arg)
       val stringLen = string.strlen(stringPtr)
       val destString = stdlib.malloc(stringLen).asInstanceOf[Ptr[Byte]]
       string.strncpy(destString, stringPtr, arg.size.toUSize) // 0.5
       destString(stringLen) = 0.toByte // 0.5
       destArray(i) = destString
-  }
+
   destArray(count) = null
   // for j <- 0 to count do {}
   destArray

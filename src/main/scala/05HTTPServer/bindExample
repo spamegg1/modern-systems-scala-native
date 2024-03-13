@@ -12,7 +12,7 @@ import scalanative.posix.arpa.inet.*
 
 val serverSocket = socket(AF_INET, SOCK_STREAM, 0)
 
-val serverAddress = stackalloc[sockaddr_in](sizeof[sockaddr_in])
+val serverAddress = stackalloc[sockaddr_in]()
 !serverAddress._1 = AF_INET.toUShort  // IP Socket
 !serverAddress._2 = htons(port)       // port
 !serverAddress._3._1 = INADDR_ANY     // bind to 0.0.0.0

@@ -1,4 +1,4 @@
-package `06libuvHttp`
+package ch06.libuvHttp
 
 import scalanative.unsigned.{UnsignedRichInt, UShort}
 import scalanative.unsafe.*
@@ -44,7 +44,7 @@ object HTTP:
   val uriBuffer = malloc(4096.toUSize) // 0.5
 
   def scanRequestLine(line: CString): (String, String, Int) =
-    val lineLen = stackalloc[Int](sizeof[Int])
+    val lineLen = stackalloc[Int]()
     val scanResult = stdio.sscanf(
       line,
       c"%s %s %*s\r\n%n",
@@ -53,7 +53,7 @@ object HTTP:
       lineLen
     )
     if scanResult == 2 then (fromCString(methodBuffer), fromCString(uriBuffer), !lineLen)
-    else throw new Exception("bad request line")
+    else throw Exception("bad request line")
 
   def scanHeaderLine(
       line: CString,
@@ -83,25 +83,24 @@ object HTTP:
       val value = fromCString(startOfValue)
       outMap(key) = value
       !lineLen
-    else throw new Exception("bad header line")
+    else throw Exception("bad header line")
 
   val lineBuffer = malloc(1024.toUSize) // 0.5
 
   def parseRequest(req: CString, size: Long): HttpRequest =
-    // req(size) = 0 // ensure null termination
+    req(size) = 0.toByte // ensure null termination
     var reqPosition = req
-    val lineLen = stackalloc[Int](sizeof[Int])
-    val keyEnd = stackalloc[Int](sizeof[Int])
-    val valueStart = stackalloc[Int](sizeof[Int])
-    val valueEnd = stackalloc[Int](sizeof[Int])
+    val lineLen = stackalloc[Int]()
+    val keyEnd = stackalloc[Int]()
+    val valueStart = stackalloc[Int]()
+    val valueEnd = stackalloc[Int]()
     val headers = mutable.Map[String, String]()
 
     val (method, uri, requestLen) = scanRequestLine(req)
 
     var bytesRead = requestLen
 
-    while bytesRead < size
-    do
+    while bytesRead < size do
       reqPosition = req + bytesRead
       val parseHeaderResult = scanHeaderLine(
         reqPosition,
@@ -111,15 +110,15 @@ object HTTP:
         valueEnd,
         lineLen
       )
-      if parseHeaderResult < 0 then throw new Exception("HEADERS INCOMPLETE")
+      if parseHeaderResult < 0 then throw Exception("HEADERS INCOMPLETE")
       else if !lineLen - !valueEnd == 2 then bytesRead += parseHeaderResult
       else if !lineLen - !valueEnd == 4 then
         val remaining = size - bytesRead
         val body = fromCString(req + bytesRead)
-        return HttpRequest(method, uri, headers, body)
-      else throw new Exception("malformed header!")
+        HttpRequest(method, uri, headers, body)
+      else throw Exception("malformed header!")
 
-    throw new Exception(s"bad scan, exceeded $size bytes")
+    throw Exception(s"bad scan, exceeded $size bytes")
 
   val keyBuffer = malloc(512.toUSize) // 0.5
   val valueBuffer = malloc(512.toUSize) // 0.5
@@ -133,16 +132,14 @@ object HTTP:
     var lastPosition = bufferStart + bytesWritten
     var bytesRemaining = 4096.toUSize - bytesWritten // 0.5
     val headers = response.headers.keys.toSeq
-    while headerPos < response.headers.size
-    do
+    while headerPos < response.headers.size do
       val k = headers(headerPos)
       val v = response.headers(k)
-      Zone { // implicit z => // 0.5
+      Zone:
         val keyTemp = toCString(k)
         val valueTemp = toCString(v)
         strncpy(keyBuffer, keyTemp, 512.toUSize) // 0.5
         strncpy(valueBuffer, valueTemp, 512.toUSize) // 0.5
-      }
 
       stdio.snprintf(
         lastPosition,
@@ -158,9 +155,9 @@ object HTTP:
       lastPosition = lastPosition + len
       headerPos += 1
 
-    Zone { // implicit z => // 0.5
+    Zone:
       val body = toCString(response.body)
       val bodyLen = strlen(body)
       strncpy(bodyBuffer, body, 4096.toUSize) // 0.5
-    }
+
     stdio.snprintf(lastPosition, bytesRemaining, c"\r\n%s", bodyBuffer)

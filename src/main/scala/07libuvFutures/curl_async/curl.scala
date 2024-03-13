@@ -1,4 +1,4 @@
-package `07curlAsync`
+package ch07.curlAsync
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
@@ -41,12 +41,10 @@ object Curl:
       println(s"initilized multiHandle $multi")
 
       println("socket function")
-      val setopt_r_1 =
-        multi_setopt_ptr(multi, SOCKETFUNCTION, func_to_ptr(socketCB))
+      val setopt_r_1 = multi_setopt_ptr(multi, SOCKETFUNCTION, func_to_ptr(socketCB))
 
       println("timer function")
-      val setopt_r_2 =
-        multi_setopt_ptr(multi, TIMERFUNCTION, func_to_ptr(startTimerCB))
+      val setopt_r_2 = multi_setopt_ptr(multi, TIMERFUNCTION, func_to_ptr(startTimerCB))
 
       println(s"timerCB: $startTimerCB")
       check(uv_timer_init(loop, timerHandle), "uv_timer_init")
@@ -57,20 +55,18 @@ object Curl:
   def addHeaders(curl: Curl, headers: Seq[String]): Ptr[CurlSList] =
     var slist: Ptr[CurlSList] = null
     for h <- headers do addHeader(slist, h)
-
     curl_easy_setopt(curl, HTTPHEADER, slist.asInstanceOf[Ptr[Byte]])
     slist
 
-  def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] = Zone {
+  def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] = Zone:
     slist_append(slist, toCString(header)) // 0.5
-  }
 
   def startRequest(
       method: Int,
       url: String,
       headers: Seq[String] = Seq.empty,
       body: String = ""
-  ): Future[ResponseState] = Zone { // implicit z => // 0.5
+  ): Future[ResponseState] = Zone:
     init
     val curlHandle = easy_init()
     serial += 1
@@ -122,143 +118,107 @@ object Curl:
 
     println("request initialized")
     promise.future
-  }
 
-  // val dataCB = new CurlDataCallback
-  val dataCB =
-    CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize](
-      (
-          ptr: Ptr[Byte],
-          size: CSize,
-          nmemb: CSize,
-          data: Ptr[Byte]
-      ) =>
-        val serial = !(data.asInstanceOf[Ptr[Long]])
-        val len = stackalloc[Double](sizeof[Double])
-        !len = 0
-        val strData = bufferToString(ptr, size, nmemb)
-        println(s"req $serial: got data of size ${size} x ${nmemb}")
+  val dataCB = CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]:
+    (ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Byte]) =>
+      val serial = !(data.asInstanceOf[Ptr[Long]])
+      val len = stackalloc[Double]()
+      !len = 0
+      val strData = bufferToString(ptr, size, nmemb)
+      println(s"req $serial: got data of size ${size} x ${nmemb}")
 
-        val resp = requests(serial)
-        resp.body = resp.body + strData
-        requests(serial) = resp
+      val resp = requests(serial)
+      resp.body = resp.body + strData
+      requests(serial) = resp
 
-        size * nmemb
-    )
+      size * nmemb
 
-  // val headerCB = new CurlDataCallback:
-  val headerCB =
-    CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize](
-      (
-          ptr: Ptr[Byte],
-          size: CSize,
-          nmemb: CSize,
-          data: Ptr[Byte]
-      ) =>
-        val serial = !(data.asInstanceOf[Ptr[Long]])
-        val len = stackalloc[Double](sizeof[Double])
-        !len = 0
-        val strData = bufferToString(ptr, size, nmemb)
-        println(s"req $serial: got header line of size ${size} x ${nmemb}")
+  val headerCB = CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]:
+    (ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Byte]) =>
+      val serial = !(data.asInstanceOf[Ptr[Long]])
+      val len = stackalloc[Double]()
+      !len = 0
+      val strData = bufferToString(ptr, size, nmemb)
+      println(s"req $serial: got header line of size ${size} x ${nmemb}")
 
-        val resp = requests(serial)
-        resp.body = resp.body + strData
-        requests(serial) = resp
+      val resp = requests(serial)
+      resp.body = resp.body + strData
+      requests(serial) = resp
 
-        size * nmemb
-    )
+      size * nmemb
 
-  // val socketCB = new CurlSocketCallback:
   val socketCB =
-    CFuncPtr5
-      .fromScalaFunction[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt](
-        (
-            curl: Curl,
-            socket: Ptr[Byte],
-            action: Int,
-            data: Ptr[Byte],
-            socket_data: Ptr[Byte]
-        ) =>
-          println(s"socketCB called with action ${action}")
+    CFuncPtr5.fromScalaFunction[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]:
+      (
+          curl: Curl,
+          socket: Ptr[Byte],
+          action: Int,
+          data: Ptr[Byte],
+          socket_data: Ptr[Byte]
+      ) =>
+        println(s"socketCB called with action ${action}")
 
-          val pollHandle =
-            if socket_data == null then
-              println(s"initializing handle for socket ${socket}")
-              val buf =
-                malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[Ptr[Ptr[Byte]]]
-              !buf = socket
-              check(
-                uv_poll_init_socket(loop, buf, socket),
-                "uv_poll_init_socket"
-              )
-              check(
-                multi_assign(multi, socket, buf.asInstanceOf[Ptr[Byte]]),
-                "multi_assign"
-              )
-              buf
-            else socket_data.asInstanceOf[Ptr[Ptr[Byte]]]
+        val pollHandle =
+          if socket_data == null then
+            println(s"initializing handle for socket ${socket}")
+            val buf = malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[Ptr[Ptr[Byte]]]
+            !buf = socket
+            check(uv_poll_init_socket(loop, buf, socket), "uv_poll_init_socket")
+            check(
+              multi_assign(multi, socket, buf.asInstanceOf[Ptr[Byte]]),
+              "multi_assign"
+            )
+            buf
+          else socket_data.asInstanceOf[Ptr[Ptr[Byte]]]
 
-          val events = action match
-            case POLL_NONE   => None
-            case POLL_IN     => Some(UV_READABLE)
-            case POLL_OUT    => Some(UV_WRITABLE)
-            case POLL_INOUT  => Some(UV_READABLE | UV_WRITABLE)
-            case POLL_REMOVE => None
+        val events = action match
+          case POLL_NONE   => None
+          case POLL_IN     => Some(UV_READABLE)
+          case POLL_OUT    => Some(UV_WRITABLE)
+          case POLL_INOUT  => Some(UV_READABLE | UV_WRITABLE)
+          case POLL_REMOVE => None
 
-          events match
-            case Some(ev) =>
-              println(s"starting poll with events $ev")
-              uv_poll_start(pollHandle, ev, pollCB)
-            case None =>
-              println("stopping poll")
-              uv_poll_stop(pollHandle)
-              startTimerCB(multi, 1, null)
+        events match
+          case Some(ev) =>
+            println(s"starting poll with events $ev")
+            uv_poll_start(pollHandle, ev, pollCB)
+          case None =>
+            println("stopping poll")
+            uv_poll_stop(pollHandle)
+            startTimerCB(multi, 1, null)
+        0
 
-          0
-      )
-
-  // val pollCB = new PollCB:
-  val pollCB = CFuncPtr3.fromScalaFunction[PollHandle, Int, Int, Unit](
+  val pollCB = CFuncPtr3.fromScalaFunction[PollHandle, Int, Int, Unit]:
     (pollHandle: PollHandle, status: Int, events: Int) =>
-      println(s"""ready_for_curl fired with status ${status} and
-              events ${events}""")
+      println(s"ready_for_curl fired with status ${status} and events ${events}")
       val socket = !(pollHandle.asInstanceOf[Ptr[Ptr[Byte]]])
       val actions = (events & 1) | (events & 2)
-      val running_handles = stackalloc[Int](sizeof[Int])
+      val running_handles = stackalloc[Int]()
       val result = multi_socket_action(multi, socket, actions, running_handles)
       println(s"multi_socket_action ${result}")
-  )
 
-  // val startTimerCB = new CurlTimerCallback:
-  val startTimerCB =
-    CFuncPtr3.fromScalaFunction[MultiCurl, Long, Ptr[Byte], CInt](
-      (curl: MultiCurl, timeout_ms: Long, data: Ptr[Byte]) =>
-        println(s"start_timer called with timeout ${timeout_ms} ms")
-        val time = if (timeout_ms < 1) {
+  val startTimerCB = CFuncPtr3.fromScalaFunction[MultiCurl, Long, Ptr[Byte], CInt]:
+    (curl: MultiCurl, timeout_ms: Long, data: Ptr[Byte]) =>
+      println(s"start_timer called with timeout ${timeout_ms} ms")
+      val time =
+        if (timeout_ms < 1) then
           println("setting effective timeout to 1")
           1
-        } else timeout_ms
-        println("starting timer")
-        check(
-          uv_timer_start(timerHandle, timeoutCB, time, 0),
-          "uv_timer_start"
-        )
-        cleanup_requests()
-        0
-    )
+        else timeout_ms
+      println("starting timer")
+      check(uv_timer_start(timerHandle, timeoutCB, time, 0), "uv_timer_start")
+      cleanup_requests()
+      0
 
-  // val timeoutCB = new TimerCB:
-  val timeoutCB =
-    CFuncPtr1.fromScalaFunction[TimerHandle, Unit]((handle: TimerHandle) =>
-      println("in timeout callback")
-      val running_handles = stackalloc[Int](sizeof[Int])
-      multi_socket_action(multi, int_to_ptr(-1), 0, running_handles)
-      println(s"on_timer fired, ${!running_handles} sockets running")
-    )
+  val timeoutCB = CFuncPtr1.fromScalaFunction[TimerHandle, Unit]: (handle: TimerHandle) =>
+    println("in timeout callback")
+    val running_handles = stackalloc[Int]()
+    multi_socket_action(multi, int_to_ptr(-1), 0, running_handles)
+    println(s"on_timer fired, ${!running_handles} sockets running")
 
   def cleanup_requests(): Unit =
-    val messages = stackalloc[Int](sizeof[Int])
-    val privateDataPtr = stackalloc[Ptr[Long]](sizeof[Ptr[Long]])
+    val messages = stackalloc[Int]()
+    val privateDataPtr = stackalloc[Ptr[Long]]()
     var message: Ptr[CurlMessage] = multi_info_read(multi, messages)
 
     while message != null do
@@ -288,23 +248,17 @@ object Curl:
     strncpy(buffer, ptr, byteSize + 1.toUSize) // 0.5
     val res = fromCString(buffer)
     free(buffer)
-    return (res)
+    res
 
-  def multi_setopt(curl: MultiCurl, option: CInt, parameters: CVarArg*): Int =
-    Zone { // implicit z => // 0.5
-      curl_multi_setopt(curl, option, toCVarArgList(parameters.toSeq))
-    }
+  def multi_setopt(curl: MultiCurl, option: CInt, parameters: CVarArg*): Int = Zone:
+    curl_multi_setopt(curl, option, toCVarArgList(parameters.toSeq))
 
-  // def easy_setopt(curl:Curl,option: CInt, parameters:CVarArg*):Int = Zone { implicit z =>
-  //   curl_easy_setopt(curl,option, toCVarArgList(parameters.toSeq))
-  // }
+  def easy_setopt(curl: Curl, option: CInt, parameters: CVarArg*): Int = Zone:
+    curl_easy_setopt(curl, option, toCVarArgList(parameters.toSeq))
 
-  def func_to_ptr(f: Object): Ptr[Byte] =
-    // Boxes.boxToPtr[Byte](Boxes.unboxToCFuncRawPtr(f))
-    Boxes.boxToPtr[Byte](Boxes.unboxToCFuncPtr1(f))
+  def func_to_ptr(f: Object): Ptr[Byte] = Boxes.boxToPtr[Byte](Boxes.unboxToCFuncPtr1(f))
 
-  def int_to_ptr(i: Int): Ptr[Byte] =
-    Boxes.boxToPtr[Byte](Intrinsics.castIntToRawPtr(i))
+  def int_to_ptr(i: Int): Ptr[Byte] = Boxes.boxToPtr[Byte](Intrinsics.castIntToRawPtr(i))
 
   def long_to_ptr(l: Long): Ptr[Byte] =
     Boxes.boxToPtr[Byte](Intrinsics.castLongToRawPtr(l))
@@ -356,8 +310,7 @@ object LibCurl:
   type CurlMessage = CStruct3[Int, Curl, Ptr[Byte]]
 
   type CurlDataCallback = CFuncPtr4[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]
-  type CurlSocketCallback =
-    CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
+  type CurlSocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
   type CurlTimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
 
   @name("curl_global_init")
@@ -372,16 +325,14 @@ object LibCurl:
   @name("curl_easy_cleanup")
   def easy_cleanup(handle: Curl): Unit = extern
 
-  // @name("curl_easy_setopt")
-  // def curl_easy_setopt(handle: Curl, option: CInt, parameter: CVarArgList): CInt = extern
+  @name("curl_easy_setopt")
+  def curl_easy_setopt(handle: Curl, option: CInt, parameter: CVarArgList): CInt = extern
 
   @name("curl_easy_setopt")
-  def curl_easy_setopt(handle: Curl, option: CInt, parameter: Ptr[Byte]): CInt =
-    extern
+  def curl_easy_setopt(handle: Curl, option: CInt, parameter: Ptr[Byte]): CInt = extern
 
   @name("curl_easy_getinfo")
-  def easy_getinfo(handle: Curl, info: CInt, parameter: Ptr[Byte]): CInt =
-    extern
+  def easy_getinfo(handle: Curl, info: CInt, parameter: Ptr[Byte]): CInt = extern
 
   @name("curl_easy_perform")
   def easy_perform(easy_handle: Curl): CInt = extern
@@ -424,8 +375,7 @@ object LibCurl:
   ): Int = extern
 
   @name("curl_multi_info_read")
-  def multi_info_read(multi: MultiCurl, message: Ptr[Int]): Ptr[CurlMessage] =
-    extern
+  def multi_info_read(multi: MultiCurl, message: Ptr[Int]): Ptr[CurlMessage] = extern
 
   @name("curl_multi_perform")
   def multi_perform(multi: MultiCurl, numhandles: Ptr[Int]): Int = extern
@@ -436,8 +386,7 @@ object LibCurl:
   type CurlSList = CStruct2[Ptr[Byte], CString]
 
   @name("curl_slist_append")
-  def slist_append(slist: Ptr[CurlSList], string: CString): Ptr[CurlSList] =
-    extern
+  def slist_append(slist: Ptr[CurlSList], string: CString): Ptr[CurlSList] = extern
 
   @name("curl_slist_free_all")
   def slist_free_all(slist: Ptr[CurlSList]): Unit = extern

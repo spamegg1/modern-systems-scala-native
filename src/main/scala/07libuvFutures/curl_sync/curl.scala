@@ -1,4 +1,4 @@
-package `07curlSync`
+package ch07.curlSync
 
 import scala.scalanative.unsafe.*
 import scala.scalanative.unsigned.*
@@ -83,12 +83,10 @@ object LibCurl:
   def easy_init(): Curl = extern
 
   @name("curl_easy_setopt")
-  def curl_easy_setopt(handle: Curl, option: CInt, parameter: Ptr[Byte]): CInt =
-    extern
+  def curl_easy_setopt(handle: Curl, option: CInt, parameter: Ptr[Byte]): CInt = extern
 
   @name("curl_easy_getinfo")
-  def easy_getinfo(handle: Curl, info: CInt, parameter: Ptr[Byte]): CInt =
-    extern
+  def easy_getinfo(handle: Curl, info: CInt, parameter: Ptr[Byte]): CInt = extern
 
   @name("curl_easy_perform")
   def easy_perform(easy_handle: Curl): CInt = extern
@@ -96,8 +94,7 @@ object LibCurl:
   type CurlSList = CStruct2[Ptr[Byte], CString]
 
   @name("curl_slist_append")
-  def slist_append(slist: Ptr[CurlSList], string: CString): Ptr[CurlSList] =
-    extern
+  def slist_append(slist: Ptr[CurlSList], string: CString): Ptr[CurlSList] = extern
 
   @name("curl_slist_free_all")
   def slist_free_all(slist: Ptr[CurlSList]): Unit = extern
@@ -112,8 +109,7 @@ object LibCurl:
   type CurlMessage = CStruct3[Int, Curl, Ptr[Byte]]
 
   type CurlDataCallback = CFuncPtr4[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]
-  type CurlSocketCallback =
-    CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
+  type CurlSocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
   type CurlTimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
 
   type MultiCurl = Ptr[Byte]
@@ -154,8 +150,7 @@ object LibCurl:
   ): Int = extern
 
   @name("curl_multi_info_read")
-  def multi_info_read(multi: MultiCurl, message: Ptr[Int]): Ptr[CurlMessage] =
-    extern
+  def multi_info_read(multi: MultiCurl, message: Ptr[Int]): Ptr[CurlMessage] = extern
 
   @name("curl_multi_perform")
   def multi_perform(multi: MultiCurl, numhandles: Ptr[Int]): Int = extern

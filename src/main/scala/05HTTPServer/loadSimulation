@@ -6,11 +6,11 @@
  * We make no guarantees that this code is fit for any purpose.
  * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
 ***/
-import io.gatling.core.Predef._
-import io.gatling.http.Predef._
-import scala.concurrent.duration._
+import io.gatling.core.Predef.*
+import io.gatling.http.Predef.*
+import scala.concurrent.duration.*
 
-class GenericSimulation extends Simulation {
+class GenericSimulation extends Simulation:
   val url = System.getenv("GATLING_URL")
   val requests = Integer.parseInt(System.getenv("GATLING_REQUESTS"))
   val users = Integer.parseInt(System.getenv("GATLING_USERS"))
@@ -24,4 +24,4 @@ class GenericSimulation extends Simulation {
     )
   }
   setUp(scn.inject(rampUsers(users) over (rampTime seconds)))
-}
+

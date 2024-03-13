@@ -1,4 +1,4 @@
-package `06libuvHttp`
+package ch06.libuvHttp
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
@@ -10,22 +10,21 @@ import HTTP.RequestHandler
 
 type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
 
-// @main
+@main
 def asyncHttp(args: String): Unit =
   serveHttp(
     8080,
     request => HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
   )
 
-var router: RequestHandler = (_ => ???)
+var router: RequestHandler = _ => ???
 
 def serveHttp(port: Int, handler: RequestHandler): Unit =
   println(s"about to serve on port ${port}")
   this.router = handler
   serveTcp(c"0.0.0.0", port, 0, 4096, connectionCB)
 
-// val readCB = new ReadCB:
-val readCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit](
+val readCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit]:
   (client: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
     if size < 0 then shutdown(client)
     else
@@ -38,7 +37,6 @@ val readCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit](
         case e: Throwable =>
           println(s"error during parsing: ${e}")
           shutdown(client)
-)
 
 def sendResponse(client: TCPHandle, response: HttpResponse): Unit =
   val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
@@ -61,8 +59,8 @@ def serveTcp(
     flags: Int,
     backlog: Int,
     callback: ConnectionCB
-): Unit = {
-  val addr = stackalloc[Byte](sizeof[Byte])
+): Unit =
+  val addr = stackalloc[Byte]()
   val addrConvert = uv_ip4_addr(address, port, addr)
   println(s"uv_ip4_addr returned $addrConvert")
 
@@ -72,12 +70,9 @@ def serveTcp(
   checkError(uv_listen(handle, backlog, callback), "uv_tcp_listen")
 
   uv_run(loop, UV_RUN_DEFAULT)
-  ()
-}
 
-// val connectionCB = new ConnectionCB:
-val connectionCB =
-  CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]((handle: TCPHandle, status: Int) =>
+val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]:
+  (handle: TCPHandle, status: Int) =>
     println("received connection")
 
     // initialize the new client tcp handle and its state
@@ -89,13 +84,12 @@ val connectionCB =
 
     // accept the incoming connection into the new handle
     checkError(uv_accept(handle, client), "uv_accept")
+
     // set up callbacks for incoming data
     checkError(uv_read_start(client, allocCB, readCB), "uv_read_start")
-  )
 
 def initializeClientState(client: TCPHandle): Ptr[ClientState] =
-  val clientStatePtr =
-    malloc(sizeof[ClientState]).asInstanceOf[Ptr[ClientState]]
+  val clientStatePtr = malloc(sizeof[ClientState]).asInstanceOf[Ptr[ClientState]]
 
   stdio.printf(
     c"allocated data at %x; assigning into handle storage at %x\n",
@@ -111,14 +105,12 @@ def initializeClientState(client: TCPHandle): Ptr[ClientState] =
   !client = clientStatePtr.asInstanceOf[Ptr[Byte]]
   clientStatePtr
 
-// val allocCB = new AllocCB:
-val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
+val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
   (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
     println("allocating 4096 bytes")
     val buf = malloc(4096.toUSize) // 0.5
     buffer._1 = buf
     buffer._2 = 4096.toUSize // 0.5
-)
 
 def appendData(
     state: Ptr[ClientState],
@@ -147,40 +139,32 @@ def makeResponse(state: Ptr[ClientState]): CString =
   stdio.sprintf(responseData, responseFormat, state._1)
   responseData
 
-// val writeCB = new WriteCB:
-val writeCB =
-  CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]((writeReq: WriteReq, status: Int) =>
+val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]:
+  (writeReq: WriteReq, status: Int) =>
     println("write completed")
     val responseBuffer = (!writeReq).asInstanceOf[Ptr[Buffer]]
     stdlib.free(responseBuffer._1)
     stdlib.free(responseBuffer.asInstanceOf[Ptr[Byte]])
     stdlib.free(writeReq.asInstanceOf[Ptr[Byte]])
-  )
 
 def shutdown(client: TCPHandle): Unit =
-  val shutdownRequest =
-    malloc(uv_req_size(UV_shutdownRequest_T)).asInstanceOf[ShutdownReq]
-  !shutdownRequest = client.asInstanceOf[Ptr[Byte]]
-  checkError(uv_shutdown(shutdownRequest, client, shutdownCB), "uv_shutdown")
+  val shutdownReq = malloc(uv_req_size(UV_shutdownRequest_T)).asInstanceOf[ShutdownReq]
+  !shutdownReq = client.asInstanceOf[Ptr[Byte]]
+  checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
-// val shutdownCB = new ShutdownCB:
-val shutdownCB = CFuncPtr2.fromScalaFunction[ShutdownReq, Int, Unit](
+val shutdownCB = CFuncPtr2.fromScalaFunction[ShutdownReq, Int, Unit]:
   (shutdownReq: ShutdownReq, status: Int) =>
     println("all pending writes complete, closing TCP connection")
     val client = (!shutdownReq).asInstanceOf[TCPHandle]
     checkError(uv_close(client, closeCB), "uv_close")
     stdlib.free(shutdownReq.asInstanceOf[Ptr[Byte]])
-)
 
-// val closeCB = new CloseCB:
-val closeCB =
-  CFuncPtr1.fromScalaFunction[TCPHandle, Unit]((client: TCPHandle) =>
-    println("closed client connection")
-    val clientStatePtr = (!client).asInstanceOf[Ptr[ClientState]]
-    stdlib.free(clientStatePtr._1)
-    stdlib.free(clientStatePtr.asInstanceOf[Ptr[Byte]])
-    stdlib.free(client.asInstanceOf[Ptr[Byte]])
-  )
+val closeCB = CFuncPtr1.fromScalaFunction[TCPHandle, Unit]: (client: TCPHandle) =>
+  println("closed client connection")
+  val clientStatePtr = (!client).asInstanceOf[Ptr[ClientState]]
+  stdlib.free(clientStatePtr._1)
+  stdlib.free(clientStatePtr.asInstanceOf[Ptr[Byte]])
+  stdlib.free(client.asInstanceOf[Ptr[Byte]])
 
 @link("uv")
 @extern
@@ -216,16 +200,14 @@ object LibUV:
   type ShutdownReq = Ptr[Ptr[Byte]]
 
   def uv_tcp_init(loop: Loop, tcp_handle: TCPHandle): Int = extern
-  def uv_tcp_bind(tcp_handle: TCPHandle, address: Ptr[Byte], flags: Int): Int =
-    extern
+  def uv_tcp_bind(tcp_handle: TCPHandle, address: Ptr[Byte], flags: Int): Int = extern
   def uv_listen(
       stream_handle: TCPHandle,
       backlog: Int,
       uv_connection_cb: ConnectionCB
   ): Int = extern
   def uv_accept(server: TCPHandle, client: TCPHandle): Int = extern
-  def uv_read_start(client: TCPHandle, allocCB: AllocCB, readCB: ReadCB): Int =
-    extern
+  def uv_read_start(client: TCPHandle, allocCB: AllocCB, readCB: ReadCB): Int = extern
   def uv_write(
       writeReq: WriteReq,
       client: TCPHandle,
@@ -240,11 +222,10 @@ object LibUV:
   ): Int = extern
   def uv_close(handle: TCPHandle, closeCB: CloseCB): Int = extern
 
-  def uv_ip4_addr(address: CString, port: Int, out_addr: Ptr[Byte]): Int =
-    extern
+  def uv_ip4_addr(address: CString, port: Int, out_addr: Ptr[Byte]): Int = extern
   def uv_ip4_name(address: Ptr[Byte], s: CString, size: Int): Int = extern
 
-  // can't use these anymore! too bad.
+  // can't use these with anymore! too bad. Gotta use .fromScalaFunction[...]
   type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit]
   type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit]
   type WriteCB = CFuncPtr2[WriteReq, Int, Unit]

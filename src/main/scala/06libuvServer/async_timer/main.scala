@@ -1,4 +1,4 @@
-package `06asyncTimer`
+package ch06.asyncTimer
 
 import scala.scalanative.unsafe.*
 import scala.scalanative.libc.*
@@ -21,11 +21,8 @@ def asyncTimer: Unit =
 
   println("done")
 
-// val timerCB = new TimerCB:
-val timerCB =
-  CFuncPtr1.fromScalaFunction[LibUV.TimerHandle, Unit]((handle: LibUV.TimerHandle) =>
-    println("timer fired!")
-  )
+val timerCB = CFuncPtr1.fromScalaFunction[LibUV.TimerHandle, Unit]:
+  (handle: LibUV.TimerHandle) => println("timer fired!")
 
 @link("uv")
 @extern
