@@ -1,4 +1,4 @@
-package `07otherStuff`
+package ch07.otherStuff
 
 object EventLoop extends ExecutionContextExecutor:
   import LibUV.*
@@ -8,17 +8,12 @@ object EventLoop extends ExecutionContextExecutor:
   private val taskQueue = ListBuffer[Runnable]()
   private val extensions = ListBuffer[LoopExtension]()
 
-  private def dispatch(handle:PrepareHandle):Unit =
+  private def dispatch(handle: PrepareHandle): Unit =
     while taskQueue.nonEmpty do
       val runnable = taskQueue.remove(0)
-      try
-        runnable.run()
-      catch
-        case t: Throwable => reportFailure(t)
-
-
+      try runnable.run()
+      catch case t: Throwable => reportFailure(t)
     if taskQueue.isEmpty then LibUV.uv_prepare_stop(handle)
-
 
   private val dispatch_cb = CFunctionPtr.fromFunction1(dispatch)
 
@@ -30,13 +25,9 @@ object EventLoop extends ExecutionContextExecutor:
 
   def reportFailure(t: Throwable): Unit = t.printStackTrace()
 
-  def run(mode:Int = UV_RUN_DEFAULT):Unit =
+  def run(mode: Int = UV_RUN_DEFAULT): Unit =
     var continue = 1
-    while continue != 0 do
-      continue = uv_run(loop, mode)
-
-
-
+    while continue != 0 do continue = uv_run(loop, mode)
 
 @extern
 object LibUV:
@@ -44,26 +35,24 @@ object LibUV:
 
   def uv_default_loop(): Loop = extern
   def uv_loop_size(): CSize = extern
-  def uv_is_active(handle:Ptr[Byte]): Int = extern
-  def uv_handle_size(h_type:Int): CSize = extern
-  def uv_req_size(r_type:Int): CSize = extern
+  def uv_is_active(handle: Ptr[Byte]): Int = extern
+  def uv_handle_size(h_type: Int): CSize = extern
+  def uv_req_size(r_type: Int): CSize = extern
 
-  def uv_timer_init(loop:Loop, handle:TimerHandle):Int = extern
-  def uv_timer_start(handle:TimerHandle, cb:TimerCB, timeout:Long, repeat:Long):Int = extern
-  def uv_timer_stop(handle:TimerHandle):Int = extern
-
-  def uv_run(loop:Loop, runMode:Int): Int = extern
-
-  def uv_strerror(err:Int): CString = extern
-  def uv_err_name(err:Int): CString = extern
+  def uv_timer_init(loop: Loop, handle: TimerHandle): Int = extern
+  def uv_timer_start(handle: TimerHandle, cb: TimerCB, timeout: Long, repeat: Long): Int =
+    extern
+  def uv_timer_stop(handle: TimerHandle): Int = extern
+  def uv_run(loop: Loop, runMode: Int): Int = extern
+  def uv_strerror(err: Int): CString = extern
+  def uv_err_name(err: Int): CString = extern
 
   type PrepareHandle = Ptr[Byte]
   type PrepareCB = CFunctionPtr1[PrepareHandle, Unit]
 
-  def uv_prepare_init(loop:Loop, handle:PrepareHandle):Int = extern
-  def uv_prepare_start(handle:PrepareHandle, cb: PrepareCB):Int = extern
-  def uv_prepare_stop(handle:PrepareHandle):Unit = extern
-
+  def uv_prepare_init(loop: Loop, handle: PrepareHandle): Int = extern
+  def uv_prepare_start(handle: PrepareHandle, cb: PrepareCB): Int = extern
+  def uv_prepare_stop(handle: PrepareHandle): Unit = extern
 
 object LibUVConstants:
   import LibUV.*
@@ -94,7 +83,7 @@ object LibUVConstants:
 
   def check_error(v: Int, label: String): Int =
     if v == 0 then
-      // println(s"$label returned $v")
+      println(s"$label returned $v")
       v
     else
       val error = fromCString(uv_err_name(v))

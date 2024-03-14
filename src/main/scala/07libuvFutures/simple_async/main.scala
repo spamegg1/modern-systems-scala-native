@@ -1,17 +1,11 @@
-package `07simpleAsync`
+package ch07.simpleAsync
 
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
-import scala.concurrent.*
+import scala.concurrent.{ExecutionContext, Future}
 
-// @main
+@main
 def simpleAsync(args: String*): Unit =
   println("hello")
-  implicit val loop = EventLoop
+  given ExecutionContext = EventLoop
   println("setting up futures")
-  Future {
-    println("Future 1!")
-  }.map { _ =>
-    println("Future 2!")
-  }
+  Future { println("Future 1!") }.map { _ => println("Future 2!") }
   println("main about to return...")

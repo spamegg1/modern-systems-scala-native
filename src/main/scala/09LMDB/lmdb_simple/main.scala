@@ -1,4 +1,4 @@
-package `09lmdbSimple`
+package ch09.lmdbSimple
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.*
@@ -13,26 +13,21 @@ val getKeyBuffer = stdlib.malloc(512.toUSize) // 0.5
 val putKeyBuffer = stdlib.malloc(512.toUSize) // 0.5
 val valueBuffer = stdlib.malloc(512.toUSize) // 0.5
 
-// @main
+@main
 def lmdbSimple(args: String*): Unit =
   val env = LMDB.open(c"./db")
   stdio.printf(c"opened db %p\n", env)
   stdio.printf(c"> ")
 
   while stdio.fgets(lineBuffer, 1024, stdio.stdin) != null do
-    val put_scan_result =
-      stdio.sscanf(lineBuffer, c"put %s %s", putKeyBuffer, valueBuffer)
-    val get_scan_result = stdio.sscanf(lineBuffer, c"get %s", getKeyBuffer)
+    val putScanResult = stdio.sscanf(lineBuffer, c"put %s %s", putKeyBuffer, valueBuffer)
+    val getScanResult = stdio.sscanf(lineBuffer, c"get %s", getKeyBuffer)
 
-    if put_scan_result == 2 then
-      stdio.printf(
-        c"storing value %s into key %s\n",
-        putKeyBuffer,
-        valueBuffer
-      )
+    if putScanResult == 2 then
+      stdio.printf(c"storing value %s into key %s\n", putKeyBuffer, valueBuffer)
       LMDB.put(env, putKeyBuffer, valueBuffer)
       stdio.printf(c"saved key: %s value: %s\n", putKeyBuffer, valueBuffer)
-    else if get_scan_result == 1 then
+    else if getScanResult == 1 then
       stdio.printf(c"looking up key %s\n", getKeyBuffer)
       val lookup = LMDB.get(env, getKeyBuffer)
       stdio.printf(c"retrieved key: %s value: %s\n", getKeyBuffer, lookup)
@@ -54,8 +49,8 @@ object LMDB:
     env
 
   def put(env: Env, key: CString, value: CString): Unit =
-    val databasePtr = stackalloc[DB](sizeof[DB])
-    val transactionPtr = stackalloc[Transaction](sizeof[Transaction])
+    val databasePtr = stackalloc[DB]()
+    val transactionPtr = stackalloc[Transaction]()
 
     check(
       mdb_transactionn_begin(env, null, 0, transactionPtr),
@@ -65,11 +60,11 @@ object LMDB:
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
     val db = !databasePtr
 
-    val k = stackalloc[Key](sizeof[Key])
+    val k = stackalloc[Key]()
     k._1 = string.strlen(key).toLong + 1.toLong
     k._2 = key
 
-    val v = stackalloc[Value](sizeof[Value])
+    val v = stackalloc[Value]()
     v._1 = string.strlen(value).toLong + 1.toLong
     v._2 = value
 
@@ -77,8 +72,8 @@ object LMDB:
     check(mdb_transactionn_commit(transaction), "mdb_transactionn_commit")
 
   def get(env: Env, key: CString): CString =
-    val databasePtr = stackalloc[DB](sizeof[DB])
-    val transactionPtr = stackalloc[Transaction](sizeof[Transaction])
+    val databasePtr = stackalloc[DB]()
+    val transactionPtr = stackalloc[Transaction]()
 
     check(
       mdb_transactionn_begin(env, null, 0, transactionPtr),
@@ -89,10 +84,10 @@ object LMDB:
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
     val database = !databasePtr
 
-    val rk = stackalloc[Key](sizeof[Key])
+    val rk = stackalloc[Key]()
     rk._1 = string.strlen(key).toLong + 1.toLong
     rk._2 = key
-    val rv = stackalloc[Value](sizeof[Value])
+    val rv = stackalloc[Value]()
 
     check(mdb_get(transaction, database, rk, rv), "mdb_get")
 
@@ -103,7 +98,7 @@ object LMDB:
     output
 
   def check(result: Int, label: String): Unit =
-    if result != 0 then throw new Exception(s"bad LMDB call: $label returned $result")
+    if result != 0 then throw Exception(s"bad LMDB call: $label returned $result")
     else println(s"$label returned $result")
 
 @link("lmdb")

@@ -1,4 +1,4 @@
-package `08filePipeOut`
+package ch08.filePipeOut
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
@@ -41,26 +41,24 @@ trait Pipe[T, U]:
         o <- output
       do h.feed(o)
 
-  def mapOption[V](g: U => Option[V]): Pipe[U, V] =
-    addDestination(OptionPipe(g))
+  def mapOption[V](g: U => Option[V]): Pipe[U, V] = addDestination(OptionPipe(g))
 
-  case class AsyncPipe[T, U](f: T => Future[U])(implicit ec: ExecutionContext)
+  case class AsyncPipe[T, U](f: T => Future[U])(using ec: ExecutionContext)
       extends Pipe[T, U]:
     override def feed(input: T): Unit =
       f(input).map(o => for h <- handlers do h.feed(o))
 
-  def mapAsync[V](g: U => Future[V])(implicit
-      ec: ExecutionContext
-  ): Pipe[U, V] = addDestination(AsyncPipe(g))
+  def mapAsync[V](g: U => Future[V])(using ec: ExecutionContext): Pipe[U, V] =
+    addDestination(AsyncPipe(g))
 
-  def onComplete(implicit ec: ExecutionContext): Future[Unit] =
+  def onComplete(using ec: ExecutionContext): Future[Unit] =
     val sink = OnComplete[U]()
     addDestination(sink)
     sink.promise.future
 
 case class OnComplete[T]()(implicit ec: ExecutionContext) extends Pipe[T, Unit]:
   val promise = Promise[Unit]()
-  override def feed(input: T) = {}
+  override def feed(input: T) = ()
   override def done() =
     println("done, completing promise")
     promise.success(())
@@ -83,10 +81,10 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
 
     val outputBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
     outputBuffer._1 = malloc(outputSize.toUSize) // 0.5
-    Zone { // implicit z => // 0.5
+    Zone:
       val outputString = toCString(input)
       strncpy(outputBuffer._1, outputString, outputSize.toUSize) // 0.5
-    }
+
     outputBuffer._2 = outputSize.toUSize // 0.5
     !req = outputBuffer.asInstanceOf[Ptr[Byte]]
 
@@ -117,26 +115,22 @@ object FileOutputPipe:
     println(s"initialized $pipe")
     pipe
 
-  // val writeCB = new FSCB:
-  val writeCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]((req: FSReq) =>
+  val writeCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]: (req: FSReq) =>
     println("write completed")
     val resp_buffer = (!req).asInstanceOf[Ptr[Buffer]]
     stdlib.free(resp_buffer._1)
     stdlib.free(resp_buffer.asInstanceOf[Ptr[Byte]])
     stdlib.free(req.asInstanceOf[Ptr[Byte]])
-  )
 
-  // def on_shutdown(shutdownReq:ShutdownReq, status:Int):Unit = {
+  // def onShutdown(shutdownReq: ShutdownReq, status: Int): Unit =
   //   val client = (!shutdownReq).cast[PipeHandle]
   //   uv_close(client,closeCB)
   //   stdlib.free(shutdownReq.cast[Ptr[Byte]])
-  // }
-  // val shutdownCB = CFunctionPtr.fromFunction2(on_shutdown)
+  //
+  // val shutdownCB = CFunctionPtr.fromFunction2(onShutdown)
 
-  // def on_close(client:PipeHandle):Unit = {
-  //   stdlib.free(client.cast[Ptr[Byte]])
-  // }
-  // val closeCB = CFunctionPtr.fromFunction1(on_close)
+  // def onClose(client: PipeHandle): Unit = stdlib.free(client.cast[Ptr[Byte]])
+  // val closeCB = CFunctionPtr.fromFunction1(onClose)
 
 case class Tokenizer(separator: String) extends Pipe[String, String]:
   var buffer = ""
@@ -215,8 +209,7 @@ object FilePipe:
     activeStreams += fd
     pipe
 
-  // val readCB: FSCB = new FSCB:
-  val readCB: FSCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]((req: FSReq) =>
+  val readCB: FSCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]: (req: FSReq) =>
     println("read callback fired!")
     val res = uv_fs_get_result(req)
     println(s"got result: $res")
@@ -229,21 +222,13 @@ object FilePipe:
 
     if res > 0 then
       println("producing string")
-      // (buf._1)(res) = 0 // null termination?
+      (buf._1)(res) = 0.toByte // null termination?
       val output = fromCString(buf._1)
       val pipe = handlers(fd)
       pipe.feed(output)
       println("continuing")
       state_ptr._3 = state_ptr._3 + res
-      uv_fs_read(
-        EventLoop.loop,
-        req,
-        fd,
-        state_ptr._2,
-        1,
-        state_ptr._3,
-        readCB
-      )
+      uv_fs_read(EventLoop.loop, req, fd, state_ptr._2, 1, state_ptr._3, readCB)
     else if res == 0 then
       println("done")
       val pipe = handlers(fd)
@@ -252,7 +237,6 @@ object FilePipe:
     else
       println("error")
       activeStreams -= fd
-  )
 
 object SyncPipe:
   import LibUV.*, LibUVConstants.*
@@ -275,48 +259,39 @@ object SyncPipe:
     uv_read_start(handle, allocCB, readCB)
     pipe
 
-  // val allocCB = new AllocCB:
-  val allocCB =
-    CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
-      (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
-        val buf = stdlib.malloc(4096.toUSize) // 0.5
-        buffer._1 = buf
-        buffer._2 = 4096.toUSize // 0.5
-    )
+  val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
+    (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
+      val buf = stdlib.malloc(4096.toUSize) // 0.5
+      buffer._1 = buf
+      buffer._2 = 4096.toUSize // 0.5
 
-  // val readCB = new ReadCB:
-  val readCB: ReadCB =
-    CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit](
-      (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
-        val pipeData = handle.asInstanceOf[Ptr[Int]]
-        val pipeId = !pipeData
-        println(s"read $size bytes from pipe $pipeId")
+  val readCB: ReadCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit]:
+    (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
+      val pipeData = handle.asInstanceOf[Ptr[Int]]
+      val pipeId = !pipeData
+      println(s"read $size bytes from pipe $pipeId")
 
-        if size < 0 then
-          println("size < 0, closing")
-          activeStreams -= pipeId
-          val pipeDestination = handlers(pipeId)
-          pipeDestination.done()
-          handlers.remove(pipeId)
-        else
-          val dataBuffer = stdlib.malloc(size.toUSize) // removed +1 // 0.5
-          string.strncpy(dataBuffer, buffer._1, size.toUSize) // removed +1 // 0.5
-          val dataString = fromCString(dataBuffer)
-          stdlib.free(dataBuffer)
-          val pipeDestination = handlers(pipeId)
-          pipeDestination.feed(dataString.trim())
-    )
+      if size < 0 then
+        println("size < 0, closing")
+        activeStreams -= pipeId
+        val pipeDestination = handlers(pipeId)
+        pipeDestination.done()
+        handlers.remove(pipeId)
+      else
+        val dataBuffer = stdlib.malloc(size.toUSize) // removed +1 // 0.5
+        string.strncpy(dataBuffer, buffer._1, size.toUSize) // removed +1 // 0.5
+        val dataString = fromCString(dataBuffer)
+        stdlib.free(dataBuffer)
+        val pipeDestination = handlers(pipeId)
+        pipeDestination.feed(dataString.trim())
 
 import LibUV.*, LibUVConstants.*
 implicit val ec: ExecutionContext = EventLoop
 
-// @main
+@main
 def filePipeOut(args: String*): Unit =
   val p = FilePipe(c"./data.txt")
-    .map(d =>
-      println(s"consumed $d")
-      d
-    )
+    .map(d => { println(s"consumed $d"); d })
     .addDestination(Tokenizer("\n"))
     .addDestination(Tokenizer(" "))
     .map(d => d + "\n")

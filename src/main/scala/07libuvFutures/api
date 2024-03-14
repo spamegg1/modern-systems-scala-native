@@ -7,19 +7,17 @@ object HTTPAPI:
   def get(uri: String, headers: Seq[String] = Seq()):Future[Response] =
     makeRequest(Request(GET, uri, headers, None))
 
-  def post(uri: String, headers: Seq[String] = Seq(),
-           body: String): Future[Response] =
+  def post(uri: String, headers: Seq[String] = Seq(), body: String): Future[Response] =
     makeRequest(Request(POST, uri, headers, Some(body)))
 
-  def put(uri: String, headers: Seq[String] = Seq(),
-          body: String): Future[Response] =
+  def put(uri: String, headers: Seq[String] = Seq(), body: String): Future[Response] =
     makeRequest(Request(PUT, uri, headers, Some(body)))
 
-// @main
+@main
 def libuvApi(args: String*): Unit =
   // val getRequest = get(some_uri)
   val getRequest = get("")
-  getRequest.onComplete { response =>
+  getRequest.onComplete: response =>
     println(s"got back response code ${response.code}")
     println(s"response body: ${response.body}")
-  }
+

@@ -1,4 +1,4 @@
-package `10libUvService`
+package ch10.libUvService
 
 import scalanative.unsafe.*
 import scalanative.libc.stdlib
@@ -18,9 +18,8 @@ object EventLoop extends ExecutionContextExecutor:
   private val handle = stdlib.malloc(uv_handle_size(UV_PREPARE_T))
   check(uv_prepare_init(loop, handle), "uv_prepare_init")
 
-  // val prepareCallback = new PrepareCB {
-  val prepareCallback =
-    CFuncPtr1.fromScalaFunction[PrepareHandle, Unit]((handle: PrepareHandle) =>
+  val prepareCallback = CFuncPtr1.fromScalaFunction[PrepareHandle, Unit]:
+    (handle: PrepareHandle) =>
       while (taskQueue.nonEmpty) do
         val runnable = taskQueue.remove(0)
         try runnable.run()
@@ -29,7 +28,6 @@ object EventLoop extends ExecutionContextExecutor:
       if taskQueue.isEmpty then
         println("stopping dispatcher")
         uv_prepare_stop(handle)
-    )
 
   def execute(runnable: Runnable): Unit =
     taskQueue += runnable
@@ -83,15 +81,12 @@ object LibUV:
   def uv_handle_size(h_type: Int): CSize = extern
   def uv_req_size(r_type: Int): CSize = extern
 
-  def uv_tty_init(loop: Loop, handle: TTYHandle, fd: Int, readable: Int): Int =
-    extern
+  def uv_tty_init(loop: Loop, handle: TTYHandle, fd: Int, readable: Int): Int = extern
 
   def uv_tcp_init(loop: Loop, tcp_handle: TCPHandle): Int = extern
-  def uv_tcp_bind(tcp_handle: TCPHandle, address: Ptr[Byte], flags: Int): Int =
-    extern
+  def uv_tcp_bind(tcp_handle: TCPHandle, address: Ptr[Byte], flags: Int): Int = extern
 
-  def uv_ip4_addr(address: CString, port: Int, out_addr: Ptr[Byte]): Int =
-    extern
+  def uv_ip4_addr(address: CString, port: Int, out_addr: Ptr[Byte]): Int = extern
   def uv_ip4_name(address: Ptr[Byte], s: CString, size: Int): Int = extern
 
   def uv_pipe_init(loop: Loop, handle: PipeHandle, ipc: Int): Int = extern
@@ -115,11 +110,9 @@ object LibUV:
   ): Int = extern
   def uv_timer_stop(handle: TimerHandle): Int = extern
 
-  def uv_listen(handle: PipeHandle, backlog: Int, callback: ConnectionCB): Int =
-    extern
+  def uv_listen(handle: PipeHandle, backlog: Int, callback: ConnectionCB): Int = extern
   def uv_accept(server: PipeHandle, client: PipeHandle): Int = extern
-  def uv_read_start(client: PipeHandle, allocCB: AllocCB, readCB: ReadCB): Int =
-    extern
+  def uv_read_start(client: PipeHandle, allocCB: AllocCB, readCB: ReadCB): Int = extern
   def uv_write(
       writeReq: WriteReq,
       client: PipeHandle,

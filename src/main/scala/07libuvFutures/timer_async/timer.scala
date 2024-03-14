@@ -1,4 +1,4 @@
-package `07timerAsync`
+package ch07.timerAsync
 
 import scalanative.unsafe.*
 import scalanative.libc.stdlib
@@ -12,7 +12,7 @@ import LibUV.*, LibUVConstants.*
 
 object Timer:
   var serial = 0L
-  var timers = mutable.HashMap[Long, Promise[Unit]]()
+  val timers = mutable.HashMap[Long, Promise[Unit]]()
 
   def delay(dur: Duration): Future[Unit] =
     val promise = Promise[Unit]()
@@ -30,14 +30,11 @@ object Timer:
 
     promise.future
 
-  // val timerCB = new TimerCB:
-  val timerCB =
-    CFuncPtr1.fromScalaFunction[TimerHandle, Unit]((handle: TimerHandle) =>
-      println("callback fired!")
-      val timerData = handle.asInstanceOf[Ptr[Long]]
-      val timerId = !timerData
-      val timerPromise = timers(timerId)
-      timers.remove(timerId)
-      println(s"completing promise ${timerId}")
-      timerPromise.success(())
-    )
+  val timerCB = CFuncPtr1.fromScalaFunction[TimerHandle, Unit]: (handle: TimerHandle) =>
+    println("callback fired!")
+    val timerData = handle.asInstanceOf[Ptr[Long]]
+    val timerId = !timerData
+    val timerPromise = timers(timerId)
+    timers.remove(timerId)
+    println(s"completing promise ${timerId}")
+    timerPromise.success(())

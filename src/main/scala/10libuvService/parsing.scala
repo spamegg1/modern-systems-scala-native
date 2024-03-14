@@ -1,4 +1,4 @@
-package `10libUvService`
+package ch10.libUvService
 
 import scalanative.unsafe.*
 import scalanative.libc.*
@@ -33,7 +33,7 @@ trait Parsing:
       bytes(c) = !(data + c)
       c += 1
 
-    new String(bytes)
+    String(bytes)
 
   def onURL(p: Ptr[Parser], data: CString, len: Long): Int =
     val state = (p._8).asInstanceOf[Ptr[ConnectionState]]

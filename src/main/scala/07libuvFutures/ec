@@ -6,35 +6,25 @@
  * We make no guarantees that this code is fit for any purpose.
  * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
 ***/
-trait ExecutionContext {
-  
+trait ExecutionContext:
   /** Runs a block of code on this execution context. */
   def execute(runnable: Runnable): Unit
-  
+
   /** Reports that an asynchronous computation failed. */
   def reportFailure(t: Throwable): Unit
 
-}
-
-object ExecutionContext {
+object ExecutionContext:
   def global: ExecutionContextExecutor = QueueExecutionContext
 
-  private object QueueExecutionContext extends ExecutionContextExecutor {
+  private object QueueExecutionContext extends ExecutionContextExecutor:
     def execute(runnable: Runnable): Unit = queue += runnable
     def reportFailure(t: Throwable): Unit = t.printStackTrace()
-  }
 
   private val queue: ListBuffer[Runnable] = new ListBuffer
 
-  private def loop(): Unit = {
-    while (queue.nonEmpty) {
+  private def loop(): Unit =
+    while queue.nonEmpty do
       val runnable = queue.remove(0)
-      try {
-        runnable.run()
-      } catch {
-        case t: Throwable =>
-          QueueExecutionContext.reportFailure(t)
-      }
-    }
-  }
-}
+      try runnable.run()
+      catch case t: Throwable => QueueExecutionContext.reportFailure(t)
+
