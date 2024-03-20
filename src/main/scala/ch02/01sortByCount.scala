@@ -34,9 +34,7 @@ def growWrappedArray(array: WrappedArray[NGramData], size: Int): Unit =
 // Here, array = data in a WrappedArray. Long sequence of NGramData's.
 def freeArray(array: Ptr[NGramData], size: Int): Unit =
   // First, free all the strings that structs are pointing at.
-  for i <- 0 until size
-  do
-    // val item: Ptr[NGramData] = array + i.toLong
+  for i <- 0 until size do
     val item: Ptr[NGramData] = array + i // 0.5
     stdlib.free(item._1) // string is the first field of the struct.
   stdlib.free(array.asInstanceOf[Ptr[Byte]]) // now free the structs themselves.
@@ -65,17 +63,14 @@ def parseLine(lineBuffer: Ptr[Byte], data: Ptr[NGramData]): Unit =
   if sscanfResult < 4 then throw Exception("input error")
 
   // word length is not known ahead of time, so safely copy it from tempWord -> to data
-  // val wordLength: ULong = string.strlen(tempWord).toULong
-  // val newString: Ptr[Byte] = stdlib.malloc(wordLength + 1.toULong) // \0
-  // string.strncpy(newString, tempWord, wordLength + 1.toULong) // \0
   val wordLength: CSize = string.strlen(tempWord) // 0.5
   val newString: Ptr[Byte] = stdlib.malloc(wordLength + 1.toUSize) // 0.5
   string.strncpy(newString, tempWord, wordLength + 1.toUSize) // 0.5
   data._1 = newString // update in-place, initialization of struct complete.
 
 // Two comparison functions. This is a bit inefficient.
-val byCountNaive =
-  CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]((p1: Ptr[Byte], p2: Ptr[Byte]) =>
+val byCountNaive = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
+  (p1: Ptr[Byte], p2: Ptr[Byte]) =>
     val nGramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
     val nGramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
     val count1 = nGramPtr1._3 // count is the third field, book is wrong, it has ._2
@@ -83,21 +78,19 @@ val byCountNaive =
     if count1 > count2 then -1 // these are a bit inefficient
     else if count1 == count2 then 0
     else 1
-  )
 
 // This one is a bit more efficient, returns neg, 0, pos.
-val byCount =
-  CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]((p1: Ptr[Byte], p2: Ptr[Byte]) =>
+val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
+  (p1: Ptr[Byte], p2: Ptr[Byte]) =>
     val nGramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
     val nGramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
     val count1 = nGramPtr1._3
     val count2 = nGramPtr2._3
     count2 - count1
-  )
 
 // MAIN
 // run it with:
-// ./target/scala-3.3.1/scala-native-out <
+// ./target/scala-3.4.0/scala-native-out <
 // ./src/main/resources/scala-native/googlebooks-eng-all-1gram-20120701-a
 // reached EOF after 86618505 lines in 1358520 ms
 // sorting done in 2764701 ms
@@ -130,8 +123,7 @@ def sortByCount(args: String*): Unit =
   val readStart = System.currentTimeMillis()
 
   // pipe file into stdin, then read line by line (fgets respects newlines)
-  while stdio.fgets(lineBuffer, 1024, stdio.stdin) != null // reads <= 1024 - 1 chars
-  do
+  while stdio.fgets(lineBuffer, 1024, stdio.stdin) != null do // reads <= 1024 - 1 chars
     if array.used >= array.capacity then growWrappedArray(array, blockSize)
     parseLine(lineBuffer, array.data + array.used) // parse CURRENT line
     array.used += 1
@@ -155,13 +147,10 @@ def sortByCount(args: String*): Unit =
   )
 
   val sortElapsed = System.currentTimeMillis() - sortStart
-
   stdio.printf(c"sorting done in %d ms\n", sortElapsed)
-
   val toShow = if array.used <= 20 then array.used else 20 // display top 20 words
 
-  for i <- 0 until toShow
-  do
+  for i <- 0 until toShow do
     stdio.printf(
       c"word %d: %s %d %d %d\n",
       i,

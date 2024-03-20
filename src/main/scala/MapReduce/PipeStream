@@ -3,12 +3,10 @@ import argonaut.*
 import Argonaut.*
 
 case class PipeStream[T](inFd: Int, outFd: Int): // Should probably be Ptr[FILE]
-  def map[U](f: T -> U)(
-    using d: DecodeJSON[T], e: EncodeJSON[U]
-  ): PipeStream[U] =
+  def map[U](f: T -> U)(using d: DecodeJSON[T], e: EncodeJSON[U]): PipeStream[U] =
     val outStream = makeStream[U]
     val buffer = malloc(1024.toULong)
-    doFork { () =>
+    doFork: () =>
       while fgets(inFd, buffer, 1024) != null do
         val encoded = fromCString(buffer)
         val item = encoded.decodeOption[T].map {
@@ -17,7 +15,6 @@ case class PipeStream[T](inFd: Int, outFd: Int): // Should probably be Ptr[FILE]
             writeItem(result)
           case Failure => println(s"encountered error parsing '%s'")
         }
-    }
     outStream
 
   def fold[U](init: U, accum: (T, U) -> U): U =
@@ -27,34 +24,31 @@ case class PipeStream[T](inFd: Int, outFd: Int): // Should probably be Ptr[FILE]
     while fgets(inFd, buffer, 1024) != null do
       val encoded = fromCString(buffer)
       val item = encoded.decodeOption[T].map {
-        case Success(t: T) =>
-          partialResult = accum(t,partialResult)
-        case Failure => ???
+        case Success(t: T) => partialResult = accum(t,partialResult)
+        case Failure       => ???
       }
     val finalResult = partialResult
     finalResult
 
-  def writeItem(item: T)(using e: EncodeJSON[T]): Unit = Zone {
+  def writeItem(item: T)(using e: EncodeJSON[T]): Unit = Zone:
     val encoded = item.asJson.spaces2
     fprintf(outFd, c"%s\n", encoded.toCString)
-  }
 
 object PipeStream:
   def makeStream[T] =
-    val pipe_array = stackalloc[Int](2)
-    pipe(pipe_array) //CHECK
-    output_pipe = pipe_array(1)
-    input_pipe = pipe_array(0)
+    val pipeArray = stackalloc[Int](2)
+    pipe(pipeArray) // CHECK
+    output_pipe = pipeArray(1)
+    input_pipe = pipeArray(0)
     PipeStream(input_pipe, output_pipe)
 
-  def pipeSeq[T](s:Seq[T])(implicit e:EncodeJSON[T]): PipeStream[T] =
+  def pipeSeq[T](s: Seq[T])(using e: EncodeJSON[T]): PipeStream[T] =
     val outStream = makeStream[T]
-    doFork { () => for item <- s do outStream.writeItem(item)}
+    doFork(() => for item <- s do outStream.writeItem(item))
 
   def pipeSeqParallel[T](s: Seq[T])(using e: EncodeJSON[T]): Seq[PipeStream[T]] =
-    val outStreamsWithData = s.map { item => (item, makeStream[T])}
-    for (item, stream) <- outStreamsWithData do
-      doFork { () => stream.writeItem(item) }
+    val outStreamsWithData = s.map(item => (item, makeStream[T]))
+    for (item, stream) <- outStreamsWithData do doFork(() => stream.writeItem(item))
     outStreamsWithData.map(_._2)
 
   def mergePipes[T](inStreams: Seq[PipeStream[T]])(
@@ -70,7 +64,7 @@ object PipeStream:
       pollFds(i)._2 = POLLIN
       pollFds(i)._3 = 0
 
-    doFork { () =>
+    doFork: () =>
       while activeStreams.size > 0 do
         poll(pollFds)
         for (s, i) <- activeStreams.zipWithIndex do
@@ -86,7 +80,6 @@ object PipeStream:
             if activeStreams.size > 0 then
               pollFds = makePollFds(activeStreams)
       0
-    }
 
   def makePollFds[T](inStreams: Seq[PipeStream[T]]): Ptr[PollFD] =
     val pollFds = malloc(sizeof[PollFD] * inStreams.size)

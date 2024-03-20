@@ -6,11 +6,7 @@ import scalanative.unsafe.{Ptr, stackalloc, sizeof, CString, CStruct4, CFuncPtr2
 import scalanative.unsafe.extern
 
 // These parts are the same as 01sortByCount.
-final case class WrappedArray[T]( // same
-    var data: Ptr[T],
-    var used: Int,
-    var capacity: Int
-)
+final case class WrappedArray[T](var data: Ptr[T], var used: Int, var capacity: Int)
 
 type NGramData = CStruct4[CString, Int, Int, Int] // same
 
