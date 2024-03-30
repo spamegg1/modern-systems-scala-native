@@ -3,7 +3,7 @@ package ch01.helloNative
 import scalanative.unsafe.CQuote
 import scalanative.libc.stdio.printf
 
-@main // don't forget to comment/uncomment!
+@main
 def helloNative: Unit =
   printf(c"hello native %s!\n", c"world")
 

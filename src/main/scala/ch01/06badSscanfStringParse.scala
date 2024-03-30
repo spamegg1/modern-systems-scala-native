@@ -5,11 +5,9 @@ import scalanative.libc.stdio
 
 // here line: CString = Ptr[CChar] = Ptr[Byte]
 def parseStrLine(line: CString): Unit =
-  // in the book stackalloc never has a number argument.
-  // It has a default argument of 1.toULong, but in Scala 3 we need empty parentheses.
-  // So the mistake is thinking: "I allocated enough space for a CString!"
+  // The mistake is thinking: "I allocated enough space for a CString!"
   // But we don't know the size of the string.
-  val stringPointer: Ptr[CString] = stackalloc[CString]() // this is 1.toULong
+  val stringPointer: Ptr[CString] = stackalloc[CString](1)
   stdio.printf(
     c"allocated %d bytes for a string at %p\n",
     sizeof[CString], // this is CChar = Ptr[Byte] = 8 bytes
@@ -23,7 +21,7 @@ def parseStrLine(line: CString): Unit =
   stdio.printf(c"scan results: '%s'\n", stringPointer)
   // stackalloc does not need to be freed!
 
-@main // don't forget to comment / uncomment!
+@main
 def badSscanfStringParse: Unit =
   val lineInBuffer: Ptr[Byte] = stackalloc[Byte](1024) // this is to store stdin
   while stdio.fgets(lineInBuffer, 1024 - 1, stdio.stdin) != null

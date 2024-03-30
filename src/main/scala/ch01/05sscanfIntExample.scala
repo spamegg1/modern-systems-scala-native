@@ -14,7 +14,7 @@ import scalanative.libc.stdio
 @main
 def sscanfIntExample: Unit =
   // allocate space on the stack for a line of up to 1KB input from user
-  // inline def stackalloc[T](n: CSize = 1.toULong)(using Tag[T]): Ptr[T]
+  // inline def stackalloc[T](n: Int)(using Tag[T]): Ptr[T]
   val lineInBuffer: Ptr[Byte] = stackalloc[Byte](1024)
 
   // as long as the user is inputting data into standard input, parse it.

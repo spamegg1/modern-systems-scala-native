@@ -40,8 +40,7 @@ def freeArray(array: Ptr[NGramData], size: Int): Unit =
   stdlib.free(array.asInstanceOf[Ptr[Byte]]) // now free the structs themselves.
 
 // this temporary space is used to read the string in each line of the file.
-// val tempWord: Ptr[Byte] = stdlib.malloc(1024.toULong)
-val tempWord: Ptr[Byte] = stdlib.malloc(1024.toUSize) // 0.5
+val tempWord: Ptr[Byte] = stdlib.malloc(1024) // 0.5
 
 // We convert a line of the form: ngram TAB year TAB match_count TAB volume_count NEWLINE
 // to an NGramData struct: [CString, Int, Int, Int]
@@ -89,9 +88,6 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
     count2 - count1
 
 // MAIN
-// run it with:
-// ./target/scala-3.4.0/scala-native-out <
-// ./src/main/resources/scala-native/googlebooks-eng-all-1gram-20120701-a
 // reached EOF after 86618505 lines in 1358520 ms
 // sorting done in 2764701 ms
 // word 0: and 470825580
@@ -118,7 +114,7 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
 @main
 def sortByCount(args: String*): Unit =
   val blockSize = 1048576 // 2^20 NGramData items = 2^20 * 20 bytes = 20 MB
-  val lineBuffer = stdlib.malloc(1024.toUSize) // 0.5: use .toUSize instead
+  val lineBuffer = stdlib.malloc(1024) // 0.5
   var array = makeWrappedArray(blockSize)
   val readStart = System.currentTimeMillis()
 

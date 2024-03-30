@@ -25,8 +25,7 @@ def cStringExperiment1: Unit =
     sizeof[CString] // this is CSize 8, 64-bit unsigned integer, using %d
   )
 
-  for offset <- 0 until strLen.toInt + 1 // this is 12 + 1, including \0
-  do
+  for offset <- 0 until strLen.toInt + 1 do // this is 12 + 1, including \0
     val chr: CChar = str(offset) // look up character, use string like an array
     stdio.printf(
       c"the character '%c' is %d bytes long and has binary value %d\n",

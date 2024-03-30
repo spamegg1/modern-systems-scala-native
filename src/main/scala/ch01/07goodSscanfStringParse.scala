@@ -13,9 +13,7 @@ def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
 
   val wordLength: CSize = string.strlen(tempBuffer)
   if wordLength.toInt >= maxWordLength then // disallow segfault
-    throw Exception(
-      s"word length $wordLength exceeds max buffer size $bufferSize"
-    )
+    throw Exception(s"word length $wordLength exceeds max buffer size $bufferSize")
 
   //              dest      source     destSize
   string.strncpy(wordOut, tempBuffer, wordLength) // can't return tempBuffer, so copy it.
@@ -29,7 +27,6 @@ def goodSscanfStringParse: Unit =
   val lineInBuffer = stackalloc[Byte](1024) // this size matches tempBuffer
   val wordOutBuffer = stackalloc[Byte](32) // to store result of parseLine
 
-  while stdio.fgets(lineInBuffer, 1023, stdio.stdin) != null
-  do
+  while stdio.fgets(lineInBuffer, 1023, stdio.stdin) != null do
     parseLine(lineInBuffer, wordOutBuffer, 32) // now, user inputs >= 32 chars will fail!
     stdio.printf(c"read word: '%s'\n", wordOutBuffer)

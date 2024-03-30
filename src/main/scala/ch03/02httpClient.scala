@@ -1,16 +1,13 @@
 package ch03.http
 
+import scalanative.posix.sys.socket.{AF_UNSPEC, SOCK_STREAM, socket, sockaddr, connect}
+import scalanative.posix.netdb.{addrinfo, getaddrinfo}
+import scalanative.posix.netdbOps.addrinfoOps // ai_family, ai_socktype
 import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsafe.*
-import scalanative.libc.*
-import stdio.*
-import scalanative.posix.unistd.*
-import scalanative.posix.sys.socket.*
-import scalanative.posix.netinet.in.*
-import scalanative.posix.arpa.inet.*
-import collection.mutable
-import scalanative.posix.netdb.*
-import scalanative.posix.netdbOps.*
+import scalanative.unsafe.{Zone, Ptr, CInt, CString, toCString, fromCString, CQuote}
+import scalanative.unsafe.{stackalloc, sizeof, extern}
+import scalanative.libc.{stdio, stdlib, string, errno}
+import stdio.{FILE, fgets, fclose, fflush}
 
 case class HttpRequest(
     method: String,
@@ -31,21 +28,14 @@ def writeRequestLine(
 ): Unit =
   stdio.fprintf(socketFileDescriptor, c"%s %s %s\r\n", method, uri, c"HTTP/1.1")
 
-def writeHeader(
-    socketFileDescriptor: Ptr[FILE],
-    key: CString,
-    value: CString
-): Unit =
+def writeHeader(socketFileDescriptor: Ptr[FILE], key: CString, value: CString): Unit =
   stdio.fprintf(socketFileDescriptor, c"%s: %s\r\n", key, value)
 
 def writeBody(socketFileDescriptor: Ptr[FILE], body: CString): Unit =
   stdio.fputs(body, socketFileDescriptor)
 
-def writeRequest(
-    socketFileDescriptor: Ptr[FILE],
-    request: HttpRequest
-): Unit =
-  Zone { // implicit z => // 0.5
+def writeRequest(socketFileDescriptor: Ptr[FILE], request: HttpRequest): Unit =
+  Zone: // implicit z => // 0.5
     writeRequestLine(
       socketFileDescriptor,
       toCString(request.method),
@@ -57,7 +47,6 @@ def writeRequest(
 
     stdio.fputs(c"\n", socketFileDescriptor)
     writeBody(socketFileDescriptor, toCString(request.body))
-  }
 
 def parseStatusLine(line: CString): Int =
   println("parsing status")
@@ -78,12 +67,12 @@ def parseHeaderLine(line: CString): (String, String) =
   else (fromCString(keyBuffer), fromCString(valueBuffer))
 
 def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
-  val lineBuffer = stdlib.malloc(4096.toUSize) // 0.5
+  val lineBuffer = stdlib.malloc(4096) // 0.5
   println("reading status line?")
 
   var readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
   val code = parseStatusLine(lineBuffer)
-  var headers = mutable.Map[String, String]()
+  var headers = collection.mutable.Map[String, String]()
 
   println("reading first response header")
   readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
@@ -104,7 +93,7 @@ def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
       headers("Content-Length:").toInt
     else 65536 - 1
 
-  val bodyBuffer = stdlib.malloc((contentLength + 1).toUSize) // 0.5
+  val bodyBuffer = stdlib.malloc(contentLength + 1) // 0.5
   val bodyReadResult =
     stdio.fread(
       bodyBuffer,
@@ -120,12 +109,12 @@ def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
   HttpResponse(code, headers, fromCString(bodyBuffer))
 
 def makeConnection(address: CString, port: CString): Int =
-  val hints = stackalloc[addrinfo]()
+  val hints = stackalloc[addrinfo](1)
   string.memset(hints.asInstanceOf[Ptr[Byte]], 0, sizeof[addrinfo])
   hints.ai_family = AF_UNSPEC
   hints.ai_socktype = SOCK_STREAM
 
-  val addrInfoPtr: Ptr[Ptr[addrinfo]] = stackalloc[Ptr[addrinfo]]()
+  val addrInfoPtr: Ptr[Ptr[addrinfo]] = stackalloc[Ptr[addrinfo]](1)
   println("about to perform lookup")
 
   val lookupResult = getaddrinfo(address, port, hints, addrInfoPtr)
@@ -175,8 +164,6 @@ def handleConnection(sock: Int, host: String, path: String): Unit =
   println(s"got Response: ${resp}")
   fclose(socketFileDescriptor)
 
-// uncomment @main, make sure all other @main s in other files are commented
-// use sbt> nativeLink to create executable
 // run it in two Terminal windows with:
 // nc -l -v 127.0.0.1 8081
 // Listening on localhost 8081
@@ -196,31 +183,27 @@ def handleConnection(sock: Int, host: String, path: String): Unit =
 // reading status line?
 // also use with:
 // ./target/scala-3.2.2/scala-native-out www.example.com 80 /
-// @main
+@main
 def httpClient(args: String*): Unit =
   if args.length != 3 then
     println(s"${args.length} {args}")
     println("Usage: ./tcp_test [address] [port] [path]")
-    ()
 
-  Zone { // implicit z => // 0.5
-    val address = toCString(args(0))
-    val host = args(0)
-    val port = toCString(args(1))
-    val path = args(2)
+  Zone: // implicit z => // 0.5
+    val (address, host) = (toCString(args(0)), args(0))
+    val (port, path) = (toCString(args(1)), args(2))
     stdio.printf(c"looking up address: %s port: %s\n", address, port)
 
     val sock = makeConnection(address, port)
     handleConnection(sock, host, path)
-  }
 
 @extern
 object util:
   def getaddrinfo(
-      address: CString,
-      port: CString,
-      hints: Ptr[addrinfo],
-      res: Ptr[Ptr[addrinfo]]
+      address: CString, // hostname to lookup, e.g. "www.parprog.com"
+      port: CString, // port number, e.g. "80"
+      hints: Ptr[addrinfo], // partially populated addrinfo struct object
+      res: Ptr[Ptr[addrinfo]] // to hold the result
   ): Int = extern
   def socket(family: Int, socktype: Int, protocol: Int): Int = extern
   def connect(sock: Int, addrInfo: Ptr[sockaddr], addrLen: CInt): Int = extern

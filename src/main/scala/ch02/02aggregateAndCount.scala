@@ -18,29 +18,23 @@ def makeWrappedArray(size: Int): WrappedArray[NGramData] = // same
 
 def growWrappedArray(array: WrappedArray[NGramData], size: Int): Unit = // same
   val newCapacity = array.capacity + size
-  val newSize = newCapacity.toUSize * sizeof[NGramData] // 0.5
+  val newSize = newCapacity.toUSize * sizeof[NGramData]
   val newData = stdlib.realloc(array.data.asInstanceOf[Ptr[Byte]], newSize)
   array.data = newData.asInstanceOf[Ptr[NGramData]]
   array.capacity = newCapacity
 
-val byCount = // same
-  CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]((p1: Ptr[Byte], p2: Ptr[Byte]) =>
+val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]: // same
+  (p1: Ptr[Byte], p2: Ptr[Byte]) =>
     val ngramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
     val ngramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
     val count1 = ngramPtr1._2
     val count2 = ngramPtr2._2
     count2 - count1
-  )
 
-val lineBuffer = stdlib.malloc(1024.toUSize) // 0.5
-val tempWordBuffer = stdlib.malloc(1024.toUSize) // 0.5
+val lineBuffer = stdlib.malloc(1024) // 0.5
+val tempWordBuffer = stdlib.malloc(1024)
 val blockSize = 1048576 // ~ 1MB - too big? (same)
 
-// uncomment @main, make sure all other @main s in other files are commented
-// use sbt> nativeLink to create executable
-// run it with:
-// ./target/scala-3.2.2/scala-native-out <
-// ./src/main/resources/scala-native/googlebooks-eng-all-1gram-20120701-a
 @main
 def aggregateAndCount(args: String*): Unit =
   val array = makeWrappedArray(blockSize)
@@ -63,13 +57,8 @@ def aggregateAndCount(args: String*): Unit =
 
   val toShow = if array.used <= 20 then array.used else 20 // same
 
-  for i <- 0 until toShow // same
-  do
-    stdio.printf(
-      c"word n: %s %d\n",
-      (array.data + i)._1,
-      (array.data + i)._2
-    )
+  for i <- 0 until toShow do // same
+    stdio.printf(c"word n: %s %d\n", (array.data + i)._1, (array.data + i)._2)
 
   println(c"done")
 
@@ -77,8 +66,7 @@ def aggregateAndCount(args: String*): Unit =
 def readAllLines(fd: Ptr[stdio.FILE], array: WrappedArray[NGramData]): Long =
   var linesRead = 0L
 
-  while stdio.fgets(lineBuffer, 1024, fd) != null
-  do
+  while stdio.fgets(lineBuffer, 1024, fd) != null do
     if array.used >= array.capacity - 1 then growWrappedArray(array, blockSize)
     parseAndCompare(lineBuffer, array) // this is the main difference!
     linesRead += 1
@@ -105,29 +93,26 @@ def parseAndCompare(line: CString, array: WrappedArray[NGramData]): Unit =
     else accumulateItem(tempItem, prevItem)
 
 def scanItem(line: CString, tempItem: Ptr[NGramData]): Boolean =
-  val tempWord = tempItem._1
-  val tempCount = tempItem.at2
-  val tempYear = tempItem.at3
-  val tempDocCount = tempItem.at4
+  val tempWord: CString = tempItem._1
+  val tempCount: Ptr[Int] = tempItem.at2
+  val tempYear: Ptr[Int] = tempItem.at3
+  val tempDocCount: Ptr[Int] = tempItem.at4
 
   val sscanfResult = stdio.sscanf(
     line,
     c"%1023s %d %d %d\n",
-    tempWord,
-    tempYear,
-    tempCount,
-    tempDocCount
+    tempWord, // CString
+    tempYear, // Ptr[Int]
+    tempCount, // Ptr[Int]
+    tempDocCount // Ptr[Int]
   )
-  if sscanfResult < 4 then throw new Exception("input error")
+  if sscanfResult < 4 then throw Exception("input error")
   true
 
 def isItemNew(tempItem: Ptr[NGramData], prevItem: Ptr[NGramData]): Int =
   string.strcmp(tempItem._1, prevItem._1)
 
-def addNewItem(
-    tempItem: Ptr[NGramData],
-    nextItem: Ptr[NGramData]
-): Unit =
+def addNewItem(tempItem: Ptr[NGramData], nextItem: Ptr[NGramData]): Unit =
   val tempWord: CString = tempItem._1
   val newWordLength = string.strlen(tempWord) // USize
   val newWordBuffer: Ptr[Byte] = stdlib.malloc(newWordLength + 1.toUSize) // 0.5
@@ -140,10 +125,7 @@ def addNewItem(
   nextItem._3 = tempItem._3
   nextItem._4 = tempItem._4
 
-def accumulateItem(
-    tempItem: Ptr[NGramData],
-    prevItem: Ptr[NGramData]
-): Unit =
+def accumulateItem(tempItem: Ptr[NGramData], prevItem: Ptr[NGramData]): Unit =
   prevItem._2 = prevItem._2 + tempItem._2
 
 @extern
