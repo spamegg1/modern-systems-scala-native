@@ -9,54 +9,65 @@ import scalanative.unsafe.{stackalloc, sizeof, extern}
 import scalanative.libc.{stdio, stdlib, string, errno}
 import stdio.{FILE, fgets, fclose, fflush}
 
+import collection.mutable.{Map => MMap}
+
+// These are Scala strings, they will be converted to C-strings later.
 case class HttpRequest(
-    method: String,
-    uri: String,
-    headers: collection.Map[String, String],
+    method: String, // GET, POST, PUT, etc.
+    uri: String, // e.g. www.pragprog.com
+    headers: Map[String, String], // immutable
     body: String
 )
 case class HttpResponse(
-    code: Int,
-    headers: collection.Map[String, String],
+    code: Int, // 200, 301, 404, 500, etc.
+    headers: MMap[String, String], // mutable
     body: String
 )
 
+// Example HTTP request line: GET /index.html HTTP/1.1
 def writeRequestLine(
-    socketFileDescriptor: Ptr[FILE],
-    method: CString,
-    uri: CString
-): Unit =
+    socketFileDescriptor: Ptr[FILE], // socket fd comes from establishing a connection
+    method: CString, // GET, POST, PUT, etc. but as a CString
+    uri: CString // e.g. www.pragprog.com, but as a CString
+): Unit = // \r\n is needed for carriage return, specified by HTTP
   stdio.fprintf(socketFileDescriptor, c"%s %s %s\r\n", method, uri, c"HTTP/1.1")
 
+// write ONE header. This will be for-looped for all headers.
+// Example header: Content-Type: text/html; charset=UTF-8
 def writeHeader(socketFileDescriptor: Ptr[FILE], key: CString, value: CString): Unit =
   stdio.fprintf(socketFileDescriptor, c"%s: %s\r\n", key, value)
 
 def writeBody(socketFileDescriptor: Ptr[FILE], body: CString): Unit =
-  stdio.fputs(body, socketFileDescriptor)
+  stdio.fputs(body, socketFileDescriptor) // put the whole thing, no need to format.
 
+// write the request line, all the headers, and the request body.
 def writeRequest(socketFileDescriptor: Ptr[FILE], request: HttpRequest): Unit =
   Zone: // implicit z => // 0.5
     writeRequestLine(
       socketFileDescriptor,
-      toCString(request.method),
-      toCString(request.uri)
+      toCString(request.method), // requires Zone
+      toCString(request.uri) // requires Zone
     )
 
     for (key, value) <- request.headers
-    do writeHeader(socketFileDescriptor, toCString(key), toCString(value))
+    do writeHeader(socketFileDescriptor, toCString(key), toCString(value)) // require Zone
 
-    stdio.fputs(c"\n", socketFileDescriptor)
-    writeBody(socketFileDescriptor, toCString(request.body))
+    stdio.fputs(c"\n", socketFileDescriptor) // after headers, there is 1 empty line.
+    writeBody(socketFileDescriptor, toCString(request.body)) // requires Zone
 
+// Reading the response.
+// Example status line: HTTP/1.1 200 OK. Return the status code (200).
 def parseStatusLine(line: CString): Int =
   println("parsing status")
-  val protocolPtr = stackalloc[Byte](64)
-  val codePtr = stackalloc[Int]()
-  val descPtr = stackalloc[Byte](128)
+  val protocolPtr = stackalloc[Byte](64) // e.g. HTTP/1.1
+  val codePtr = stackalloc[Int](1) // e.g. 200
+  val descPtr = stackalloc[Byte](128) // e.g. OK
   val scanResult = stdio.sscanf(line, c"%s %d %s\n", protocolPtr, codePtr, descPtr)
-
   if scanResult < 3 then throw Exception("bad status line") else !codePtr
 
+// parse ONE header line. This will be while-looped later. Example headers:
+// key:           value          (should not be longer than 64 chars)
+// Cache-Control: max-age=604800
 def parseHeaderLine(line: CString): (String, String) =
   val keyBuffer = stackalloc[Byte](64)
   val valueBuffer = stackalloc[Byte](64)
@@ -64,21 +75,22 @@ def parseHeaderLine(line: CString): (String, String) =
 
   val scanResult = stdio.sscanf(line, c"%s %s\n", keyBuffer, valueBuffer)
   if scanResult < 2 then throw Exception("bad header line")
-  else (fromCString(keyBuffer), fromCString(valueBuffer))
+  else (fromCString(keyBuffer), fromCString(valueBuffer)) // Scala strings
 
 def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
-  val lineBuffer = stdlib.malloc(4096) // 0.5
+  val lineBuffer = stdlib.malloc(4096) // big enough, will be reused // 0.5
   println("reading status line?")
 
+  // read status line. fgets reads until newline.
   var readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
-  val code = parseStatusLine(lineBuffer)
-  var headers = collection.mutable.Map[String, String]()
+  val code = parseStatusLine(lineBuffer) // 200
 
+  var headers = MMap[String, String]()
   println("reading first response header")
-  readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
+  readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor) // reuse lineBuffer
   var lineLength = string.strlen(lineBuffer)
 
-  while lineLength.toInt > 2 do
+  while lineLength.toInt > 2 do // "\n\n" has length 2, so keep reading until empty line.
     val (k, v) = parseHeaderLine(lineBuffer)
     println(s"${(k, v)}")
     headers(k) = v

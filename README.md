@@ -72,12 +72,11 @@ val by_count = new CFuncPtr2[Ptr[Byte],Ptr[Byte],Int] {
 We can no longer do this, as these classes are declared `final`. We must use the companion object's `fromScalaFunction[...]` method instead (which is nicer, since we don't have to remember that we have to implement `def apply`):
 
 ```scala
-val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int](
+val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
   (p1: Ptr[Byte], p2: Ptr[Byte]) =>
     val ngramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
     val ngramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
     ngramPtr2._2 - ngramPtr1._2
- )
 ```
 
 ### String copying and null-terminating
@@ -157,8 +156,7 @@ We could do that by providing the given instance... but instead we fall back on 
 
 ```scala
 @main
-def nativePipeTwo(args: String*): Unit =
-  ???
+def nativePipeTwo(args: String*): Unit = ???
 ```
 
 ### Unable to reliably reproduce segmentation faults
