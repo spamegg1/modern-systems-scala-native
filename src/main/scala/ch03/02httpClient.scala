@@ -10,6 +10,7 @@ import scalanative.libc.{stdio, stdlib, string, errno}
 import stdio.{FILE, fgets, fclose, fflush}
 
 import collection.mutable.{Map => MMap}
+import scala.scalanative.unsigned.USize
 
 // These are Scala strings, they will be converted to C-strings later.
 case class HttpRequest(
@@ -26,39 +27,34 @@ case class HttpResponse(
 
 // Example HTTP request line: GET /index.html HTTP/1.1
 def writeRequestLine(
-    socketFileDescriptor: Ptr[FILE], // socket fd comes from establishing a connection
+    socketFileDesc: Ptr[FILE], // socket fd comes from establishing a connection
     method: CString, // GET, POST, PUT, etc. but as a CString
     uri: CString // e.g. www.pragprog.com, but as a CString
 ): Unit = // \r\n is needed for carriage return, specified by HTTP
-  stdio.fprintf(socketFileDescriptor, c"%s %s %s\r\n", method, uri, c"HTTP/1.1")
+  stdio.fprintf(socketFileDesc, c"%s %s %s\r\n", method, uri, c"HTTP/1.1")
 
 // write ONE header. This will be for-looped for all headers.
 // Example header: Content-Type: text/html; charset=UTF-8
-def writeHeader(socketFileDescriptor: Ptr[FILE], key: CString, value: CString): Unit =
-  stdio.fprintf(socketFileDescriptor, c"%s: %s\r\n", key, value)
+def writeHeader(socketFileDesc: Ptr[FILE], key: CString, value: CString): Unit =
+  stdio.fprintf(socketFileDesc, c"%s: %s\r\n", key, value)
 
-def writeBody(socketFileDescriptor: Ptr[FILE], body: CString): Unit =
-  stdio.fputs(body, socketFileDescriptor) // put the whole thing, no need to format.
+def writeBody(socketFileDesc: Ptr[FILE], body: CString): Unit =
+  stdio.fputs(body, socketFileDesc) // put the whole thing, no need to format.
 
 // write the request line, all the headers, and the request body.
-def writeRequest(socketFileDescriptor: Ptr[FILE], request: HttpRequest): Unit =
-  Zone: // implicit z => // 0.5
-    writeRequestLine(
-      socketFileDescriptor,
-      toCString(request.method), // requires Zone
-      toCString(request.uri) // requires Zone
-    )
+def writeRequest(socketFileDesc: Ptr[FILE], request: HttpRequest): Unit = Zone: // 0.5
+  writeRequestLine(socketFileDesc, toCString(request.method), toCString(request.uri))
 
-    for (key, value) <- request.headers
-    do writeHeader(socketFileDescriptor, toCString(key), toCString(value)) // require Zone
+  for (key, value) <- request.headers // write all headers
+  do writeHeader(socketFileDesc, toCString(key), toCString(value)) // require Zone
 
-    stdio.fputs(c"\n", socketFileDescriptor) // after headers, there is 1 empty line.
-    writeBody(socketFileDescriptor, toCString(request.body)) // requires Zone
+  stdio.fputs(c"\n", socketFileDesc) // after headers, there is 1 empty line.
+  writeBody(socketFileDesc, toCString(request.body)) // toCString requires Zone
 
 // Reading the response.
 // Example status line: HTTP/1.1 200 OK. Return the status code (200).
 def parseStatusLine(line: CString): Int =
-  println("parsing status")
+  println("parsing status") // there should be 3 items.
   val protocolPtr = stackalloc[Byte](64) // e.g. HTTP/1.1
   val codePtr = stackalloc[Int](1) // e.g. 200
   val descPtr = stackalloc[Byte](128) // e.g. OK
@@ -77,52 +73,49 @@ def parseHeaderLine(line: CString): (String, String) =
   if scanResult < 2 then throw Exception("bad header line")
   else (fromCString(keyBuffer), fromCString(valueBuffer)) // Scala strings
 
-def readResponse(socketFileDescriptor: Ptr[FILE]): HttpResponse =
+def readResponse(socketFileDesc: Ptr[FILE]): HttpResponse =
   val lineBuffer = stdlib.malloc(4096) // big enough, will be reused // 0.5
   println("reading status line?")
 
   // read status line. fgets reads until newline.
-  var readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
-  val code = parseStatusLine(lineBuffer) // 200
+  var readResult = stdio.fgets(lineBuffer, 4096, socketFileDesc)
+  val code = parseStatusLine(lineBuffer) // e.g. 200
 
-  var headers = MMap[String, String]()
+  var headers = MMap[String, String]() // e.g. "Cache-Control" -> "max-value=604800"
+
+  // This is a do-while pattern. The first one is read separately from loop.
   println("reading first response header")
-  readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor) // reuse lineBuffer
-  var lineLength = string.strlen(lineBuffer)
+  readResult = stdio.fgets(lineBuffer, 4096, socketFileDesc) // reuse lineBuffer
+  var lineLength = string.strlen(lineBuffer) // to check for empty line.
 
-  while lineLength.toInt > 2 do // "\n\n" has length 2, so keep reading until empty line.
+  while lineLength.toInt > 2 do // keep reading headers until empty line.
     val (k, v) = parseHeaderLine(lineBuffer)
-    println(s"${(k, v)}")
-    headers(k) = v
-
+    println(s"${(k, v)}") // the header
+    headers(k) = v // add it to our map
     println("reading header")
-    readResult = stdio.fgets(lineBuffer, 4096, socketFileDescriptor)
-    lineLength = string.strlen(lineBuffer)
+    readResult = stdio.fgets(lineBuffer, 4096, socketFileDesc) // reuse lineBuffer
+    lineLength = string.strlen(lineBuffer) // update to see if it's empty line.
 
-  val contentLength =
+  val contentLength: Int =
     if headers.contains("Content-Length:") then
       println("saw content-length")
       headers("Content-Length:").toInt
-    else 65536 - 1
+    else 65536 - 1 // room for null terminator
 
-  val bodyBuffer = stdlib.malloc(contentLength + 1) // 0.5
+  // content length determines size of body.
+  val bodyBuffer = stdlib.malloc(contentLength + 1) // add null terminator // 0.5
   val bodyReadResult =
-    stdio.fread(
-      bodyBuffer,
-      1.toUSize, // 0.5
-      contentLength.toUSize,
-      socketFileDescriptor
-    )
+    stdio.fread(bodyBuffer, 1.toUSize, contentLength.toUSize, socketFileDesc) // 0.5
 
-  val bodyLength = string.strlen(bodyBuffer)
-  if bodyLength.toULong != contentLength.toULong then
+  val bodyLength: USize = string.strlen(bodyBuffer)
+  if bodyLength != contentLength then // 0.5, we can now compare USize/CSize with Int!
     println(s"Warning: saw ${bodyLength} bytes, but expected ${contentLength}")
 
-  HttpResponse(code, headers, fromCString(bodyBuffer))
+  HttpResponse(code, headers, fromCString(bodyBuffer)) // all done!
 
-def makeConnection(address: CString, port: CString): Int =
+def makeConnection(address: CString, port: CString): Int = // This is like before, as TCP
   val hints = stackalloc[addrinfo](1)
-  string.memset(hints.asInstanceOf[Ptr[Byte]], 0, sizeof[addrinfo])
+  string.memset[addrinfo](hints, 0, sizeof[addrinfo])
   hints.ai_family = AF_UNSPEC
   hints.ai_socktype = SOCK_STREAM
 
@@ -163,51 +156,33 @@ def makeConnection(address: CString, port: CString): Int =
 
     sock
 
+//  e.g.             1234       www.example.com     /
 def handleConnection(sock: Int, host: String, path: String): Unit =
-  val socketFileDescriptor = util.fdopen(sock, c"r+")
+  val socketFileDesc: Ptr[FILE] = util.fdopen(sock, c"r+") // convert socket to FILE
   val headers = Map("Host" -> host)
-  val req = HttpRequest("GET", path, headers, "")
+  val request = HttpRequest("GET", path, headers, "") // request has empty body
 
-  writeRequest(socketFileDescriptor, req)
+  writeRequest(socketFileDesc, request) // write http request data on socketFd
   println("wrote request")
-  fflush(socketFileDescriptor)
+  fflush(socketFileDesc) // fflush writes all the data to the output stream.
 
-  val resp = readResponse(socketFileDescriptor)
-  println(s"got Response: ${resp}")
-  fclose(socketFileDescriptor)
+  val response = readResponse(socketFileDesc) // response comes from same socketFd
+  println(s"got Response: ${response}")
+  fclose(socketFileDesc) // don't forget to close file descriptor!
 
-// run it in two Terminal windows with:
-// nc -l -v 127.0.0.1 8081
-// Listening on localhost 8081
-// Connection received on localhost 58200
-// GET / HTTP/1.1
-// Host: 127.0.0.1
-// ./target/scala-3.2.2/scala-native-out 127.0.0.1 8081 /
-// looking up address: 127.0.0.1 port: 8081
-// about to perform lookup
-// lookup returned 0
-// got addrinfo: flags 2, family 0, socktype 1, protocol 6
-// creating socket
-// socket returned fd 3
-// connecting
-// connect returned 0
-// wrote request
-// reading status line?
-// also use with:
-// ./target/scala-3.2.2/scala-native-out www.example.com 80 /
 @main
 def httpClient(args: String*): Unit =
-  if args.length != 3 then
+  if args.length != 3 then // args = www.example.com 80 /
     println(s"${args.length} {args}")
     println("Usage: ./tcp_test [address] [port] [path]")
 
   Zone: // implicit z => // 0.5
-    val (address, host) = (toCString(args(0)), args(0))
-    val (port, path) = (toCString(args(1)), args(2))
-    stdio.printf(c"looking up address: %s port: %s\n", address, port)
+    val (address, host) = (toCString(args(0)), args(0)) // requires Zone
+    val (port, path) = (toCString(args(1)), args(2)) // requires Zone
+    stdio.printf(c"looking up address: %s port: %s\n", address, port) // no println (Zone)
 
-    val sock = makeConnection(address, port)
-    handleConnection(sock, host, path)
+    val sock = makeConnection(address, port) // establish connection
+    handleConnection(sock, host, path) // do request / response on connection
 
 @extern
 object util:

@@ -12,7 +12,7 @@ import stdio.{FILE, fgets, fclose}
 def makeConnection(address: CString, port: CString): Int =
   // provide hints to getaddrinfo. Zero all the addrinfo fields, only populate a few.
   val hints: Ptr[addrinfo] = stackalloc[addrinfo](1)
-  string.memset(hints.asInstanceOf[Ptr[Byte]], 0, sizeof[addrinfo]) // dont give bad hints
+  string.memset[addrinfo](hints, 0, sizeof[addrinfo]) // dont give bad hints
   hints.ai_family = AF_UNSPEC // unspecified, could be ipv4 or ipv6
   hints.ai_socktype = SOCK_STREAM // stream for TCP, dgram for UDP
 
