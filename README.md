@@ -27,9 +27,49 @@ You can compile and run `@main` methods in VS Code with Metals by clicking the r
 
 I noticed many things have changed.
 
+### Unused lines of code in the book (probably errors)
+
+There are lines of code in the zip file provided on [the book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
+
+For example, in Chapter 4's `nativeFork` there is
+
+```scala
+for (j <- (0 to count)) {
+}
+```
+
+which does nothing. There is also
+
+```scala
+val pid = unistd.getpid()
+```
+
+which is never used. There are lots of other examples. There are also many unused / unnecessary imports in the files. Whenever I ran into these, I removed them.
+
+There is also a lot of code duplication, I suppose, to make each individual file "runnable" by itself. I removed redundant code by adding package declarations, then importing the duplicated code from other files instead.
+
+For example, Chapter 4's `badExec.scala` duplicates a lot of code from `nativeFork.scala`. I solved it by adding package declarations:
+
+```scala
+// this is nativeFork.scala
+package ch04.nativeFork
+// ...
+```
+
+```scala
+// this is badExec.scala
+package ch04.badExec
+
+import ch04.nativeFork.runCommand
+// ...
+// then use runCommand in @main
+```
+
+There is a lot of this duplication in later chapters. I fixed them.
+
 ### `CSize / USize` instead of `Int`
 
-The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize / USize` are actually `ULong`, so we need `.toUSize` conversion. For this, we need to import:
+The book uses `Int`s for a lot of calculations such as string length, how much memory should be allocated, etc. But the current version of Scala Native is using `CSize` for these now. So the `Int`s have to be converted. `CSize / USize` are actually `ULong`, so we need `.toCSize`, or `.toUSize`, or `.toULong` conversion. For this, we need to import:
 
 ```scala
 import scalanative.unsigned.UnsignedRichLong
@@ -39,6 +79,13 @@ This also works:
 
 ```scala
 import scalanative.unsigned.UnsignedRichInt
+```
+
+Moreover, we are now [able to use direct comparison](https://github.com/scala-native/scala-native/pull/3584) between `CSize` / `USize` types and `Int`. For example:
+
+```scala
+// here strlen returns CSize, normally we would have to do 5.toULong
+if string.strlen(myCString) != 5 then ???
 ```
 
 ### `stackalloc` default argument with optional parentheses
