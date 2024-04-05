@@ -26,14 +26,17 @@ def nativeFork(args: String*): Unit =
 
 def doFork(task: Function0[Int]): Int =
   val pid = util.fork()
-  if pid > 0 then pid
+  if pid > 0 then
+    println(s"forked, got pid ${pid}")
+    pid
   else
+    println(s"in proc ${unistd.getpid()}")
     val res = task.apply()
     stdlib.exit(res)
     res
 
 def await(pid: Int): Int =
-  val status = stackalloc[Int]()
+  val status = stackalloc[Int](1)
   util.waitpid(pid, status, 0)
   val statusCode = !status
   if statusCode != 0 then throw Exception(s"Child process returned error $statusCode")
@@ -46,6 +49,7 @@ def doAndAwait(task: Function0[Int]): Int =
 def runCommand(args: Seq[String], env: Map[String, String] = Map.empty): Int =
   if args.size == 0 then throw Exception("bad arguments of length 0")
   Zone: // implicit z => // 0.5
+    println(s"proc ${unistd.getpid()}: running command ${args.head} with args ${args}")
     val fname = toCString(args.head)
     val argArray = makeStringArray(args) // take Scala strings, lower them to C level
     val envStrings = env.map((k, v) => s"$k=$v") // convert env pairs to execve format
@@ -62,6 +66,7 @@ def runCommand(args: Seq[String], env: Map[String, String] = Map.empty): Int =
 // Take Scala strings (args), turn them into a CString array, to be fed into execve.
 def makeStringArray(args: Seq[String]): Ptr[CString] =
   val count = args.size
+  val pid = unistd.getpid()
   val size = sizeof[Ptr[CString]] * count.toUSize + 1.toUSize // 1 extra for null
   val destArray = stdlib.malloc(size).asInstanceOf[Ptr[CString]]
 
@@ -92,7 +97,7 @@ def awaitAny(pids: Set[Int]): Set[Int] =
   val finished = util.waitpid(-1, status, 0)
 
   if running.contains(finished) then
-    val statusCode = !status
+    val statusCode = !status // TODO: checkStatus(status)
     if statusCode != 0 then throw Exception(s"Child process returned error $statusCode")
     else pids - finished
   else throw Exception(s"error: reaped process ${finished}, expected one of $pids")
@@ -102,7 +107,6 @@ def awaitAll(pids: Set[Int]): Unit =
   while running.nonEmpty do
     println(s"waiting for $running")
     running = awaitAny(running)
-
   println("Done!")
 
 // TODO
