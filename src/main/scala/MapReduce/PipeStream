@@ -21,12 +21,13 @@ case class PipeStream[T](inFd: Int, outFd: Int): // Should probably be Ptr[FILE]
     val outStream = makeStream[T]
     val buffer = malloc(1024.toULong)
     var partialResult = init
+
     while fgets(inFd, buffer, 1024) != null do
       val encoded = fromCString(buffer)
-      val item = encoded.decodeOption[T].map {
+      val item = encoded.decodeOption[T].map:
         case Success(t: T) => partialResult = accum(t,partialResult)
         case Failure       => ???
-      }
+
     val finalResult = partialResult
     finalResult
 

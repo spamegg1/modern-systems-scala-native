@@ -85,7 +85,8 @@ object Server:
       check_error(uv_read_start(client, allocCB, readCB), "uv_read_start")
     )
 
-  var router: RequestHandler = (_ => ???)
+  var router: RequestHandler = _ =>
+    HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
 
   def serve_http(port: Int, handler: RequestHandler): Unit =
     println(s"about to serve on port ${port}")

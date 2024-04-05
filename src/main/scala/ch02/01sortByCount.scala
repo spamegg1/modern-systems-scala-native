@@ -158,8 +158,8 @@ def sortByCount(args: String*): Unit =
 
   stdio.printf(c"done.\n")
 
-def parseLineNaive(fd: Ptr[stdio.FILE], array: Ptr[NGramData]): Unit =
-  ??? // TODO
+// def parseLineNaive(fd: Ptr[stdio.FILE], array: Ptr[NGramData]): Unit =
+//   ??? // TODO
 
 @extern
 object qsort:

@@ -52,7 +52,7 @@ def runCommand(args: Seq[String], env: Map[String, String] = Map.empty): Int =
       stdio.printf(c"error: %d %d\n", err, string.strerror(err))
       throw Exception(s"bad execve: returned $r")
   }
-  ??? // This will never be reached.
+  0 // This will never be reached.
 
 def stringSeqToStringArray(args: Seq[String]): Ptr[CString] =
   val pid = unistd.getpid()
@@ -100,8 +100,8 @@ def awaitAll(pids: Set[Int]): Unit =
     running = awaitAny(running)
   println("Done!")
 
-def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
-def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
+// def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
+// def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
 
 def runTwoAndPipe(input: Int, output: Int, proc1: Seq[String], proc2: Seq[String]): Int =
   val pipeArray = stackalloc[Int](2)

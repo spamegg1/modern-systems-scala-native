@@ -99,8 +99,8 @@ def awaitAll(pids: Set[Int]): Unit =
     running = awaitAny(running)
   println("- Done!")
 
-def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ??? // TODO
-def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ??? // TODO
+// def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ??? // TODO
+// def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ??? // TODO
 
 def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
   val pipeArray = stackalloc[Int](2 * (procs.size - 1))

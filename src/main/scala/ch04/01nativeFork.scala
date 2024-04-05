@@ -106,10 +106,10 @@ def awaitAll(pids: Set[Int]): Unit =
   println("Done!")
 
 // TODO
-def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
+// def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
 
 // TODO
-def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
+// def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
 
 @extern // Again, we can look up these in man pages. Some are syscalls, some not.
 object util:

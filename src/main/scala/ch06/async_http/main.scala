@@ -17,7 +17,8 @@ def asyncHttp(args: String): Unit =
     request => HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
   )
 
-var router: RequestHandler = _ => ???
+var router: RequestHandler = _ =>
+  HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
 
 def serveHttp(port: Int, handler: RequestHandler): Unit =
   println(s"about to serve on port ${port}")
