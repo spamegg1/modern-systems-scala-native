@@ -1,16 +1,14 @@
 package ch03.http
 
-import scalanative.posix.sys.socket.{AF_UNSPEC, SOCK_STREAM, socket, sockaddr, connect}
-import scalanative.posix.netdb.{addrinfo, getaddrinfo}
-import scalanative.posix.netdbOps.addrinfoOps // ai_family, ai_socktype
-import scalanative.unsigned.{UnsignedRichInt, USize}
 import scalanative.unsafe.{Zone, Ptr, CInt, CString, toCString, fromCString, CQuote}
-import scalanative.unsafe.{stackalloc, sizeof, extern}
-import scalanative.libc.{stdio, stdlib, string, errno}
-import stdio.{FILE, fgets, fclose, fflush}
+import scalanative.unsafe.{stackalloc, extern}
+import scalanative.unsigned.{USize, UnsignedRichInt}
+import scalanative.libc.{stdio, stdlib, string}
+import stdio.{FILE, fclose}
 
 import collection.mutable.{Map => MMap}
-import ch03.tcp.{util, makeConnection}
+import ch03.common
+import common.util
 
 // These are Scala strings, they will be converted to C-strings later.
 case class HttpRequest(
@@ -121,7 +119,7 @@ def handleConnection(sock: Int, host: String, path: String): Unit =
 
   writeRequest(socketFileDesc, request) // write http request data on socketFd
   println("wrote request")
-  fflush(socketFileDesc) // fflush writes all the data to the output stream.
+  stdio.fflush(socketFileDesc) // fflush writes all the data to the output stream.
 
   val response = readResponse(socketFileDesc) // response comes from same socketFd
   println(s"got Response: ${response}")
@@ -138,5 +136,5 @@ def httpClient(args: String*): Unit =
     val (port, path) = (toCString(args(1)), args(2)) // requires Zone
     stdio.printf(c"looking up address: %s port: %s\n", address, port) // no println (Zone)
 
-    val sock = makeConnection(address, port) // establish connection
+    val sock = common.makeConnection(address, port) // establish connection
     handleConnection(sock, host, path) // do request / response on connection
