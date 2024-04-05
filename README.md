@@ -29,7 +29,7 @@ I noticed many things have changed.
 
 ### Unused lines of code in the book (probably errors)
 
-There are lines of code in the zip file provided on [the book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
+There are lines of code in the zip file provided on [the book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip). Some of these are also printed in the book!
 
 For example, in Chapter 4's `nativeFork` there is
 
@@ -48,11 +48,18 @@ which is never used. There are lots of other examples. There are also many unuse
 
 There is also a lot of code duplication, I suppose, to make each individual file "runnable" by itself. I removed redundant code by adding package declarations, then importing the duplicated code from other files instead.
 
-For example, Chapter 4's `badExec.scala` duplicates a lot of code from `nativeFork.scala`. I solved it by adding package declarations:
+For example, Chapter 4's `badExec.scala` duplicates a lot of code from `nativeFork.scala`. I solved it by separating duplicate code into a file, and adding package declarations:
+
+```scala
+// this is common.scala
+package ch04.common
+```
 
 ```scala
 // this is nativeFork.scala
 package ch04.nativeFork
+
+import ch04.common
 // ...
 ```
 
@@ -60,12 +67,12 @@ package ch04.nativeFork
 // this is badExec.scala
 package ch04.badExec
 
-import ch04.nativeFork.runCommand
+import ch04.common
 // ...
-// then use runCommand in @main
+// then use common.runCommand in @main
 ```
 
-There is a lot of this duplication in later chapters. I fixed them.
+There is a lot of this duplication in later chapters. I'll fix them.
 
 ### `CSize / USize` instead of `Int`
 

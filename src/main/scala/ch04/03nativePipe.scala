@@ -1,6 +1,6 @@
 package ch04.nativePipe
 
-import scalanative.unsafe.{stackalloc}
+import scalanative.unsafe.stackalloc
 import scalanative.posix.unistd // getpid
 import collection.mutable.ArrayBuffer
 import ch04.common

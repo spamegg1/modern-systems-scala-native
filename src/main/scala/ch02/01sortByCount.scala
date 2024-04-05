@@ -1,43 +1,10 @@
 package ch02.sortByCount
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
-import scalanative.unsafe.{Ptr, sizeof, CString, CStruct4, CFuncPtr2, CQuote, extern}
+import scalanative.unsafe.{Ptr, CQuote, CSize, sizeof}
 import scalanative.libc.{stdio, stdlib, string}
-import scala.scalanative.unsigned.{ULong, USize}
-import scalanative.unsafe.CSize
-
-// First, data definitions.
-type NGramData = CStruct4[CString, Int, Int, Int] // 8 + 4 + 4 + 4 = 20 bytes
-
-// We need an array of NGramData's.
-final case class WrappedArray[T]( // here T = NGramData
-    var data: Ptr[T], // pointer to the start of an array of multiple NGramData structs.
-    var used: Int, // how many structs are currently used
-    var capacity: Int // how many structs it can hold
-)
-
-// allocate an array of uninitialized NGramData structs. size = how many NGrams we want.
-def makeWrappedArray(size: Int): WrappedArray[NGramData] =
-  val data: Ptr[NGramData] = stdlib
-    .malloc(size.toUSize * sizeof[NGramData]) // 0.5: use .toUSize
-    .asInstanceOf[Ptr[NGramData]]
-  WrappedArray[NGramData](data, 0, size) // when we free this, we will free data only.
-
-// Grow an array's capacity by given size. realloc copies existing data if necessary.
-def growWrappedArray(array: WrappedArray[NGramData], size: Int): Unit =
-  val newCapacity: Int = array.capacity + size
-  val newSize: USize = newCapacity.toUSize * sizeof[NGramData] // 0.5: use .toUSize
-  val newData: Ptr[Byte] = stdlib.realloc(array.data.asInstanceOf[Ptr[Byte]], newSize)
-  array.data = newData.asInstanceOf[Ptr[NGramData]] // update in-place
-  array.capacity = newCapacity // update in-place
-
-// Here, array = data in a WrappedArray. Long sequence of NGramData's.
-def freeArray(array: Ptr[NGramData], size: Int): Unit =
-  // First, free all the strings that structs are pointing at.
-  for i <- 0 until size do
-    val item: Ptr[NGramData] = array + i // 0.5
-    stdlib.free(item._1) // string is the first field of the struct.
-  stdlib.free(array.asInstanceOf[Ptr[Byte]]) // now free the structs themselves.
+import ch02.common
+import common.{qsort, NGramData, byCount}
 
 // this temporary space is used to read the string in each line of the file.
 val tempWord: Ptr[Byte] = stdlib.malloc(1024) // 0.5
@@ -67,26 +34,6 @@ def parseLine(lineBuffer: Ptr[Byte], data: Ptr[NGramData]): Unit =
   string.strncpy(newString, tempWord, wordLength + 1.toUSize) // 0.5
   data._1 = newString // update in-place, initialization of struct complete.
 
-// Two comparison functions. This is a bit inefficient.
-val byCountNaive = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
-  (p1: Ptr[Byte], p2: Ptr[Byte]) =>
-    val nGramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
-    val nGramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
-    val count1 = nGramPtr1._3 // count is the third field, book is wrong, it has ._2
-    val count2 = nGramPtr2._3
-    if count1 > count2 then -1 // these are a bit inefficient
-    else if count1 == count2 then 0
-    else 1
-
-// This one is a bit more efficient, returns neg, 0, pos.
-val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
-  (p1: Ptr[Byte], p2: Ptr[Byte]) =>
-    val nGramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
-    val nGramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
-    val count1 = nGramPtr1._3
-    val count2 = nGramPtr2._3
-    count2 - count1
-
 // MAIN
 // reached EOF after 86618505 lines in 1358520 ms
 // sorting done in 2764701 ms
@@ -115,12 +62,12 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
 def sortByCount(args: String*): Unit =
   val blockSize = 1048576 // 2^20 NGramData items = 2^20 * 20 bytes = 20 MB
   val lineBuffer = stdlib.malloc(1024) // 0.5
-  var array = makeWrappedArray(blockSize)
+  var array = common.makeWrappedArray(blockSize)
   val readStart = System.currentTimeMillis()
 
   // pipe file into stdin, then read line by line (fgets respects newlines)
   while stdio.fgets(lineBuffer, 1024, stdio.stdin) != null do // reads <= 1024 - 1 chars
-    if array.used >= array.capacity then growWrappedArray(array, blockSize)
+    if array.used >= array.capacity then common.growWrappedArray(array, blockSize)
     parseLine(lineBuffer, array.data + array.used) // parse CURRENT line
     array.used += 1
 
@@ -160,12 +107,3 @@ def sortByCount(args: String*): Unit =
 
 // def parseLineNaive(fd: Ptr[stdio.FILE], array: Ptr[NGramData]): Unit =
 //   ??? // TODO
-
-@extern
-object qsort:
-  def qsort(
-      data: Ptr[Byte],
-      num: Int,
-      size: Long,
-      comparator: CFuncPtr2[Ptr[Byte], Ptr[Byte], Int]
-  ): Unit = extern
