@@ -37,4 +37,4 @@ metals.sbt
 /.worksheet/
 
 # Misc.
-.png
+*.c

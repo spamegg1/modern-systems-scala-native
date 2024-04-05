@@ -2,7 +2,6 @@ package ch01.test
 
 import scalanative.unsafe.{CQuote, CString, CSize, CChar, Ptr, sizeof}
 import scalanative.libc.{stdio, string}
-import scala.scalanative.unsigned.UnsignedRichInt
 
 @main
 def cStringExperiment2: Unit =
