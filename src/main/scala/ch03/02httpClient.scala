@@ -3,14 +3,14 @@ package ch03.http
 import scalanative.posix.sys.socket.{AF_UNSPEC, SOCK_STREAM, socket, sockaddr, connect}
 import scalanative.posix.netdb.{addrinfo, getaddrinfo}
 import scalanative.posix.netdbOps.addrinfoOps // ai_family, ai_socktype
-import scalanative.unsigned.UnsignedRichInt
+import scalanative.unsigned.{UnsignedRichInt, USize}
 import scalanative.unsafe.{Zone, Ptr, CInt, CString, toCString, fromCString, CQuote}
 import scalanative.unsafe.{stackalloc, sizeof, extern}
 import scalanative.libc.{stdio, stdlib, string, errno}
 import stdio.{FILE, fgets, fclose, fflush}
 
 import collection.mutable.{Map => MMap}
-import scala.scalanative.unsigned.USize
+import ch03.tcp.{util, makeConnection}
 
 // These are Scala strings, they will be converted to C-strings later.
 case class HttpRequest(
@@ -113,49 +113,6 @@ def readResponse(socketFileDesc: Ptr[FILE]): HttpResponse =
 
   HttpResponse(code, headers, fromCString(bodyBuffer)) // all done!
 
-def makeConnection(address: CString, port: CString): Int = // This is like before, as TCP
-  val hints = stackalloc[addrinfo](1)
-  string.memset[addrinfo](hints, 0, sizeof[addrinfo])
-  hints.ai_family = AF_UNSPEC
-  hints.ai_socktype = SOCK_STREAM
-
-  val addrInfoPtr: Ptr[Ptr[addrinfo]] = stackalloc[Ptr[addrinfo]](1)
-  println("about to perform lookup")
-
-  val lookupResult = getaddrinfo(address, port, hints, addrInfoPtr)
-  println(s"lookup returned ${lookupResult}")
-
-  if lookupResult != 0 then
-    val errString = util.gai_strerror(lookupResult)
-    stdio.printf(c"errno: %d %s\n", lookupResult, errString)
-    throw Exception("no address found")
-  else
-    val addrInfo = !addrInfoPtr
-    stdio.printf(
-      c"got addrinfo: flags %d, family %d, socktype %d, protocol %d\n",
-      addrInfo.ai_family,
-      addrInfo.ai_flags,
-      addrInfo.ai_socktype,
-      addrInfo.ai_protocol
-    )
-
-    println("creating socket")
-    val sock = socket(addrInfo.ai_family, addrInfo.ai_socktype, addrInfo.ai_protocol)
-    println(s"socket returned fd $sock")
-    if sock < 0 then throw Exception("error in creating socket")
-
-    println("connecting")
-    val connectResult = connect(sock, addrInfo.ai_addr, addrInfo.ai_addrlen)
-    println(s"connect returned $connectResult")
-
-    if connectResult != 0 then
-      val err = errno.errno
-      val errString = string.strerror(err)
-      stdio.printf(c"errno: %d %s\n", err, errString)
-      throw Exception("connection failed")
-
-    sock
-
 //  e.g.             1234       www.example.com     /
 def handleConnection(sock: Int, host: String, path: String): Unit =
   val socketFileDesc: Ptr[FILE] = util.fdopen(sock, c"r+") // convert socket to FILE
@@ -183,16 +140,3 @@ def httpClient(args: String*): Unit =
 
     val sock = makeConnection(address, port) // establish connection
     handleConnection(sock, host, path) // do request / response on connection
-
-@extern
-object util:
-  def getaddrinfo(
-      address: CString, // hostname to lookup, e.g. "www.parprog.com"
-      port: CString, // port number, e.g. "80"
-      hints: Ptr[addrinfo], // partially populated addrinfo struct object
-      res: Ptr[Ptr[addrinfo]] // to hold the result
-  ): Int = extern
-  def socket(family: Int, socktype: Int, protocol: Int): Int = extern
-  def connect(sock: Int, addrInfo: Ptr[sockaddr], addrLen: CInt): Int = extern
-  def gai_strerror(code: Int): CString = extern
-  def fdopen(fd: Int, mode: CString): Ptr[FILE] = extern
