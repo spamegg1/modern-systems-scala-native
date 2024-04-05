@@ -1,11 +1,11 @@
 package ch04.badExec
 
-import ch04.nativeFork.runCommand // removes a lot of duplicated code!
+import ch04.common
 
 @main
 def badExec(args: String*): Unit =
   println("about to exec")
-  runCommand(Seq("/bin/ls", "-l", "."))
+  common.runCommand(Seq("/bin/ls", "-l", "."))
   println("exec returned, we're done!")
 
 // It is executed inside the .scala-build folder (does not see hidden .bloop folder).

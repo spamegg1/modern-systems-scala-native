@@ -1,12 +1,10 @@
 package ch04.nativePipeTwo
 
-import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsafe.*
-import scalanative.libc.*
-import scalanative.posix.unistd
-
-import ch04.nativeFork.{Command, doFork, await, makeStringArray, runCommand, doAndAwait}
-import ch04.nativeFork.{util, runOneAtATime, awaitAny, awaitAll, runSimultaneously}
+import scalanative.unsafe.{stackalloc, CQuote}
+import scalanative.posix.unistd // getpid
+import scalanative.libc.{stdio}
+import ch04.common
+import common.util
 
 @main
 def nativePipeTwo(args: String*): Unit =
@@ -24,7 +22,7 @@ def runTwoAndPipe(input: Int, output: Int, proc1: Seq[String], proc2: Seq[String
   val outputPipe = pipeArray(1)
   val inputPipe = pipeArray(0)
 
-  val proc1Pid = doFork: () =>
+  val proc1Pid = common.doFork: () =>
     if input != 0 then
       println(s"proc ${unistd.getpid()}: about to dup ${input} to stdin")
       util.dup2(input, 0)
@@ -32,16 +30,16 @@ def runTwoAndPipe(input: Int, output: Int, proc1: Seq[String], proc2: Seq[String
     println(s"proc 1 about to dup ${outputPipe} to stdout")
     util.dup2(outputPipe, 1)
     stdio.printf(c"process %d about to runCommand\n", unistd.getpid())
-    runCommand(proc1)
+    common.runCommand(proc1)
 
-  val proc2Pid = doFork: () =>
+  val proc2Pid = common.doFork: () =>
     println(s"proc ${unistd.getpid()}: about to dup")
     util.dup2(inputPipe, 0)
     if output != 1 then util.dup2(output, 1)
 
     unistd.close(outputPipe)
     stdio.printf(c"process %d about to runCommand\n", unistd.getpid())
-    runCommand(proc2)
+    common.runCommand(proc2)
 
   unistd.close(input)
   unistd.close(outputPipe)
