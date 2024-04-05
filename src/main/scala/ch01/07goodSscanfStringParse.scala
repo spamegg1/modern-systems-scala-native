@@ -9,7 +9,7 @@ def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
   val maxWordLength = bufferSize - 1
 
   val scanResult = stdio.sscanf(line, c"%1023s\n", tempBuffer)
-  if scanResult < 1 then throw new Exception(s"bad scanf result: $scanResult")
+  if scanResult < 1 then throw Exception(s"bad scanf result: $scanResult")
 
   val wordLength: CSize = string.strlen(tempBuffer)
   if wordLength.toInt >= maxWordLength then // disallow segfault

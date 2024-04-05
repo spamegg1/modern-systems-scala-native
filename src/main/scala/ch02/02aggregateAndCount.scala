@@ -1,35 +1,12 @@
 package ch02.aggregateAndCount
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
-import scalanative.libc.{stdio, stdlib, string}
+import scalanative.libc.{stdio, stdlib, string}, stdio.FILE
 import scalanative.unsafe.{Ptr, stackalloc, sizeof, CString, CStruct4, CFuncPtr2, CQuote}
 import scalanative.unsafe.extern
 
-// These parts are the same as 01sortByCount.
-final case class WrappedArray[T](var data: Ptr[T], var used: Int, var capacity: Int)
-
-type NGramData = CStruct4[CString, Int, Int, Int] // same
-
-def makeWrappedArray(size: Int): WrappedArray[NGramData] = // same
-  val data = stdlib
-    .malloc(size.toUSize * sizeof[NGramData]) // 0.5
-    .asInstanceOf[Ptr[NGramData]]
-  WrappedArray[NGramData](data, 0, size)
-
-def growWrappedArray(array: WrappedArray[NGramData], size: Int): Unit = // same
-  val newCapacity = array.capacity + size
-  val newSize = newCapacity.toUSize * sizeof[NGramData]
-  val newData = stdlib.realloc(array.data.asInstanceOf[Ptr[Byte]], newSize)
-  array.data = newData.asInstanceOf[Ptr[NGramData]]
-  array.capacity = newCapacity
-
-val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]: // same
-  (p1: Ptr[Byte], p2: Ptr[Byte]) =>
-    val ngramPtr1 = p1.asInstanceOf[Ptr[NGramData]]
-    val ngramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
-    val count1 = ngramPtr1._2
-    val count2 = ngramPtr2._2
-    count2 - count1
+import ch02.sortByCount.{NGramData, WrappedArray, makeWrappedArray, growWrappedArray}
+import ch02.sortByCount.{byCount, qsort}
 
 val lineBuffer = stdlib.malloc(1024) // 0.5
 val tempWordBuffer = stdlib.malloc(1024)
@@ -63,7 +40,7 @@ def aggregateAndCount(args: String*): Unit =
   println(c"done")
 
 // Mostly the same, except reading and comparing one line at a time to minimize memory.
-def readAllLines(fd: Ptr[stdio.FILE], array: WrappedArray[NGramData]): Long =
+def readAllLines(fd: Ptr[FILE], array: WrappedArray[NGramData]): Long =
   var linesRead = 0L
 
   while stdio.fgets(lineBuffer, 1024, fd) != null do
@@ -128,11 +105,26 @@ def addNewItem(tempItem: Ptr[NGramData], nextItem: Ptr[NGramData]): Unit =
 def accumulateItem(tempItem: Ptr[NGramData], prevItem: Ptr[NGramData]): Unit =
   prevItem._2 = prevItem._2 + tempItem._2
 
-@extern
-object qsort:
-  def qsort(
-      data: Ptr[Byte],
-      num: Int,
-      size: Long,
-      comparator: CFuncPtr2[Ptr[Byte], Ptr[Byte], Int]
-  ): Unit = extern
+// done. read 200 lines, 200 unique words. 1 ms
+// sorting done in 0 ms
+// word n: version 921
+// word n: version 921
+// word n: version 921
+// word n: version 921
+// word n: version 921
+// word n: version 921
+// word n: version 921
+// word n: version 921
+// word n: cable 274
+// word n: cable 274
+// word n: cable 274
+// word n: cable 274
+// word n: cable 274
+// word n: cable 274
+// word n: cable 274
+// word n: cable 274
+// word n: windows 444
+// word n: windows 444
+// word n: windows 444
+// word n: windows 444
+// Ptr@560694d6b091

@@ -4,9 +4,8 @@ import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.{CQuote, CString, CSize, Ptr, CChar, sizeof}
 import scalanative.libc.{string, stdio, stdlib}
 
-// Testing how malloc and strncpy work, how to handle null termination
-
-@main // remember to comment / uncomment!
+// Testing how malloc, strncpy work, how to handle null termination
+@main
 def testNullTermination: Unit =
   val cString: CString = c"hello" // uses CQuote
   val strLen: CSize = string.strlen(cString) // 5
@@ -19,29 +18,24 @@ def testNullTermination: Unit =
   buffer(strLen) = 0.toByte // if we want to be super safe with \0
 
   for offset <- 0 until strLen.toInt + 1 do // let's check null-termination!
-    val chr: CChar = buffer(offset)
-    stdio.printf(
-      c"the character '%c' is %d bytes long and has binary value %d\n",
-      chr,
-      sizeof[CChar],
-      chr
-    )
+    val chr: CChar = buffer(offset) // pointer arithmetic = array lookup
+    stdio.printf(c"'%c' is %d bytes long, has binary value %d\n", chr, sizeof[CChar], chr)
 
-// the character 'h' is 1 bytes long and has binary value 104
-// the character 'e' is 1 bytes long and has binary value 101
-// the character 'l' is 1 bytes long and has binary value 108
-// the character 'l' is 1 bytes long and has binary value 108
-// the character 'o' is 1 bytes long and has binary value 111
-// the character '' is 1 bytes long and has binary value 0
+// 'h' is 1 bytes long, has binary value 104
+// 'e' is 1 bytes long, has binary value 101
+// 'l' is 1 bytes long, has binary value 108
+// 'l' is 1 bytes long, has binary value 108
+// 'o' is 1 bytes long, has binary value 111
+// '' is 1 bytes long, has binary value 0
 
 // If we uncomment buffer(strLen) = 123.toByte,
 // and we copy strLen instead of strLen + 1.toUSize, then it says:
-// the character 'h' is 1 bytes long and has binary value 104
-// the character 'e' is 1 bytes long and has binary value 101
-// the character 'l' is 1 bytes long and has binary value 108
-// the character 'l' is 1 bytes long and has binary value 108
-// the character 'o' is 1 bytes long and has binary value 111
-// the character '{' is 1 bytes long and has binary value 123
+// 'h' is 1 bytes long, has binary value 104
+// 'e' is 1 bytes long, has binary value 101
+// 'l' is 1 bytes long, has binary value 108
+// 'l' is 1 bytes long, has binary value 108
+// 'o' is 1 bytes long, has binary value 111
+// '{' is 1 bytes long, has binary value 123
 
-// I checked this program with valgrind, and it found 0 leaks / errors.
+// I checked this program with valgrind,, it found 0 leaks / errors.
 // The mystery is: how is my malloc-ed memory being freed?

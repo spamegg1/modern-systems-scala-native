@@ -14,17 +14,17 @@ def testingBadStuff: Unit =
   // 2. Dereferencing a null pointer, attempting to read its value
   // val ptr2: Ptr[Byte] = null
   // stdio.printf(c"attempting to dereference and read a null pointer!\n")
-  // stdio.printf(c"%d", !ptr2) // nativeLink OK, but Java NPE when ran.
+  // stdio.printf(c"%d", !ptr2) // compiles OK, but Java NPE when ran.
 
   // 3. Dereferencing a null pointer, attempting to update its value
   // val ptr3: Ptr[Byte] = null
   // stdio.printf(c"attempting to dereference and update a null pointer!\n")
-  // !ptr3 = 1.toByte // nativeLink OK, but Java NPE when ran.
+  // !ptr3 = 1.toByte // compiles OK, but Java NPE when ran.
 
   // 4. Dereferencing a null pointer without doing anything
   // val ptr4: Ptr[Byte] = null
   // stdio.printf(c"attempting to dereference a null pointer!\n")
-  // !ptr4 // nativeLink OK, but Java NPE when ran.
+  // !ptr4 // compiles OK, but Java NPE when ran.
 
   // 5. Buffer overflow
   // array index 20 is past the end of the array (which contains 12 elements)
@@ -54,4 +54,4 @@ def testingBadStuff: Unit =
   // val x = stdlib.malloc(1000)
   // stdlib.free(x) // without this, valgrind finds 1000 bytes "definitely lost"
 
-  stdio.printf(c"all the bad stuff finished.\n")
+  stdio.printf(c"all the bad stuff finished.\n") // \o/ !yay! \o/ !yay! \o/

@@ -7,5 +7,4 @@ import scalanative.libc.stdio
 @main
 def run: Unit =
   val str: Ptr[Byte] = c"hello"
-  stdio.printf(c"dereferencing: %c", !str)
-  // should print h but prints 0
+  stdio.printf(c"dereferencing: %c", !str) // should print h but prints 0

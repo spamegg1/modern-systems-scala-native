@@ -10,9 +10,9 @@ Updating the code in [Modern Systems Programming with Scala Native](https://prag
 So I...
 
 - changed the syntax to Scala 3 syntax:
-- removed all the optional braces,
+- removed all the optional braces, added the fewer braces syntax,
 - replaced `if (...) {...} else {...}` with `if ... then ... else ...` everywhere, using Python-style indentation,
-- removed the `return` keyword,
+- removed the `return` keyword, replaced `NonLocalReturns` usage with the new `util.boundary` and `boundary.break`,
 - changed all the `snake_case` names to `camelCase`,
 - got rid of unnecessary `main` object wrappings and used `@main` annotations instead,
 - and so on.
