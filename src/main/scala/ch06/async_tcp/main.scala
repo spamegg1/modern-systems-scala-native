@@ -4,12 +4,14 @@ import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.libc.*
 import stdlib.*
-import LibUV.*, LibUVConstants.*
+
+import ch06.common.LibUV.*
+import ch06.common.LibUVConstants.*
 
 type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
 
 @main
-def asyncTcp(args: String*): Unit =
+def asyncTcp: Unit =
   println("hello!")
   serveTcp(c"0.0.0.0", 8080, 0, 100, connectionCB)
   println("done?")
@@ -23,7 +25,7 @@ def serveTcp(
     backlog: Int,
     callback: ConnectionCB
 ): Unit =
-  val addr = stackalloc[Byte]()
+  val addr = stackalloc[Byte](1)
   val addrConvert = uv_ip4_addr(address, port, addr)
   println(s"uv_ip4_addr returned $addrConvert")
 
@@ -120,7 +122,7 @@ val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]:
     stdlib.free(writeReq.asInstanceOf[Ptr[Byte]])
 
 def shutdown(client: TCPHandle): Unit =
-  val shutdownReq = malloc(uv_req_size(UV_shutdownReq_T)).asInstanceOf[ShutdownReq]
+  val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
   !shutdownReq = client.asInstanceOf[Ptr[Byte]]
   checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
@@ -137,102 +139,3 @@ val closeCB = CFuncPtr1.fromScalaFunction[TCPHandle, Unit]: (client: TCPHandle) 
   stdlib.free(clientStatePtr._1)
   stdlib.free(clientStatePtr.asInstanceOf[Ptr[Byte]])
   stdlib.free(client.asInstanceOf[Ptr[Byte]])
-
-@link("uv")
-@extern
-object LibUV:
-  type TimerHandle = Ptr[Byte]
-  type Loop = Ptr[Byte]
-  type TimerCB = CFuncPtr1[TimerHandle, Unit]
-
-  def uv_default_loop(): Loop = extern
-  def uv_loop_size(): CSize = extern
-  def uv_is_active(handle: Ptr[Byte]): Int = extern
-  def uv_handle_size(h_type: Int): CSize = extern
-  def uv_req_size(r_type: Int): CSize = extern
-  def uv_timer_init(loop: Loop, handle: TimerHandle): Int = extern
-  def uv_timer_start(
-      handle: TimerHandle,
-      cb: TimerCB,
-      timeout: Long,
-      repeat: Long
-  ): Int = extern
-  def uv_timer_stop(handle: TimerHandle): Int = extern
-  def uv_run(loop: Loop, runMode: Int): Int = extern
-  def uv_strerror(err: Int): CString = extern
-  def uv_err_name(err: Int): CString = extern
-
-  type Buffer = CStruct2[Ptr[Byte], CSize]
-  type TCPHandle = Ptr[Ptr[Byte]]
-  type ConnectionCB = CFuncPtr2[TCPHandle, Int, Unit]
-  type WriteReq = Ptr[Ptr[Byte]]
-  type ShutdownReq = Ptr[Ptr[Byte]]
-
-  def uv_tcp_init(loop: Loop, tcp_handle: TCPHandle): Int = extern
-  def uv_tcp_bind(tcp_handle: TCPHandle, address: Ptr[Byte], flags: Int): Int = extern
-  def uv_listen(
-      stream_handle: TCPHandle,
-      backlog: Int,
-      uv_connection_cb: ConnectionCB
-  ): Int = extern
-  def uv_accept(server: TCPHandle, client: TCPHandle): Int = extern
-  def uv_read_start(client: TCPHandle, allocCB: AllocCB, readCB: ReadCB): Int = extern
-  def uv_write(
-      writeReq: WriteReq,
-      client: TCPHandle,
-      bufs: Ptr[Buffer],
-      numBufs: Int,
-      writeCB: WriteCB
-  ): Int = extern
-  def uv_shutdown(
-      shutdownReq: ShutdownReq,
-      client: TCPHandle,
-      shutdownCB: ShutdownCB
-  ): Int = extern
-  def uv_close(handle: TCPHandle, closeCB: CloseCB): Int = extern
-
-  def uv_ip4_addr(address: CString, port: Int, out_addr: Ptr[Byte]): Int = extern
-  def uv_ip4_name(address: Ptr[Byte], s: CString, size: Int): Int = extern
-
-  type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit]
-  type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit]
-  type WriteCB = CFuncPtr2[WriteReq, Int, Unit]
-  type ShutdownCB = CFuncPtr2[ShutdownReq, Int, Unit]
-  type CloseCB = CFuncPtr1[TCPHandle, Unit]
-
-object LibUVConstants:
-  import LibUV.*
-
-  // uv_run_mode
-  val UV_RUN_DEFAULT = 0
-  val UV_RUN_ONCE = 1
-  val UV_RUN_NOWAIT = 2
-
-  // UV_HANDLE_T
-  val UV_PIPE_T = 7
-  val UV_POLL_T = 8
-  val UV_PREPARE_T = 9
-  val UV_PROCESS_T = 10
-  val UV_TCP_T = 12
-  val UV_TIMER_T = 13
-  val UV_TTY_T = 14
-  val UV_UDP_T = 15
-
-  // UV_REQ_T
-  val UV_WRITE_REQ_T = 3
-  val UV_shutdownReq_T = 4
-
-  val UV_READABLE = 1
-  val UV_WRITABLE = 2
-  val UV_DISCONNECT = 4
-  val UV_PRIORITIZED = 8
-
-  def checkError(v: Int, label: String): Int =
-    if v == 0 then
-      println(s"$label returned $v")
-      v
-    else
-      val error = fromCString(uv_err_name(v))
-      val message = fromCString(uv_strerror(v))
-      println(s"$label returned $v: $error: $message")
-      v

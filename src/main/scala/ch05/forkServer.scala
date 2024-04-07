@@ -1,6 +1,5 @@
-package ch05.examples
+package ch05.forkServer
 
-import scalanative.unsafe.stackalloc
 import scalanative.posix.unistd
 import scalanative.posix.sys.wait.WNOHANG
 
@@ -20,6 +19,5 @@ def forkAndHandle(connectionFd: Int, maxSize: Int = 1024): Unit =
 
 @annotation.tailrec
 def cleanupChildren: Unit =
-  val status = stackalloc[Int](1)
-  val childPid = waitpid(-1, status, WNOHANG) // -1, NULL, WNOHANG
+  val childPid = waitpid(-1, null, WNOHANG) // -1, NULL, WNOHANG
   if childPid <= 0 then () else cleanupChildren

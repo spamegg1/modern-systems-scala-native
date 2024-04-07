@@ -18,7 +18,7 @@ def maxNgramNaive(args: String*): Unit =
   var linesRead = 0
 
   // we will feed the input file into stdin, then read it from there.
-  for line <- io.Source.stdin.getLines do
+  for line <- scala.io.Source.stdin.getLines do
     val splitFields = line.split("\\s+")
     if splitFields.size != 4 then throw Exception("Parse Error")
 

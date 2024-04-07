@@ -1,4 +1,4 @@
-package ch06.libuvHttp
+package ch06.asyncHttp
 
 import scalanative.unsigned.{UnsignedRichInt, UShort}
 import scalanative.unsafe.*
