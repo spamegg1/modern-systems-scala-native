@@ -1,9 +1,10 @@
-package ch07.curlAsync
+package ch07
+package curlAsync
 
 import scala.scalanative.unsafe.*
 import scala.scalanative.libc.*
 import scala.util.{Success, Failure}
-import LibCurlConstants.*
+import common.LibCurlConstants.*
 import scala.concurrent.ExecutionContext
 
 @main
