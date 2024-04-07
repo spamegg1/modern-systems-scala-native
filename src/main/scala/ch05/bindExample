@@ -1,4 +1,4 @@
-package `05bindExample`
+package ch05.examples.bind
 
 import scalanative.unsafe.*
 import scalanative.unsigned.*

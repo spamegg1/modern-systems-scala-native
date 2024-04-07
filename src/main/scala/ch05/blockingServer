@@ -3,7 +3,6 @@ package ch05.blockingServer
 import scalanative.unsafe.*
 import scalanative.unsigned.*
 import scalanative.libc.*
-// import scalanative.native.*
 import stdio.*, string.*, stdlib.*
 import scalanative.posix.unistd.*
 import scalanative.posix.sys.socket.*
@@ -49,8 +48,7 @@ def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
       val bytesRead = read(connSocket, lineBuffer, maxSize)
       println(s"read $bytesRead bytes")
 
-      // This means the connection has been closed by the client
-      if bytesRead == EOF then break()
+      if bytesRead == EOF then break() //  connection has been closed by the client
 
       val bytesWritten = write(connSocket, lineBuffer, bytesRead)
       println(s"wrote $bytesWritten bytes")

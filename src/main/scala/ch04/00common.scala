@@ -1,11 +1,10 @@
 package ch04.common
 
-import scalanative.unsigned.UnsignedRichInt // .toUSize
+import scalanative.unsigned.{USize, UnsignedRichInt} // .toUSize
 import scalanative.unsafe.{CQuote, toCString, Ptr, CString}
 import scalanative.unsafe.{Zone, stackalloc, sizeof, extern}
 import scalanative.libc.{stdlib, string, stdio, errno}
 import scalanative.posix.unistd // getpid
-import scala.scalanative.unsigned.USize
 
 // This is a "conceptual" Scala version of execve
 case class Command(path: String, args: String, env: Map[String, String])
@@ -26,11 +25,9 @@ def await(pid: Int): Int =
   util.waitpid(pid, status, 0)
   val statusCode = !status
   if statusCode != 0 then throw Exception(s"Child process returned error $statusCode")
-  !status
+  statusCode
 
-def doAndAwait(task: Function0[Int]): Int =
-  val pid = doFork(task)
-  await(pid)
+def doAndAwait(task: Function0[Int]): Int = await(doFork(task))
 
 def runCommand(args: Seq[String], env: Map[String, String] = Map.empty): Int =
   if args.size == 0 then throw Exception("bad arguments of length 0")

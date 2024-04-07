@@ -1,15 +1,13 @@
 package ch05.httpServer
 
 import scalanative.unsigned.{UnsignedRichInt, UInt, UShort}
-import scalanative.unsafe.*
-import scalanative.libc.*
-import stdio.{FILE, fclose}
-import stdlib.malloc
-import scalanative.posix.unistd.*
-import scalanative.posix.sys.socket.*
-import scalanative.posix.netinet.in.*
-import scalanative.posix.arpa.inet.*
-import collection.mutable
+import scalanative.unsafe.{CString, CQuote, stackalloc, sizeof, fromCString, toCString}
+import scalanative.unsafe.{Ptr, extern, Zone}
+import scalanative.libc.{stdio, stdlib, string, errno}, stdio.FILE, stdlib.malloc
+import scalanative.posix.unistd
+import scalanative.posix.sys.socket, socket.{sockaddr, AF_INET, SOCK_STREAM}
+import scalanative.posix.netinet.in.{sockaddr_in, INADDR_ANY}
+import scalanative.posix.arpa.inet
 
 case class HttpRequest(
     method: String,
@@ -17,7 +15,6 @@ case class HttpRequest(
     headers: collection.Map[String, String],
     body: String
 )
-
 case class HttpResponse(
     code: Int,
     headers: collection.Map[String, String],
@@ -40,29 +37,21 @@ object Parsing:
     val methodBuffer = stackalloc[Byte](16)
     val urlBuffer = stackalloc[Byte](1024)
     val protocolBuffer = stackalloc[Byte](32)
-    val scanResult = stdio.sscanf(
-      line,
-      c"%s %s %s\n",
-      methodBuffer,
-      urlBuffer,
-      protocolBuffer
-    )
+    val scanResult =
+      stdio.sscanf(line, c"%s %s %s\n", methodBuffer, urlBuffer, protocolBuffer)
     if scanResult < 3 then throw Exception("bad request line")
-    else
-      val method = fromCString(methodBuffer)
-      val url = fromCString(urlBuffer)
-      (method, url)
+    else (fromCString(methodBuffer), fromCString(urlBuffer))
 
   def parseRequest(conn: Int): Option[HttpRequest] =
     val socketFd = util.fdopen(conn, c"r")
-    val lineBuffer = stdlib.malloc(4096.toUSize) // fix // 0.5
+    val lineBuffer = stdlib.malloc(4096) // fix // 0.5
     var readResult = stdio.fgets(lineBuffer, 4096, socketFd)
 
     val (method, url) = parseRequestLine(lineBuffer)
     stdio.printf(c"read request line: %s", lineBuffer)
     println(s"${(method, url)}")
 
-    var headers = mutable.Map[String, String]()
+    var headers = collection.mutable.Map[String, String]()
     readResult = stdio.fgets(lineBuffer, 4096, socketFd)
 
     var lineLength = string.strlen(lineBuffer)
@@ -76,7 +65,7 @@ object Parsing:
 
   def writeResponse(conn: Int, resp: HttpResponse): Unit =
     val socketFd = util.fdopen(conn, c"r+")
-    Zone { // implicit z => // 0.5
+    Zone: // implicit z => // 0.5
       stdio.fprintf(socketFd, c"%s %s %s\r\n", c"HTTP/1.1", c"200", c"OK")
 
       for (k, v) <- resp.headers
@@ -84,26 +73,28 @@ object Parsing:
 
       stdio.fprintf(socketFd, c"\r\n")
       stdio.fprintf(socketFd, toCString(resp.body))
-    }
-    fclose(socketFd)
+
+    stdio.fclose(socketFd)
 
 @main
-def httpServer05(args: String*): Unit = serve(8082.toUShort)
+def httpServer05: Unit = serve(8082.toUShort)
 
 def serve(port: UShort): Unit =
   // Allocate and initialize the server address
   val addrSize = sizeof[sockaddr_in]
   val serverAddress = malloc(addrSize).asInstanceOf[Ptr[sockaddr_in]]
   serverAddress._1 = AF_INET.toUShort // IP Socket
-  serverAddress._2 = htons(port) // port
-  serverAddress._3._1 = htonl(INADDR_ANY) // bind to 0.0.0.0
+  serverAddress._2 = inet.htons(port) // port
+  serverAddress._3._1 = inet.htonl(INADDR_ANY) // bind to 0.0.0.0
 
   // Bind and listen on a socket
-  val sockFd = socket(AF_INET, SOCK_STREAM, 0)
+  val sockFd = socket.socket(AF_INET, SOCK_STREAM, 0)
   val serverSockAddr = serverAddress.asInstanceOf[Ptr[sockaddr]]
-  val bindResult = bind(sockFd, serverSockAddr, addrSize.toUInt)
+
+  val bindResult = socket.bind(sockFd, serverSockAddr, addrSize.toUInt)
   println(s"bind returned $bindResult")
-  val listenResult = listen(sockFd, 128)
+
+  val listenResult = socket.listen(sockFd, 128)
   println(s"listen returned $listenResult")
 
   val incoming = malloc(sizeof[sockaddr_in]).asInstanceOf[Ptr[sockaddr]]
@@ -111,10 +102,9 @@ def serve(port: UShort): Unit =
   !incSz = sizeof[sockaddr_in].toUInt
   println(s"accepting connections on port $port")
 
-  // Main accept() loop
-  while true do
+  while true do // Main accept() loop
     println(s"accepting")
-    val connectionFd = accept(sockFd, incoming, incSz)
+    val connectionFd = socket.accept(sockFd, incoming, incSz)
     println(s"accept returned fd $connectionFd")
 
     if connectionFd <= 0 then
@@ -124,21 +114,16 @@ def serve(port: UShort): Unit =
 
     // we will replace handleConnection with fork_and_handle shortly
     handleConnection(connectionFd)
-    close(connectionFd)
+    unistd.close(connectionFd)
 
-  close(sockFd)
-
-import Parsing.*, scala.util.boundary, boundary.break
+  unistd.close(sockFd)
 
 def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
-  boundary:
-    while true do
-      parseRequest(connSocket) match
-        case Some(request) =>
-          val response = handleRequest(request)
-          writeResponse(connSocket, response)
-          break() // replaced return
-        case None => break() // replaced return
+  Parsing.parseRequest(connSocket) match
+    case Some(request) =>
+      val response = handleRequest(request)
+      Parsing.writeResponse(connSocket, response)
+    case None => ()
 
 def handleRequest(request: HttpRequest): HttpResponse =
   val headers = Map("Content-type" -> "text/html")

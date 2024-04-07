@@ -1,9 +1,8 @@
-package `05acceptExample`
+package ch05.examples.accept
 
 import scalanative.unsafe.*
 import scalanative.unsigned.*
 import scalanative.libc.*
-// import scalanative.native.*
 import stdio.*, string.*, stdlib.*
 import scalanative.posix.unistd.*
 import scalanative.posix.sys.socket.*
