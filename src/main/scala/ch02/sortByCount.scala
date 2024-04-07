@@ -1,10 +1,9 @@
-package ch02.sortByCount
+package ch02
+package sort
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.{Ptr, CQuote, CSize, sizeof}
 import scalanative.libc.{stdio, stdlib, string}
-import ch02.common
-import common.{qsort, NGramData, byCount}
 
 // this temporary space is used to read the string in each line of the file.
 val tempWord: Ptr[Byte] = stdlib.malloc(1024) // 0.5
@@ -62,12 +61,12 @@ def parseLine(lineBuffer: Ptr[Byte], data: Ptr[NGramData]): Unit =
 def sortByCount(args: String*): Unit =
   val blockSize = 1048576 // 2^20 NGramData items = 2^20 * 20 bytes = 20 MB
   val lineBuffer = stdlib.malloc(1024) // 0.5
-  var array = common.makeWrappedArray(blockSize)
+  var array = makeWrappedArray(blockSize)
   val readStart = System.currentTimeMillis()
 
   // pipe file into stdin, then read line by line (fgets respects newlines)
   while stdio.fgets(lineBuffer, 1024, stdio.stdin) != null do // reads <= 1024 - 1 chars
-    if array.used >= array.capacity then common.growWrappedArray(array, blockSize)
+    if array.used >= array.capacity then growWrappedArray(array, blockSize)
     parseLine(lineBuffer, array.data + array.used) // parse CURRENT line
     array.used += 1
 

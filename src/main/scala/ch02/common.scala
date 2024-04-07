@@ -1,4 +1,4 @@
-package ch02.common
+package ch02
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.{Ptr, sizeof, CString, CStruct4, CFuncPtr2, CQuote, extern}

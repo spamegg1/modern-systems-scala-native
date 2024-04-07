@@ -1,10 +1,9 @@
-package ch02.aggregateAndCount
+package ch02
+package agg
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.{Ptr, CSize, CQuote, CString, sizeof, stackalloc}
 import scalanative.libc.{stdio, stdlib, string}, stdio.FILE
-import ch02.common
-import common.{qsort, NGramData, byCount, WrappedArray}
 
 val lineBuffer = stdlib.malloc(1024) // 0.5
 val tempWordBuffer = stdlib.malloc(1024)
@@ -12,7 +11,7 @@ val blockSize = 1048576 // ~ 1MB - too big? (same)
 
 @main
 def aggregateAndCount(args: String*): Unit =
-  val array = common.makeWrappedArray(blockSize)
+  val array = makeWrappedArray(blockSize)
   val readStart = System.currentTimeMillis()
   val linesRead = readAllLines(stdio.stdin, array) // NEW, different
   val readElapsed = System.currentTimeMillis() - readStart
@@ -42,7 +41,7 @@ def readAllLines(fd: Ptr[FILE], array: WrappedArray[NGramData]): Long =
   var linesRead = 0L
 
   while stdio.fgets(lineBuffer, 1024, fd) != null do
-    if array.used >= array.capacity - 1 then common.growWrappedArray(array, blockSize)
+    if array.used >= array.capacity - 1 then growWrappedArray(array, blockSize)
     parseAndCompare(lineBuffer, array) // this is the main difference!
     linesRead += 1
 
