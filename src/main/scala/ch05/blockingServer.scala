@@ -1,15 +1,15 @@
 package ch05.blockingServer
 
-import scalanative.unsafe.{sizeof, Ptr, CQuote}
-import scalanative.unsigned.{UShort, toUShort, toCSize}
+import scalanative.unsafe.{sizeof, Ptr}
+import scalanative.unsigned.{UShort, toUShort}
 import scalanative.libc.stdlib.malloc
-import scalanative.libc.stdio.EOF
-import scalanative.libc.string.strlen
 import scalanative.posix.unistd
 import scalanative.posix.sys.socket
 import socket.{AF_INET, SOCK_STREAM, sockaddr}
 import scalanative.posix.netinet.in.{sockaddr_in, INADDR_ANY}
 import scalanative.posix.arpa.inet
+
+import ch05.common.handleConnection
 
 def serve(port: UShort): Unit =
   // Allocate and initialize the server address
@@ -30,28 +30,9 @@ def serve(port: UShort): Unit =
   println(s"listen returned $listenResult")
   println(s"accepting connections on port $port")
 
-  // Main accept() loop
-  while true do
+  while true do // Main accept() loop
     val connectionFd = socket.accept(sockFd, null, null)
     println(s"accept returned fd $connectionFd")
-    // we will replace handleConnection with fork_and_handle shortly
-    handleConnection(connectionFd)
+    handleConnection(connectionFd) // we will replace this with forkAndHandle shortly
 
   unistd.close(sockFd)
-
-def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
-  import scala.util.boundary, boundary.break
-
-  val message = c"Connection accepted!  Enter a message and it will be echoed back\n"
-  val promptWrite = unistd.write(connSocket, message, strlen(message))
-  val lineBuffer = malloc(maxSize) // this is never freed, program ends before it can be.
-
-  boundary:
-    while true do
-      val bytesRead = unistd.read(connSocket, lineBuffer, maxSize.toCSize) // 0.5
-      println(s"read $bytesRead bytes")
-
-      if bytesRead == EOF then break() //  connection has been closed by the client
-
-      val bytesWritten = unistd.write(connSocket, lineBuffer, bytesRead.toCSize) // 0.5
-      println(s"wrote $bytesWritten bytes")

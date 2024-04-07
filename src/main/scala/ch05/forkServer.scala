@@ -1,9 +1,11 @@
+package ch05.examples
+
 import scalanative.unsafe.stackalloc
 import scalanative.posix.unistd
 import scalanative.posix.sys.wait.WNOHANG
 
 import ch04.common.util.{fork, waitpid}
-import ch05.blockingServer.handleConnection
+import ch05.common.handleConnection
 
 def forkAndHandle(connectionFd: Int, maxSize: Int = 1024): Unit =
   val pid = fork()
@@ -12,9 +14,9 @@ def forkAndHandle(connectionFd: Int, maxSize: Int = 1024): Unit =
     unistd.close(connectionFd)
     cleanupChildren
   else // In child process
-    println("fork returned $pid, in child process")
+    println(s"fork returned $pid, in child process")
     handleConnection(connectionFd, maxSize)
-    sys.exit()
+    sys.exit() // this is scala.sys, not posix.sys
 
 @annotation.tailrec
 def cleanupChildren: Unit =
