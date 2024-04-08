@@ -1,11 +1,9 @@
-package ch03.tcp
+package ch03
+package tcp
 
 import scalanative.unsafe.{Zone, Ptr, toCString, fromCString, CQuote, CString}
 import scalanative.libc.{stdio, stdlib}
 import stdio.{FILE, fgets, fclose}
-
-import ch03.common
-import common.util
 
 // used in handleConnection
 def makeRequest(sock: Ptr[FILE], request: String): String =
@@ -80,5 +78,5 @@ def tcpClient(args: String*): Unit =
     val sock = Zone: // implicit z => // 0.5
       val (address, port) = (toCString(args(0)), toCString(args(1))) // requires Zone
       stdio.printf(c"looking up address: %s port: %s\n", address, port)
-      common.makeConnection(address, port) // looks up address, returns socket
+      makeConnection(address, port) // looks up address, returns socket
     handleConnection(sock) // gets response from socket and prints it.

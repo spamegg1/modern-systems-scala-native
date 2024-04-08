@@ -1,4 +1,5 @@
-package ch03.http
+package ch03
+package http
 
 import scalanative.unsafe.{Zone, Ptr, CInt, CString, toCString, fromCString, CQuote}
 import scalanative.unsafe.{stackalloc, extern}
@@ -7,8 +8,6 @@ import scalanative.libc.{stdio, stdlib, string}
 import stdio.{FILE, fclose}
 
 import collection.mutable.{Map => MMap}
-import ch03.common
-import common.util
 
 // These are Scala strings, they will be converted to C-strings later.
 case class HttpRequest(
@@ -136,5 +135,5 @@ def httpClient(args: String*): Unit =
     val (port, path) = (toCString(args(1)), args(2)) // requires Zone
     stdio.printf(c"looking up address: %s port: %s\n", address, port) // no println (Zone)
 
-    val sock = common.makeConnection(address, port) // establish connection
+    val sock = makeConnection(address, port) // establish connection
     handleConnection(sock, host, path) // do request / response on connection

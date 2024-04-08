@@ -1,4 +1,4 @@
-package ch03.common
+package ch03
 
 import scalanative.posix.sys.socket.{AF_UNSPEC, SOCK_STREAM, socket, sockaddr, connect}
 import scalanative.posix.netdb.{addrinfo, getaddrinfo}
