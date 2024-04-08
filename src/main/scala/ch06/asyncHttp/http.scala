@@ -8,25 +8,15 @@ import scalanative.libc.stdlib.malloc
 import scalanative.libc.stdio
 import scalanative.libc.string.{strlen, strncpy}
 
-case class HeaderLine(
-    key: CString,
-    value: CString,
-    keyLen: UShort,
-    valueLen: UShort
-)
-case class HttpRequest(
-    method: String,
-    uri: String,
-    headers: collection.Map[String, String], // supertype of both mutable and immutable
-    body: String
-)
-case class HttpResponse(
-    code: Int,
-    headers: collection.Map[String, String],
-    body: String
-)
-
 object HTTP:
+  import ch03.http.{HttpRequest, HttpResponse}
+
+  case class HeaderLine(
+      key: CString,
+      value: CString,
+      keyLen: UShort,
+      valueLen: UShort
+  )
   type RequestHandler = Function1[HttpRequest, HttpResponse]
   type Buffer = CStruct2[Ptr[Byte], CSize]
 
@@ -36,8 +26,8 @@ object HTTP:
   val MAX_URI_SIZE = 2048
   val MAX_METHOD_SIZE = 8
 
-  val methodBuffer = malloc(16.toUSize) // 0.5
-  val uriBuffer = malloc(4096.toUSize) // 0.5
+  val methodBuffer = malloc(16) // 0.5
+  val uriBuffer = malloc(4096) // 0.5
 
   def scanRequestLine(line: CString): (String, String, Int) =
     val lineLen = stackalloc[Int](1)
@@ -81,7 +71,7 @@ object HTTP:
       !lineLen
     else throw Exception("bad header line")
 
-  val lineBuffer = malloc(1024.toUSize) // 0.5
+  val lineBuffer = malloc(1024) // 0.5
 
   def parseRequest(req: CString, size: Long): HttpRequest =
     req(size) = 0.toByte // ensure null termination
@@ -93,19 +83,12 @@ object HTTP:
     val headers = collection.mutable.Map[String, String]()
 
     val (method, uri, requestLen) = scanRequestLine(req)
-
     var bytesRead = requestLen
 
     while bytesRead < size do
       reqPosition = req + bytesRead
-      val parseHeaderResult = scanHeaderLine(
-        reqPosition,
-        headers,
-        keyEnd,
-        valueStart,
-        valueEnd,
-        lineLen
-      )
+      val parseHeaderResult =
+        scanHeaderLine(reqPosition, headers, keyEnd, valueStart, valueEnd, lineLen)
       if parseHeaderResult < 0 then throw Exception("HEADERS INCOMPLETE")
       else if !lineLen - !valueEnd == 2 then bytesRead += parseHeaderResult
       else if !lineLen - !valueEnd == 4 then
@@ -116,9 +99,9 @@ object HTTP:
 
     throw Exception(s"bad scan, exceeded $size bytes")
 
-  val keyBuffer = malloc(512.toUSize) // 0.5
-  val valueBuffer = malloc(512.toUSize) // 0.5
-  val bodyBuffer = malloc(4096.toUSize) // 0.5
+  val keyBuffer = malloc(512) // 0.5
+  val valueBuffer = malloc(512) // 0.5
+  val bodyBuffer = malloc(4096) // 0.5
 
   def makeResponse(response: HttpResponse, buffer: Ptr[Buffer]): Unit =
     stdio.snprintf(buffer._1, 4096.toUSize, c"HTTP/1.1 200 OK\r\n") // 0.5
@@ -138,13 +121,7 @@ object HTTP:
         strncpy(keyBuffer, keyTemp, 512.toUSize) // 0.5
         strncpy(valueBuffer, valueTemp, 512.toUSize) // 0.5
 
-      stdio.snprintf(
-        lastPosition,
-        bytesRemaining, // 0.5
-        c"%s: %s\r\n",
-        keyBuffer,
-        valueBuffer
-      )
+      stdio.snprintf(lastPosition, bytesRemaining, c"%s: %s\r\n", keyBuffer, valueBuffer)
 
       val len = strlen(lastPosition)
       bytesWritten = bytesWritten + len + 1.toUSize // 0.5

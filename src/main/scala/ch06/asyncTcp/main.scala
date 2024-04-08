@@ -2,9 +2,10 @@ package ch06
 package asyncTcp
 
 import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsafe.*
-import scalanative.libc.*
-import stdlib.*
+import scalanative.unsafe.{CQuote, stackalloc, CString, CSize, CSSize, Ptr, sizeof}
+import scalanative.unsafe.{CStruct3, CFuncPtr1, CFuncPtr2, CFuncPtr3}
+import scalanative.libc.{stdio, stdlib, string}
+import stdlib.malloc
 
 import LibUV.*, LibUVConstants.*
 
@@ -88,11 +89,7 @@ val readCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit]:
       appendData(clientStatePtr, size, buffer)
       stdlib.free(buffer._1)
 
-def appendData(
-    state: Ptr[ClientState],
-    size: CSSize,
-    buffer: Ptr[Buffer]
-): Unit =
+def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
   val copy_position = state._1 + state._3
   string.strncpy(copy_position, buffer._1, size.toUSize) // 0.5
   // be sure to update the length of the data since we have copied into it

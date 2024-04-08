@@ -13,12 +13,12 @@ import collection.mutable.{Map => MMap}
 case class HttpRequest(
     method: String, // GET, POST, PUT, etc.
     uri: String, // e.g. www.pragprog.com
-    headers: Map[String, String], // immutable
+    headers: collection.Map[String, String], // supertype of both mutable and immutable
     body: String
 )
 case class HttpResponse(
     code: Int, // 200, 301, 404, 500, etc.
-    headers: MMap[String, String], // mutable
+    headers: collection.Map[String, String],
     body: String
 )
 

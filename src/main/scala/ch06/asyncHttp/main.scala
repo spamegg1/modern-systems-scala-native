@@ -2,12 +2,14 @@ package ch06
 package asyncHttp
 
 import scalanative.unsigned.UnsignedRichInt
-import scalanative.unsafe.*
-import scalanative.libc.*
+import scalanative.unsafe.{CQuote, Ptr, CSize, CSSize, CString, sizeof, stackalloc}
+import scalanative.unsafe.{CStruct3, CFuncPtr1, CFuncPtr2, CFuncPtr3}
+import scalanative.libc.{stdlib, string, stdio}
 import stdlib.malloc
 
 import LibUV.*, LibUVConstants.*
 import HTTP.RequestHandler
+import ch03.http.{HttpRequest, HttpResponse}
 
 type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
 
@@ -44,7 +46,7 @@ def sendResponse(client: TCPHandle, response: HttpResponse): Unit =
   val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
   val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
 
-  responseBuffer._1 = malloc(4096.toUSize) // 0.5
+  responseBuffer._1 = malloc(4096) // 0.5
   responseBuffer._2 = 4096.toUSize // 0.5
 
   HTTP.makeResponse(response, responseBuffer)
@@ -62,7 +64,7 @@ def serveTcp(
     backlog: Int,
     callback: ConnectionCB
 ): Unit =
-  val addr = stackalloc[Byte]()
+  val addr = stackalloc[Byte](1)
   val addrConvert = uv_ip4_addr(address, port, addr)
   println(s"uv_ip4_addr returned $addrConvert")
 
@@ -99,7 +101,7 @@ def initializeClientState(client: TCPHandle): Ptr[ClientState] =
     client
   )
 
-  val clientStateData = malloc(4096.toUSize) // 0.5
+  val clientStateData = malloc(4096) // 0.5
   clientStatePtr._1 = clientStateData
   clientStatePtr._2 = 4096.toUSize // total // 0.5
   clientStatePtr._3 = 0.toUSize // used // 0.5
@@ -114,11 +116,7 @@ val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
     buffer._1 = buf
     buffer._2 = 4096.toUSize // 0.5
 
-def appendData(
-    state: Ptr[ClientState],
-    size: CSSize,
-    buffer: Ptr[Buffer]
-): Unit =
+def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
   val copyPosition = state._1 + state._3
   string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
 

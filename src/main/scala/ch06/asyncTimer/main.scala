@@ -1,10 +1,12 @@
 package ch06
 package asyncTimer
 
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
+import scala.scalanative.unsafe.CFuncPtr1
+import scala.scalanative.libc.stdlib
 
-import LibUV.*, LibUVConstants.*
+import LibUV.{uv_default_loop, uv_timer_init, uv_timer_start, uv_run, uv_handle_size}
+import LibUV.TimerHandle
+import LibUVConstants.{UV_TIMER_T, UV_RUN_DEFAULT}
 
 @main
 def asyncTimer: Unit =
