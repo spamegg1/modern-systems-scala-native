@@ -1,11 +1,10 @@
-package ch04.badExec
-
-import ch04.common
+package ch04
+package badExec
 
 @main
 def badExec(args: String*): Unit =
   println("about to exec")
-  common.runCommand(Seq("/bin/ls", "-l", "."))
+  runCommand(Seq("/bin/ls", "-l", "."))
   println("exec returned, we're done!")
 
 // It is executed inside the .scala-build folder (does not see hidden .bloop folder).

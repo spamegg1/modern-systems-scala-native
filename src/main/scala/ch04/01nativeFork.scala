@@ -1,8 +1,7 @@
-package ch04.nativeFork
+package ch04
+package nativeFork
 
 import scalanative.libc.stdlib
-import ch04.common
-import common.util
 
 @main
 def nativeFork(args: String*): Unit =
@@ -12,9 +11,9 @@ def nativeFork(args: String*): Unit =
 
   println("about to fork")
 
-  val status = common.doAndAwait: () =>
+  val status = doAndAwait: () =>
     println(s"in child, about to exec command: ${args.toSeq}")
-    common.runCommand(args)
+    runCommand(args)
 
   println(s"wait status ${status}")
 

@@ -1,10 +1,9 @@
-package ch04.nativePipe
+package ch04
+package nativePipe
 
 import scalanative.unsafe.stackalloc
 import scalanative.posix.unistd // getpid
 import collection.mutable.ArrayBuffer
-import ch04.common
-import common.util
 
 @main
 def nativePipe(args: String*): Unit =
@@ -31,7 +30,7 @@ def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
   val procsWithFds = procs.lazyZip(inputFds).lazyZip(outputFds)
   val pids =
     for (proc, inputFd, outputFd) <- procsWithFds
-    yield common.doFork: () =>
+    yield doFork: () =>
       // close all pipes that this process won't be using.
       for p <- 0 until 2 * (procs.size - 1) do
         if pipeArray(p) != inputFd && pipeArray(p) != outputFd then
@@ -47,7 +46,7 @@ def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
         unistd.close(unistd.STDOUT_FILENO)
         util.dup2(outputFd, unistd.STDOUT_FILENO)
 
-      common.runCommand(proc)
+      runCommand(proc)
 
   for i <- 0 until 2 * (procs.size - 1) do unistd.close(pipeArray(i))
   unistd.close(input)

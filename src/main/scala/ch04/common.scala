@@ -1,4 +1,4 @@
-package ch04.common
+package ch04
 
 import scalanative.unsigned.{USize, UnsignedRichInt} // .toUSize
 import scalanative.unsafe.{CQuote, toCString, Ptr, CString}
