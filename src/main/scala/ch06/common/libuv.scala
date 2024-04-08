@@ -1,4 +1,4 @@
-package ch06.common
+package ch06
 
 import scalanative.unsafe.{extern, link, Ptr, CSize, CSSize, CString}
 import scalanative.unsafe.{CStruct2, CFuncPtr1, CFuncPtr2, CFuncPtr3}

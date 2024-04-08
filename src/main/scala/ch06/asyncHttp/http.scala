@@ -1,11 +1,12 @@
-package ch06.asyncHttp
+package ch06
+package asyncHttp
 
 import scalanative.unsigned.{UnsignedRichInt, UShort}
-import scalanative.unsafe.*
-import scalanative.libc.*
-import stdlib.malloc
-import string.{strlen, strncpy}
-import collection.mutable
+import scalanative.unsafe.{CString, CSize, CQuote, fromCString, Ptr, stackalloc, CStruct2}
+import scalanative.unsafe.{Zone, toCString}
+import scalanative.libc.stdlib.malloc
+import scalanative.libc.stdio
+import scalanative.libc.string.{strlen, strncpy}
 
 case class HeaderLine(
     key: CString,
@@ -13,14 +14,12 @@ case class HeaderLine(
     keyLen: UShort,
     valueLen: UShort
 )
-
 case class HttpRequest(
     method: String,
     uri: String,
-    headers: collection.Map[String, String],
+    headers: collection.Map[String, String], // supertype of both mutable and immutable
     body: String
 )
-
 case class HttpResponse(
     code: Int,
     headers: collection.Map[String, String],
@@ -28,9 +27,6 @@ case class HttpResponse(
 )
 
 object HTTP:
-  // import LibUV.*
-  // import LibUVConstants.*
-
   type RequestHandler = Function1[HttpRequest, HttpResponse]
   type Buffer = CStruct2[Ptr[Byte], CSize]
 
@@ -44,7 +40,7 @@ object HTTP:
   val uriBuffer = malloc(4096.toUSize) // 0.5
 
   def scanRequestLine(line: CString): (String, String, Int) =
-    val lineLen = stackalloc[Int]()
+    val lineLen = stackalloc[Int](1)
     val scanResult = stdio.sscanf(
       line,
       c"%s %s %*s\r\n%n",
@@ -57,7 +53,7 @@ object HTTP:
 
   def scanHeaderLine(
       line: CString,
-      outMap: mutable.Map[String, String],
+      outMap: collection.mutable.Map[String, String],
       keyEnd: Ptr[Int],
       valueStart: Ptr[Int],
       valueEnd: Ptr[Int],
@@ -90,11 +86,11 @@ object HTTP:
   def parseRequest(req: CString, size: Long): HttpRequest =
     req(size) = 0.toByte // ensure null termination
     var reqPosition = req
-    val lineLen = stackalloc[Int]()
-    val keyEnd = stackalloc[Int]()
-    val valueStart = stackalloc[Int]()
-    val valueEnd = stackalloc[Int]()
-    val headers = mutable.Map[String, String]()
+    val lineLen = stackalloc[Int](1)
+    val keyEnd = stackalloc[Int](1)
+    val valueStart = stackalloc[Int](1)
+    val valueEnd = stackalloc[Int](1)
+    val headers = collection.mutable.Map[String, String]()
 
     val (method, uri, requestLen) = scanRequestLine(req)
 
@@ -132,6 +128,7 @@ object HTTP:
     var lastPosition = bufferStart + bytesWritten
     var bytesRemaining = 4096.toUSize - bytesWritten // 0.5
     val headers = response.headers.keys.toSeq
+
     while headerPos < response.headers.size do
       val k = headers(headerPos)
       val v = response.headers(k)

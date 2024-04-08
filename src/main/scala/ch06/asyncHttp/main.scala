@@ -1,12 +1,12 @@
-package ch06.asyncHttp
+package ch06
+package asyncHttp
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.libc.*
 import stdlib.malloc
 
-import ch06.common.LibUV.*
-import ch06.common.LibUVConstants.*
+import LibUV.*, LibUVConstants.*
 import HTTP.RequestHandler
 
 type ClientState = CStruct3[Ptr[Byte], CSize, CSize]

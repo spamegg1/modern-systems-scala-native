@@ -1,12 +1,12 @@
-package ch06.asyncTcp
+package ch06
+package asyncTcp
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.libc.*
 import stdlib.*
 
-import ch06.common.LibUV.*
-import ch06.common.LibUVConstants.*
+import LibUV.*, LibUVConstants.*
 
 type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
 

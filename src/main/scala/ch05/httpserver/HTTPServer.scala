@@ -13,7 +13,7 @@ import scalanative.posix.arpa.inet
 case class HttpRequest(
     method: String,
     uri: String,
-    headers: collection.Map[String, String],
+    headers: collection.Map[String, String], // supertype of both mutable and immutable
     body: String
 )
 case class HttpResponse(
@@ -52,7 +52,7 @@ object Parsing:
     stdio.printf(c"read request line: %s", lineBuffer)
     println(s"${(method, url)}")
 
-    var headers = collection.mutable.Map[String, String]()
+    val headers = collection.mutable.Map[String, String]()
     readResult = stdio.fgets(lineBuffer, 4096, socketFd)
 
     var lineLength = string.strlen(lineBuffer)

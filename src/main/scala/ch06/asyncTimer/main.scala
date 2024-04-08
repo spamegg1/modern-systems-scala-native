@@ -1,10 +1,10 @@
-package ch06.asyncTimer
+package ch06
+package asyncTimer
 
 import scala.scalanative.unsafe.*
 import scala.scalanative.libc.*
 
-import ch06.common.LibUV.*
-import ch06.common.LibUVConstants.*
+import LibUV.*, LibUVConstants.*
 
 @main
 def asyncTimer: Unit =

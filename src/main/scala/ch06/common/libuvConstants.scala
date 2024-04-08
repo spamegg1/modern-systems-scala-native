@@ -1,9 +1,8 @@
-package ch06.common
-
-import scalanative.unsafe.fromCString
+package ch06
 
 object LibUVConstants:
-  import LibUV.*
+  import scalanative.unsafe.fromCString
+  import LibUV.{uv_err_name, uv_strerror}
 
   // uv_run_mode
   val UV_RUN_DEFAULT = 0
