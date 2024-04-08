@@ -1,4 +1,5 @@
-package ch05.httpServer
+package ch05
+package httpServer
 
 import scalanative.unsigned.{UnsignedRichInt, UInt, UShort}
 import scalanative.unsafe.{CString, CQuote, stackalloc, sizeof, fromCString, toCString}

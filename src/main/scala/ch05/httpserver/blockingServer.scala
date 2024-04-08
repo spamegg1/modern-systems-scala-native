@@ -1,4 +1,5 @@
-package ch05.blockingServer
+package ch05
+package blockingServer
 
 import scalanative.unsafe.{sizeof, Ptr}
 import scalanative.unsigned.{UShort, toUShort}
@@ -8,8 +9,6 @@ import scalanative.posix.sys.socket
 import socket.{AF_INET, SOCK_STREAM, sockaddr}
 import scalanative.posix.netinet.in.{sockaddr_in, INADDR_ANY}
 import scalanative.posix.arpa.inet
-
-import ch05.common.handleConnection
 
 def serve(port: UShort): Unit =
   // Allocate and initialize the server address

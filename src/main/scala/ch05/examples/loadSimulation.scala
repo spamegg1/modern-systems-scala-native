@@ -1,4 +1,5 @@
-package ch05.loadSimulation
+package ch05
+package loadSimulation
 
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.*

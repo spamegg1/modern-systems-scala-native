@@ -1,4 +1,5 @@
-package ch05.examples
+package ch05
+package examples
 
 import scalanative.unsafe.{stackalloc, Ptr, sizeof}
 import scalanative.unsigned.{UShort, toUShort}

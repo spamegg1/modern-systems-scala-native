@@ -1,10 +1,10 @@
-package ch05.forkServer
+package ch05
+package forkServer
 
 import scalanative.posix.unistd
 import scalanative.posix.sys.wait.WNOHANG
 
-import ch04.common.util.{fork, waitpid}
-import ch05.common.handleConnection
+import ch04.util.{fork, waitpid}
 
 def forkAndHandle(connectionFd: Int, maxSize: Int = 1024): Unit =
   val pid = fork()

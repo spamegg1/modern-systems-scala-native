@@ -1,4 +1,4 @@
-package ch05.common
+package ch05
 
 import scalanative.unsigned.UnsignedRichInt // .toCSize
 import scalanative.unsafe.CQuote
@@ -7,7 +7,7 @@ import scalanative.libc.stdlib.malloc
 import scalanative.libc.string.strlen
 import scalanative.libc.stdio.EOF
 
-import util.boundary, boundary.break
+import scala.util.boundary, boundary.break
 
 def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
   val message = c"Connection accepted!  Enter a message and it will be echoed back\n"
