@@ -1,5 +1,4 @@
 package ch07
-package common
 
 import scalanative.unsafe.{CInt, Ptr, CFuncPtr3, CFuncPtr5}
 

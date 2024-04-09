@@ -4,7 +4,7 @@ package curlAsync
 import scala.scalanative.unsafe.*
 import scala.scalanative.libc.*
 import scala.util.{Success, Failure}
-import common.LibCurlConstants.*
+import LibCurlConstants.*
 import scala.concurrent.ExecutionContext
 
 @main

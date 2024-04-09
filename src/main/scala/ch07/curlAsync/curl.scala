@@ -17,8 +17,7 @@ case class ResponseState(
 )
 
 object Curl:
-  import common.LibCurl.*
-  import common.LibCurlConstants.*
+  import LibCurl.*, LibCurlConstants.*
   import LibUV.*, LibUVConstants.*
 
   var serial = 0L
