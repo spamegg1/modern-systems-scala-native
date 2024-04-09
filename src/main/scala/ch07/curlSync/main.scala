@@ -1,12 +1,12 @@
-package ch07.curlSync
+package ch07
+package curlSync
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
-import scalanative.libc.*
+import scalanative.libc.stdlib.{malloc, free}
+import scalanative.libc.stdio.{fwrite, stdout}
+import scalanative.libc.string.strncpy
 import LibCurl.*, LibCurlConstants.*
-import stdlib.*
-import stdio.*
-import string.*
 import scala.collection.mutable.HashMap
 
 object curlBasic:
@@ -33,9 +33,9 @@ object curlBasic:
       val url_str = toCString(url)
       println(curl_easy_setopt(curl, URL, url_str))
 
-    curl_easy_setopt(curl, WRITECALLBACK, Curl.func_to_ptr(writeCB))
+    curl_easy_setopt(curl, WRITECALLBACK, Curl.funcToPtr(writeCB))
     curl_easy_setopt(curl, WRITEDATA, req_id_ptr.asInstanceOf[Ptr[Byte]])
-    curl_easy_setopt(curl, HEADERCALLBACK, Curl.func_to_ptr(headerCB))
+    curl_easy_setopt(curl, HEADERCALLBACK, Curl.funcToPtr(headerCB))
     curl_easy_setopt(curl, HEADERDATA, req_id_ptr.asInstanceOf[Ptr[Byte]])
 
     val res = easy_perform(curl)

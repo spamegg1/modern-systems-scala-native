@@ -8,13 +8,17 @@ object LibCurl:
   type Curl = Ptr[Byte]
   type CurlBuffer = CStruct2[CString, CSize]
   type CurlOption = Int
+  type CurlAction = CInt
+  type CurlInfo = CInt
+  type MultiCurl = Ptr[Byte]
   type CurlRequest = CStruct4[Ptr[Byte], Long, Long, Int]
   type CurlMessage = CStruct3[Int, Curl, Ptr[Byte]]
-  type MultiCurl = Ptr[Byte]
   type CurlSList = CStruct2[Ptr[Byte], CString]
   type CurlDataCallback = CFuncPtr4[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]
   type CurlSocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
   type CurlTimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
+  type SocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
+  type TimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
 
   def curl_easy_strerror(code: Int): CString = extern
   @name("curl_global_init") def global_init(flags: Long): Unit = extern
