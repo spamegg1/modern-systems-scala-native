@@ -1,13 +1,12 @@
-package ch07.timerAsync
+package ch07
+package timerAsync
 
 import scalanative.unsafe.*
 import scalanative.libc.stdlib
 import collection.mutable
-import concurrent.{ExecutionContext, ExecutionContextExecutor}
-import concurrent.Future
-import concurrent.Promise
+import concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
+import concurrent.duration.Duration
 import util.{Try, Success}
-import concurrent.duration.*
 import LibUV.*, LibUVConstants.*
 
 object Timer:
