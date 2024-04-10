@@ -1,5 +1,4 @@
 package ch07
-package curlAsync
 
 import scalanative.unsafe.*
 import scalanative.libc.stdlib

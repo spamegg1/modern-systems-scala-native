@@ -14,13 +14,12 @@ def curlAsync(args: String*): Unit =
   given ExecutionContext = EventLoop // used by onComplete
 
   val resp = Zone:
-    for arg <- args do
-      val url = arg
+    for url <- args do
       val resp = Curl.startRequest(GET, url)
 
       resp.onComplete:
         case Success(data) =>
-          println(s"got response for ${arg} - length ${data.body.size}")
+          println(s"got response for ${url} - length ${data.body.size}")
           println(s"headers:")
           for h <- data.headers do println(s"request header: $h")
           println(s"body: ${data.body}")
