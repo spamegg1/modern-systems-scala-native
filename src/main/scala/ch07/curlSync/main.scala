@@ -3,13 +3,13 @@ package curlSync
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
-import scalanative.libc.stdlib.{malloc, free}
+import scalanative.libc.stdlib
 import scalanative.libc.stdio.{fwrite, stdout}
-import scalanative.libc.string.strncpy
+import scalanative.libc.string
 import LibCurl.*, LibCurlConstants.*
 import scala.collection.mutable.HashMap
 
-object curlBasic:
+object CurlBasic:
   def addHeaders(curl: Curl, headers: Seq[String]): Ptr[CurlSList] =
     var slist: Ptr[CurlSList] = null
     for h <- headers do addHeader(slist, h)
@@ -19,14 +19,14 @@ object curlBasic:
   def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] =
     Zone(slist_append(slist, toCString(header))) // 0.5
 
-  var request_serial = 0L
+  var requestSerial = 0L
   val responses = HashMap[Long, ResponseState]()
 
   def getSync(url: String, headers: Seq[String] = Seq.empty): ResponseState =
-    val req_id_ptr = malloc(sizeof[Long]).asInstanceOf[Ptr[Long]]
-    !req_id_ptr = 1 + request_serial
-    request_serial += 1
-    responses(request_serial) = ResponseState()
+    val reqIdPtr = stdlib.malloc(sizeof[Long]).asInstanceOf[Ptr[Long]]
+    !reqIdPtr = 1 + requestSerial
+    requestSerial += 1
+    responses(requestSerial) = ResponseState()
     val curl = easy_init()
 
     Zone:
@@ -34,20 +34,20 @@ object curlBasic:
       println(curl_easy_setopt(curl, URL, url_str))
 
     curl_easy_setopt(curl, WRITECALLBACK, Curl.funcToPtr(writeCB))
-    curl_easy_setopt(curl, WRITEDATA, req_id_ptr.asInstanceOf[Ptr[Byte]])
+    curl_easy_setopt(curl, WRITEDATA, reqIdPtr.asInstanceOf[Ptr[Byte]])
     curl_easy_setopt(curl, HEADERCALLBACK, Curl.funcToPtr(headerCB))
-    curl_easy_setopt(curl, HEADERDATA, req_id_ptr.asInstanceOf[Ptr[Byte]])
+    curl_easy_setopt(curl, HEADERDATA, reqIdPtr.asInstanceOf[Ptr[Byte]])
 
     val res = easy_perform(curl)
     easy_cleanup(curl)
-    responses(request_serial)
+    responses(requestSerial)
 
   def bufferToString(ptr: Ptr[Byte], size: CSize, nmemb: CSize): String =
     val byteSize = size * nmemb
-    val buffer = malloc(byteSize) // removed the +1 s here
-    strncpy(buffer, ptr, byteSize) // removed the +1 s here
+    val buffer = stdlib.malloc(byteSize) // removed the +1 s here
+    string.strncpy(buffer, ptr, byteSize) // removed the +1 s here
     val res = fromCString(buffer)
-    free(buffer)
+    stdlib.free(buffer)
     res
 
   val writeCB = CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]:
@@ -87,8 +87,8 @@ object curlBasic:
   def main(args: String*): Unit =
     println("initializing")
     global_init(1)
-    val resp = getSync(args(0))
-    println(s"done.  got response: $resp")
+    val response = getSync(args(0))
+    println(s"done.  got response: $response")
     println("global cleanup...")
     global_cleanup()
     println("done")

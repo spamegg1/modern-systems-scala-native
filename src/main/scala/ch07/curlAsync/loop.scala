@@ -4,8 +4,7 @@ package curlAsync
 import scalanative.unsafe.*
 import scalanative.libc.stdlib
 import collection.mutable.ListBuffer
-import concurrent.{ExecutionContext, ExecutionContextExecutor}
-import concurrent.{Future, Promise}
+import concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
 import util.{Try, Success}
 
 object EventLoop extends ExecutionContextExecutor:
