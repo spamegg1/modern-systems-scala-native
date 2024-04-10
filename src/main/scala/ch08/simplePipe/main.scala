@@ -29,7 +29,7 @@ case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
     for h <- handlers do h.feed(output)
 
 object SyncPipe:
-  import LibUV.*, LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
 
   var activeStreams: mutable.Set[Int] = mutable.Set()
   var handlers = mutable.HashMap[Int, SyncPipe[String, String]]()
@@ -72,7 +72,7 @@ object SyncPipe:
         val pipeDestination = handlers(pipeId)
         pipeDestination.feed(dataString.trim())
 
-import LibUV.*, LibUVConstants.*
+import ch07.LibUV.*, ch07.LibUVConstants.*
 
 @main
 def simplePipe(args: String*): Unit =

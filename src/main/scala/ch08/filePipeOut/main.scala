@@ -69,7 +69,7 @@ case class CounterSink[T]() extends Pipe[T, Nothing]:
 
 case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     extends Pipe[String, Unit]:
-  import LibUV.*, LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
   import stdlib.*, string.*
   var offset = 0L
 
@@ -97,7 +97,7 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     FileOutputPipe.activeStreams -= serial
 
 object FileOutputPipe:
-  import LibUV.*, LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
   import stdlib.*
 
   var activeStreams: mutable.Set[Int] = mutable.Set()
@@ -176,7 +176,7 @@ case class FilePipe(serial: Long) extends Pipe[String, String]:
   override def feed(input: String): Unit = for h <- handlers do h.feed(input)
 
 object FilePipe:
-  import LibUV.*, LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
   type FilePipeState = CStruct3[Int, Ptr[Buffer], Long] // fd, buffer, offset
 
   var activeStreams: mutable.Set[Int] = mutable.Set()
@@ -239,7 +239,7 @@ object FilePipe:
       activeStreams -= fd
 
 object SyncPipe:
-  import LibUV.*, LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
 
   var activeStreams: mutable.Set[Int] = mutable.Set()
   var handlers = mutable.HashMap[Int, Pipe[String, String]]()
@@ -285,7 +285,7 @@ object SyncPipe:
         val pipeDestination = handlers(pipeId)
         pipeDestination.feed(dataString.trim())
 
-import LibUV.*, LibUVConstants.*
+import ch07.LibUV.*, ch07.LibUVConstants.*
 implicit val ec: ExecutionContext = EventLoop
 
 @main

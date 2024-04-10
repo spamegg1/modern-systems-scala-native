@@ -113,8 +113,7 @@ object Pipe:
 //   import LibUV.*, LibUVConstants.*
 
 object FilePipe:
-  import LibUV.*
-  import LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
 
   type FilePipeState = CStruct3[Int, Ptr[Buffer], Long] // fd, buffer, offset
 
@@ -124,7 +123,7 @@ object FilePipe:
 
   def stream(path: CString): Pipe[String, String] =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
-    check(uv_fs_open(EventLoop.loop, req, path, 0, 0, null), "uv_fs_open")
+    checkError(uv_fs_open(EventLoop.loop, req, path, 0, 0, null), "uv_fs_open")
     println("opening file")
     val fd = util.open(path, 0, 0)
     stdio.printf(c"open file at %s returned %d\n", path, fd)
@@ -179,8 +178,7 @@ object FilePipe:
       activeStreams -= fd
 
 object SyncPipe:
-  import LibUV.*
-  import LibUVConstants.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*
 
   var activeStreams: mutable.Set[Int] = mutable.Set()
   var handlers = mutable.HashMap[Int, Pipe[String, String]]()
@@ -227,9 +225,8 @@ object SyncPipe:
         val pipeDestination = handlers(pipeId)
         pipeDestination.feed(data_string.trim())
 
-import LibUV.*
-import LibUVConstants.*
-implicit val ec: ExecutionContext = EventLoop
+import ch07.LibUV.*, ch07.LibUVConstants.*
+given ec: ExecutionContext = EventLoop
 
 @main
 def filePipeMain(args: String*): Unit =
