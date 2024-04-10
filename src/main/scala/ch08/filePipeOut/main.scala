@@ -1,4 +1,5 @@
-package ch08.filePipeOut
+package ch08
+package filePipeOut
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
@@ -69,8 +70,8 @@ case class CounterSink[T]() extends Pipe[T, Nothing]:
 
 case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     extends Pipe[String, Unit]:
-  import ch07.LibUV.*, ch07.LibUVConstants.*
-  import stdlib.*, string.*
+  import ch07.LibUV.*, ch07.LibUVConstants.*, stdlib.*, string.*
+
   var offset = 0L
 
   val writeCB = if async then FileOutputPipe.writeCB else null

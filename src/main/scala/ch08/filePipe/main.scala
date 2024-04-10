@@ -1,4 +1,5 @@
-package ch08.filePipe
+package ch08
+package filePipe
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*

@@ -1,4 +1,5 @@
-package ch08.simplePipe
+package ch08
+package simplePipe
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
