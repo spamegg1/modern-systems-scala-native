@@ -88,12 +88,12 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     outputBuffer._2 = outputSize.toUSize // 0.5
     !req = outputBuffer.asInstanceOf[Ptr[Byte]]
 
-    uv_fs_write(EventLoop.loop, req, fd, outputBuffer, 1, offset, writeCB)
+    uv_fs_write(ch07.EventLoop.loop, req, fd, outputBuffer, 1, offset, writeCB)
     offset += outputSize
 
   override def done(): Unit =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
-    uv_fs_close(EventLoop.loop, req, fd, null)
+    uv_fs_close(ch07.EventLoop.loop, req, fd, null)
     FileOutputPipe.activeStreams -= serial
 
 object FileOutputPipe:
@@ -201,7 +201,7 @@ object FilePipe:
     !req = state.asInstanceOf[Ptr[Byte]]
 
     println("about to read")
-    uv_fs_read(EventLoop.loop, req, fd, buf, 1, -1, readCB)
+    uv_fs_read(ch07.EventLoop.loop, req, fd, buf, 1, -1, readCB)
     println("read started")
     val pipe = Pipe.source[String]
     handlers(fd) = pipe
@@ -228,7 +228,7 @@ object FilePipe:
       pipe.feed(output)
       println("continuing")
       state_ptr._3 = state_ptr._3 + res
-      uv_fs_read(EventLoop.loop, req, fd, state_ptr._2, 1, state_ptr._3, readCB)
+      uv_fs_read(ch07.EventLoop.loop, req, fd, state_ptr._2, 1, state_ptr._3, readCB)
     else if res == 0 then
       println("done")
       val pipe = handlers(fd)
@@ -247,7 +247,7 @@ object SyncPipe:
 
   def stream(fd: Int): Pipe[String, String] =
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
-    uv_pipe_init(EventLoop.loop, handle, 0)
+    uv_pipe_init(ch07.EventLoop.loop, handle, 0)
     val pipeData = handle.asInstanceOf[Ptr[Int]]
     !pipeData = serial
     activeStreams += serial
@@ -286,7 +286,7 @@ object SyncPipe:
         pipeDestination.feed(dataString.trim())
 
 import ch07.LibUV.*, ch07.LibUVConstants.*
-implicit val ec: ExecutionContext = EventLoop
+given ec: ExecutionContext = ch07.EventLoop
 
 @main
 def filePipeOut(args: String*): Unit =
@@ -298,7 +298,7 @@ def filePipeOut(args: String*): Unit =
     .addDestination(FileOutputPipe(c"./output.txt", false))
 
   println("running")
-  uv_run(EventLoop.loop, UV_RUN_DEFAULT)
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
 
 @extern
 object util:

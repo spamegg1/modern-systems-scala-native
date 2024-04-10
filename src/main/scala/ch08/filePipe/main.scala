@@ -123,7 +123,7 @@ object FilePipe:
 
   def stream(path: CString): Pipe[String, String] =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
-    checkError(uv_fs_open(EventLoop.loop, req, path, 0, 0, null), "uv_fs_open")
+    checkError(uv_fs_open(ch07.EventLoop.loop, req, path, 0, 0, null), "uv_fs_open")
     println("opening file")
     val fd = util.open(path, 0, 0)
     stdio.printf(c"open file at %s returned %d\n", path, fd)
@@ -140,7 +140,7 @@ object FilePipe:
     !req = state.asInstanceOf[Ptr[Byte]]
 
     println("about to read")
-    uv_fs_read(EventLoop.loop, req, fd, buf, 1, -1, readCB)
+    uv_fs_read(ch07.EventLoop.loop, req, fd, buf, 1, -1, readCB)
     println("read started")
     val pipe = Pipe.source[String]
     handlers(fd) = pipe
@@ -167,7 +167,7 @@ object FilePipe:
       pipe.feed(output)
       println("continuing")
       state_ptr._3 = state_ptr._3 + res
-      uv_fs_read(EventLoop.loop, req, fd, state_ptr._2, 1, state_ptr._3, readCB)
+      uv_fs_read(ch07.EventLoop.loop, req, fd, state_ptr._2, 1, state_ptr._3, readCB)
     else if res == 0 then
       println("done")
       val pipe = handlers(fd)
@@ -188,7 +188,7 @@ object SyncPipe:
 
   def stream(fd: Int): Pipe[String, String] =
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
-    uv_pipe_init(EventLoop.loop, handle, 0)
+    uv_pipe_init(ch07.EventLoop.loop, handle, 0)
     val pipeData = handle.asInstanceOf[Ptr[Int]]
     !pipeData = serial
     activeStreams += serial
@@ -226,7 +226,7 @@ object SyncPipe:
         pipeDestination.feed(data_string.trim())
 
 import ch07.LibUV.*, ch07.LibUVConstants.*
-given ec: ExecutionContext = EventLoop
+given ec: ExecutionContext = ch07.EventLoop
 
 @main
 def filePipeMain(args: String*): Unit =
@@ -243,7 +243,7 @@ def filePipeMain(args: String*): Unit =
     .map(_ => println("stream completed!"))
 
   println("running")
-  uv_run(EventLoop.loop, UV_RUN_DEFAULT)
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
 
 @extern
 object util:

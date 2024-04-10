@@ -37,7 +37,7 @@ object SyncPipe:
 
   def apply(fd: Int): SyncPipe[String, String] =
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
-    uv_pipe_init(EventLoop.loop, handle, 0)
+    uv_pipe_init(ch07.EventLoop.loop, handle, 0)
     val pipeData = handle.asInstanceOf[Ptr[Int]]
     !pipeData = serial
     activeStreams += serial
@@ -90,5 +90,5 @@ def simplePipe(args: String*): Unit =
       case Success(i) => println(s"saw number $i")
       case Failure(f) => println(s"error: $f")
 
-  uv_run(EventLoop.loop, UV_RUN_DEFAULT)
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
   println("done")
