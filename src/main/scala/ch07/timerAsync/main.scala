@@ -1,10 +1,11 @@
-package ch07.timerAsync
+package ch07
+package timerAsync
 
 import scala.concurrent.duration.*
 import scala.concurrent.ExecutionContext
 
 @main
-def timerAsync(args: String*): Unit =
+def timerAsync: Unit =
   println("hello")
   given ExecutionContext = EventLoop
   println("setting up timer")
