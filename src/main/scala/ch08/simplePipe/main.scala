@@ -7,29 +7,9 @@ import scalanative.libc.stdlib
 import scalanative.libc.string
 import collection.mutable
 import scala.util.{Try, Success, Failure}
-
-trait Pipe[T, U]:
-  val handlers = mutable.Set[Pipe[U, ?]]()
-  def feed(input: T): Unit
-  def done(): Unit = for h <- handlers do h.done()
-  def addDestination[V](dest: Pipe[U, V]): Pipe[U, V] =
-    handlers += dest
-    dest
-
-  // ...
-  def map[V](g: U => V): Pipe[U, V] =
-    val destination = SyncPipe(g)
-    handlers += destination
-    destination
-
-case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
-  def feed(input: T): Unit =
-    val output = f(input)
-    for h <- handlers do h.feed(output)
+import ch07.LibUV.*, ch07.LibUVConstants.*
 
 object SyncPipe:
-  import ch07.LibUV.*, ch07.LibUVConstants.*
-
   var activeStreams: mutable.Set[Int] = mutable.Set()
   var handlers = mutable.HashMap[Int, SyncPipe[String, String]]()
   var serial = 0
@@ -40,7 +20,7 @@ object SyncPipe:
     val pipeData = handle.asInstanceOf[Ptr[Int]]
     !pipeData = serial
     activeStreams += serial
-    val pipe = SyncPipe[String, String] { s => s }
+    val pipe = new SyncPipe[String, String](s => s)
     handlers(serial) = pipe
 
     serial += 1
@@ -70,8 +50,6 @@ object SyncPipe:
         stdlib.free(dataBuffer)
         val pipeDestination = handlers(pipeId)
         pipeDestination.feed(dataString.trim())
-
-import ch07.LibUV.*, ch07.LibUVConstants.*
 
 @main
 def simplePipe(args: String*): Unit =
