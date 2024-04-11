@@ -9,46 +9,16 @@ import scala.util.{Try, Success, Failure}
 import concurrent.{Future, ExecutionContext, Promise}
 
 trait Pipe[T, U]:
-  val handlers = mutable.Set[Pipe[U, ?]]()
-  def feed(input: T): Unit
-  def done(): Unit = for h <- handlers do h.done()
+  def feed(input: T): Unit // unimplemented
 
+  val handlers = mutable.Set[Pipe[U, ?]]() // implemented
+  def done(): Unit = for h <- handlers do h.done()
   def addDestination[V](dest: Pipe[U, V]): Pipe[U, V] =
     handlers += dest
     dest
-
-  case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
-    override def feed(input: T): Unit =
-      val output = f(input)
-      for h <- handlers do h.feed(output)
-
   def map[V](g: U => V): Pipe[U, V] = addDestination(SyncPipe(g))
-
-  case class ConcatPipe[T, U](f: T => Seq[U]) extends Pipe[T, U]:
-    override def feed(input: T): Unit =
-      val output = f(input)
-      for
-        h <- handlers
-        o <- output
-      do h.feed(o)
-
   def mapConcat[V](g: U => Seq[V]): Pipe[U, V] = addDestination(ConcatPipe(g))
-
-  case class OptionPipe[T, U](f: T => Option[U]) extends Pipe[T, U]:
-    override def feed(input: T): Unit =
-      val output = f(input)
-      for
-        h <- handlers
-        o <- output
-      do h.feed(o)
-
   def mapOption[V](g: U => Option[V]): Pipe[U, V] = addDestination(OptionPipe(g))
-
-  case class AsyncPipe[T, U](f: T => Future[U])(using ec: ExecutionContext)
-      extends Pipe[T, U]:
-    override def feed(input: T): Unit =
-      f(input).map(o => for h <- handlers do h.feed(o))
-
   def mapAsync[V](g: U => Future[V])(using ec: ExecutionContext): Pipe[U, V] =
     addDestination(AsyncPipe(g))
 
@@ -56,6 +26,32 @@ trait Pipe[T, U]:
     val sink = OnComplete[U]()
     addDestination(sink)
     sink.promise.future
+
+case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
+  override def feed(input: T): Unit =
+    val output = f(input)
+    for h <- handlers do h.feed(output)
+
+case class ConcatPipe[T, U](f: T => Seq[U]) extends Pipe[T, U]:
+  override def feed(input: T): Unit =
+    val output = f(input)
+    for
+      h <- handlers
+      o <- output
+    do h.feed(o)
+
+case class OptionPipe[T, U](f: T => Option[U]) extends Pipe[T, U]:
+  override def feed(input: T): Unit =
+    val output = f(input)
+    for
+      h <- handlers
+      o <- output
+    do h.feed(o)
+
+case class AsyncPipe[T, U](f: T => Future[U])(using ec: ExecutionContext)
+    extends Pipe[T, U]:
+  override def feed(input: T): Unit =
+    f(input).map(o => for h <- handlers do h.feed(o))
 
 case class OnComplete[T]()(implicit ec: ExecutionContext) extends Pipe[T, Unit]:
   val promise = Promise[Unit]()

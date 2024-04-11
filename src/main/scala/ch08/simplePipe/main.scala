@@ -10,10 +10,8 @@ import scala.util.{Try, Success, Failure}
 
 trait Pipe[T, U]:
   val handlers = mutable.Set[Pipe[U, ?]]()
-
   def feed(input: T): Unit
   def done(): Unit = for h <- handlers do h.done()
-
   def addDestination[V](dest: Pipe[U, V]): Pipe[U, V] =
     handlers += dest
     dest

@@ -52,24 +52,27 @@ For example, Chapter 4's `badExec.scala` duplicates a lot of code from `nativeFo
 
 ```scala
 // this is common.scala
-package ch04.common
+package ch04
+
+// ...
 ```
 
 ```scala
 // this is nativeFork.scala
-package ch04.nativeFork
+package ch04
+package nativeFork
 
-import ch04.common
 // ...
+// then use code from common.scala here
 ```
 
 ```scala
 // this is badExec.scala
-package ch04.badExec
+package ch04
+package badExec
 
-import ch04.common
 // ...
-// then use common.runCommand in @main
+// then use code from common.scala here
 ```
 
 There is a lot of this duplication in later chapters. I'll fix them.
