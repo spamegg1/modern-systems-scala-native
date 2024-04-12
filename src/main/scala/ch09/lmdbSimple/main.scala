@@ -1,4 +1,5 @@
-package ch09.lmdbSimple
+package ch09
+package lmdbSimple
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.*

@@ -14,6 +14,8 @@ object SyncPipe:
   var handlers = mutable.HashMap[Int, SyncPipe[String, String]]()
   var serial = 0
 
+  def activeRequests: Int = activeStreams.size
+
   def apply(fd: Int): SyncPipe[String, String] =
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
     uv_pipe_init(ch07.EventLoop.loop, handle, 0)
@@ -30,7 +32,7 @@ object SyncPipe:
 
   val allocCB = CFuncPtr3.fromScalaFunction[PipeHandle, CSize, Ptr[Buffer], Unit]:
     (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
-      val buf = stdlib.malloc(4096.toUSize) // 0.5
+      val buf = stdlib.malloc(4096) // 0.5
       buffer._1 = buf
       buffer._2 = 4096.toUSize // 0.5
 
@@ -39,6 +41,7 @@ object SyncPipe:
       val pipeData = handle.asInstanceOf[Ptr[Int]]
       val pipeId = !pipeData
       println(s"read $size bytes from pipe $pipeId")
+
       if size < 0 then
         println("size < 0, closing")
         activeStreams -= pipeId

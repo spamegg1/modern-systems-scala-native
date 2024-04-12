@@ -1,4 +1,5 @@
-package ch09.jsonSimple
+package ch09
+package jsonSimple
 
 import scala.scalanative.unsafe.*
 import scala.scalanative.libc.*

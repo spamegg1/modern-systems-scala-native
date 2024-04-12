@@ -1,4 +1,5 @@
-package `09lmdbWeb`
+package ch09
+package lmdbWeb
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scala.scalanative.unsafe.*

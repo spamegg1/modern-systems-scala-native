@@ -1,4 +1,5 @@
-package `09lmdbWeb`
+package ch09
+package lmdbWeb
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
@@ -12,7 +13,7 @@ val addPatn = raw"/add/([^/]+)/([^/]+)".r
 val fetchPatn = raw"/fetch/([^/]+)".r
 val listPatn = raw"/list/([^/]+)".r
 
-// @main
+@main
 def lmbdWebMain1(args: String*): Unit =
   val env = LMDB.open(c"./db")
   Server.serve_http(
@@ -75,15 +76,13 @@ object Server:
 
   val loop = uv_default_loop()
 
-  // val connectionCB = new ConnectionCB:
-  val connectionCB =
-    CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]((handle: TCPHandle, status: Int) =>
-      // println("received connection")
+  val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]:
+    (handle: TCPHandle, status: Int) =>
+      println("received connection")
       val client = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
       check_error(uv_tcp_init(loop, client), "uv_tcp_init(client)")
       check_error(uv_accept(handle, client), "uv_accept")
       check_error(uv_read_start(client, allocCB, readCB), "uv_read_start")
-    )
 
   var router: RequestHandler = _ =>
     HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
@@ -107,22 +106,14 @@ object Server:
     check_error(uv_tcp_bind(handle, addr, flags), "uv_tcp_bind")
     check_error(uv_listen(handle, backlog, callback), "uv_tcp_listen")
     uv_run(loop, UV_RUN_DEFAULT)
-    ()
 
-  // val allocCB = new AllocCB:
-  val allocCB =
-    CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit](
-      (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
-        val buf = stdlib.malloc(4096.toUSize) // 0.5
-        buffer._1 = buf
-        buffer._2 = 4096.toUSize // 0.5
-    )
+  val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
+    (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
+      val buf = stdlib.malloc(4096.toUSize) // 0.5
+      buffer._1 = buf
+      buffer._2 = 4096.toUSize // 0.5
 
-  def append_data(
-      state: Ptr[ClientState],
-      size: CSSize,
-      buffer: Ptr[Buffer]
-  ): Unit =
+  def append_data(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
     val copyPosition = state._1 + state._3
     string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
     state._3 = state._3 + size.toUSize // 0.5
