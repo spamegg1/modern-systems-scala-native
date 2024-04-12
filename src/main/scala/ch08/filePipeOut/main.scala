@@ -1,5 +1,6 @@
 package ch08
-package filePipeOut
+package filePipe
+package out
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
@@ -7,6 +8,7 @@ import scalanative.libc.*, stdlib.*, string.strncpy
 import collection.mutable
 import scala.util.{Try, Success, Failure}
 import concurrent.{Future, ExecutionContext, Promise}
+import ch07.LibUV.*, ch07.LibUVConstants.*
 
 case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     extends Pipe[String, Unit]:
@@ -38,9 +40,6 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     FileOutputPipe.activeStreams -= serial
 
 object FileOutputPipe:
-  import ch07.LibUV.*, ch07.LibUVConstants.*
-  import stdlib.*
-
   var activeStreams: mutable.Set[Int] = mutable.Set()
   var serial = 0
 
@@ -73,11 +72,10 @@ object FileOutputPipe:
   // def onClose(client: PipeHandle): Unit = stdlib.free(client.cast[Ptr[Byte]])
   // val closeCB = CFunctionPtr.fromFunction1(onClose)
 
-import ch07.LibUV.*, ch07.LibUVConstants.*
-given ec: ExecutionContext = ch07.EventLoop
-
 @main
 def filePipeOut(args: String*): Unit =
+  given ec: ExecutionContext = ch07.EventLoop
+
   val p = FilePipe(c"./data.txt")
     .map(d => { println(s"consumed $d"); d })
     .addDestination(Tokenizer("\n"))
@@ -87,7 +85,3 @@ def filePipeOut(args: String*): Unit =
 
   println("running")
   uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
-
-@extern
-object util:
-  def open(path: CString, flags: Int, mode: Int): Int = extern

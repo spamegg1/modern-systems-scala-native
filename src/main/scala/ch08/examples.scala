@@ -3,9 +3,9 @@ package ch08
 import scalanative.unsafe.CQuote
 import scala.util.Try
 
-object FileInputPipeExample:
-  import ch07.LibUV.*, ch07.LibUVConstants.*, filePipeOut.FileOutputPipe
+import ch07.LibUV.*, ch07.LibUVConstants.*, filePipe.FilePipe
 
+object FileInputPipeExample:
   @main
   def fileInputPipe: Unit =
     val p = FilePipe
@@ -22,8 +22,7 @@ object FileInputPipeExample:
     println("done")
 
 object FileOutputPipeExample:
-  import ch07.LibUV.*, ch07.LibUVConstants.*, filePipeOut.FileOutputPipe
-
+  import filePipe.out.FileOutputPipe
   @main
   def fileOutputPipe: Unit =
     println("hello!")
@@ -38,7 +37,7 @@ object FileOutputPipeExample:
         val parsed = Try(d.toInt)
         println(s"parsed: $parsed")
         parsed.toString
-    // .addDestination(FileOutputPipe(c"./output.txt", false))
+      .addDestination(FileOutputPipe(c"./output.txt", false))
     uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
     println("done")
 
