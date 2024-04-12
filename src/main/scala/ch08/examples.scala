@@ -4,8 +4,7 @@ import scalanative.unsafe.CQuote
 import scala.util.Try
 
 object FileInputPipeExample:
-  import ch07.LibUV.*, ch07.LibUVConstants.*
-  import filePipe.FilePipe, filePipeOut.FileOutputPipe
+  import ch07.LibUV.*, ch07.LibUVConstants.*, filePipeOut.FileOutputPipe
 
   @main
   def fileInputPipe: Unit =
@@ -23,8 +22,7 @@ object FileInputPipeExample:
     println("done")
 
 object FileOutputPipeExample:
-  import ch07.LibUV.*, ch07.LibUVConstants.*
-  import filePipe.FilePipe, filePipeOut.FileOutputPipe
+  import ch07.LibUV.*, ch07.LibUVConstants.*, filePipeOut.FileOutputPipe
 
   @main
   def fileOutputPipe: Unit =
