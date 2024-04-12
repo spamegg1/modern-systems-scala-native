@@ -28,7 +28,7 @@ You can compile and run `@main` methods in VS Code with Metals by clicking the r
 There are 35+ `@main` methods in the project. To compile a specific one to a binary, you can use inside the root directory, for example:
 
 ```bash
-$ scala-cli package --main-class ch08.simplePipe.simplePipe
+$ scala-cli package . --main-class ch08.simplePipe.simplePipe
 ```
 
 This will place the binary executable in the project root directory:
