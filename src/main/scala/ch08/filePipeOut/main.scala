@@ -90,9 +90,7 @@ object FilePipe:
     val fd = util.open(path, 0, 0)
     stdio.printf(c"open file at %s returned %d\n", path, fd)
 
-    val state = stdlib
-      .malloc(sizeof[FilePipeState])
-      .asInstanceOf[Ptr[FilePipeState]]
+    val state = stdlib.malloc(sizeof[FilePipeState]).asInstanceOf[Ptr[FilePipeState]]
     val buf = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
     buf._1 = stdlib.malloc(4096.toUSize) // 0.5
     buf._2 = 4095.toUSize // 0.5

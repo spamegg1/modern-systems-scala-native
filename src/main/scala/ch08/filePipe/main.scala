@@ -19,7 +19,7 @@ object FilePipe:
   var handlers = mutable.HashMap[Int, Pipe[String, String]]()
   var serial = 0
 
-  def stream(path: CString): Pipe[String, String] =
+  def apply(path: CString): Pipe[String, String] =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
     checkError(uv_fs_open(ch07.EventLoop.loop, req, path, 0, 0, null), "uv_fs_open")
     println("opening file")
@@ -129,7 +129,7 @@ given ec: ExecutionContext = ch07.EventLoop
 @main
 def filePipeMain(args: String*): Unit =
   println("hello!")
-  val p = FilePipe.stream(c"./data.text")
+  val p = FilePipe.apply(c"./data.text")
   println("ok")
   var buffer = ""
   val done = p

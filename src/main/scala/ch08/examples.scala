@@ -10,7 +10,7 @@ object FileInputPipeExample:
   @main
   def fileInputPipe: Unit =
     val p = FilePipe
-      .stream(c"./data.txt")
+      .apply(c"./data.txt")
       .map: d =>
         println(s"consumed $d")
         d
@@ -30,7 +30,7 @@ object FileOutputPipeExample:
   def fileOutputPipe: Unit =
     println("hello!")
     // val p = SyncPipe(0)
-    val p = FilePipe.stream(c"./data.txt")
+    val p = FilePipe.apply(c"./data.txt")
 
     val q = p
       .map: d =>
