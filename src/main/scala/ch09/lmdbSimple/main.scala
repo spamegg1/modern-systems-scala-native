@@ -9,10 +9,10 @@ import argonaut.*
 import Argonaut.*
 import LMDB.*
 
-val lineBuffer = stdlib.malloc(1024.toUSize) // 0.5
-val getKeyBuffer = stdlib.malloc(512.toUSize) // 0.5
-val putKeyBuffer = stdlib.malloc(512.toUSize) // 0.5
-val valueBuffer = stdlib.malloc(512.toUSize) // 0.5
+val lineBuffer = stdlib.malloc(1024) // 0.5
+val getKeyBuffer = stdlib.malloc(512) // 0.5
+val putKeyBuffer = stdlib.malloc(512) // 0.5
+val valueBuffer = stdlib.malloc(512) // 0.5
 
 @main
 def lmdbSimple(args: String*): Unit =
@@ -39,7 +39,7 @@ def lmdbSimple(args: String*): Unit =
   println("done")
 
 object LMDB:
-  import lmdb_impl.*
+  import LmdbImpl.*
 
   def open(path: CString): Env =
     val envPtr = stackalloc[Env](sizeof[Env])
@@ -50,8 +50,8 @@ object LMDB:
     env
 
   def put(env: Env, key: CString, value: CString): Unit =
-    val databasePtr = stackalloc[DB]()
-    val transactionPtr = stackalloc[Transaction]()
+    val databasePtr = stackalloc[DB](1)
+    val transactionPtr = stackalloc[Transaction](1)
 
     check(
       mdb_transactionn_begin(env, null, 0, transactionPtr),
@@ -61,11 +61,11 @@ object LMDB:
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
     val db = !databasePtr
 
-    val k = stackalloc[Key]()
+    val k = stackalloc[Key](1)
     k._1 = string.strlen(key).toLong + 1.toLong
     k._2 = key
 
-    val v = stackalloc[Value]()
+    val v = stackalloc[Value](1)
     v._1 = string.strlen(value).toLong + 1.toLong
     v._2 = value
 
@@ -73,8 +73,8 @@ object LMDB:
     check(mdb_transactionn_commit(transaction), "mdb_transactionn_commit")
 
   def get(env: Env, key: CString): CString =
-    val databasePtr = stackalloc[DB]()
-    val transactionPtr = stackalloc[Transaction]()
+    val databasePtr = stackalloc[DB](1)
+    val transactionPtr = stackalloc[Transaction](1)
 
     check(
       mdb_transactionn_begin(env, null, 0, transactionPtr),
@@ -104,15 +104,15 @@ object LMDB:
 
 @link("lmdb")
 @extern
-object lmdb_impl:
+object LmdbImpl:
   type Env = Ptr[Byte]
   type DB = UInt
-  def mdb_env_create(env: Ptr[Env]): Int = extern
-  def mdb_env_open(env: Env, path: CString, flags: Int, mode: Int): Int = extern
-
   type Transaction = Ptr[Byte]
   type Key = CStruct2[Long, Ptr[Byte]]
   type Value = CStruct2[Long, Ptr[Byte]]
+
+  def mdb_env_create(env: Ptr[Env]): Int = extern
+  def mdb_env_open(env: Env, path: CString, flags: Int, mode: Int): Int = extern
   def mdb_transactionn_begin(
       env: Env,
       parent: Ptr[Byte],
@@ -133,7 +133,6 @@ object lmdb_impl:
       flags: Int
   ): Int = extern
   def mdb_transactionn_commit(transaction: Transaction): Int = extern
-
   def mdb_get(
       transaction: Transaction,
       db: DB,
