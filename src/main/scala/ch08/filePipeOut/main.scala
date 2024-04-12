@@ -73,9 +73,6 @@ object FileOutputPipe:
   // def onClose(client: PipeHandle): Unit = stdlib.free(client.cast[Ptr[Byte]])
   // val closeCB = CFunctionPtr.fromFunction1(onClose)
 
-case class FilePipe(serial: Long) extends Pipe[String, String]:
-  override def feed(input: String): Unit = for h <- handlers do h.feed(input)
-
 object FilePipe:
   import ch07.LibUV.*, ch07.LibUVConstants.*
   type FilePipeState = CStruct3[Int, Ptr[Buffer], Long] // fd, buffer, offset
@@ -86,13 +83,14 @@ object FilePipe:
 
   def apply(path: CString): Pipe[String, String] =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
+    // checkError(uv_fs_open(ch07.EventLoop.loop, req, path, 0, 0, null), "uv_fs_open")
     println("opening file")
     val fd = util.open(path, 0, 0)
     stdio.printf(c"open file at %s returned %d\n", path, fd)
 
     val state = stdlib.malloc(sizeof[FilePipeState]).asInstanceOf[Ptr[FilePipeState]]
     val buf = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    buf._1 = stdlib.malloc(4096.toUSize) // 0.5
+    buf._1 = stdlib.malloc(4096) // 0.5
     buf._2 = 4095.toUSize // 0.5
     state._1 = fd
     state._2 = buf

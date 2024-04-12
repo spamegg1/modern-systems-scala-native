@@ -1,7 +1,7 @@
 package ch08
 
 import scalanative.unsafe.CQuote
-import util.Try
+import scala.util.Try
 
 object FileInputPipeExample:
   import ch07.LibUV.*, ch07.LibUVConstants.*
