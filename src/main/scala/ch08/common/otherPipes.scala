@@ -2,11 +2,6 @@ package ch08
 
 import concurrent.{Future, ExecutionContext, Promise}
 
-case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
-  override def feed(input: T): Unit =
-    val output = f(input)
-    for h <- handlers do h.feed(output)
-
 case class ConcatPipe[T, U](f: T => Seq[U]) extends Pipe[T, U]:
   override def feed(input: T): Unit =
     val output = f(input)
