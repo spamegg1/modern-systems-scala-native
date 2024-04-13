@@ -108,6 +108,30 @@ Wrote /home/spam/Projects/modern-systems-scala-native/ch08.simplePipe.simplePipe
   ./ch08.simplePipe.simplePipe
 ```
 
+## Linking to external C libraries
+
+The book uses `@link` and `= extern` constructs of Scala Native to link with libraries such as `libuv`, `libcurl` and `liblmdb`. For example:
+
+```scala
+@link("lmdb")
+@extern
+object LmdbImpl:
+  def mdb_env_create(env: Ptr[Env]): Int = extern
+  def mdb_env_open(env: Env, path: CString, flags: Int, mode: Int): Int = extern
+```
+
+On Ubuntu I had to install these (I think `libcurl` might have been pre-installed already?):
+
+```bash
+sudo apt install libuv1 libuv1-dev libcurl4 libcurl4-dev liblmdb0 liblmdb-dev
+```
+
+The author did all of this work. But if we wanted to do this on our own, it would be difficult to get right the type signatures of the functions. Scala Native main contributor's advice is to directly take [the header file of such a library](https://github.com/libuv/libuv/blob/v1.x/include/uv.h), and use [`sn-bindgen`](https://github.com/indoorvivants/sn-bindgen) to generate the bindings:
+
+![bindgen](images/bindgen.png)
+
+I haven't tried that myself, but that's the way to go.
+
 ## Differences from the book
 
 I noticed many things have changed.

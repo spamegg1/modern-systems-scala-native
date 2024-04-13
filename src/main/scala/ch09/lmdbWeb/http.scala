@@ -29,7 +29,7 @@ case class HttpResponse(
 )
 
 object HTTP:
-  import LibUV.*, LibUVConstants.*
+  import LibUV.*, ch07.LibUVConstants.*
 
   type RequestHandler = Function1[HttpRequest, HttpResponse]
 

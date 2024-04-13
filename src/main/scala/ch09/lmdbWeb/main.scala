@@ -67,7 +67,7 @@ def lmbdWebMain2(args: String*): Unit =
   )
 
 object Server:
-  import LibUV.*, LibUVConstants.*, HTTP.RequestHandler
+  import LibUV.*, ch07.LibUVConstants.*, HTTP.RequestHandler
 
   type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
 
@@ -126,7 +126,7 @@ object Server:
     checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
 
   def shutdown(client: TCPHandle): Unit =
-    val shutdownReq = malloc(uv_req_size(UV_shutdownReq_T)).asInstanceOf[ShutdownReq]
+    val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
     !shutdownReq = client.asInstanceOf[Ptr[Byte]]
     checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
@@ -171,12 +171,12 @@ object LibUV:
   type Loop = Ptr[Byte]
   type TimerCB = CFuncPtr1[TimerHandle, Unit]
   type Buffer = CStruct2[Ptr[Byte], CSize]
-  type TCPHandle = Ptr[Ptr[Byte]]
-  type ConnectionCB = CFuncPtr2[TCPHandle, Int, Unit]
+  type TCPHandle = Ptr[Ptr[Byte]] // different!
+  type ConnectionCB = CFuncPtr2[TCPHandle, Int, Unit] // different b/c TCPHandle
   type WriteReq = Ptr[Ptr[Byte]]
   type ShutdownReq = Ptr[Ptr[Byte]]
-  type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit]
-  type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit]
+  type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit] // different b/c TCPHandle
+  type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit] // different b/c TCPHandle
   type WriteCB = CFuncPtr2[WriteReq, Int, Unit]
   type ShutdownCB = CFuncPtr2[ShutdownReq, Int, Unit]
   type CloseCB = CFuncPtr1[TCPHandle, Unit]
@@ -217,40 +217,3 @@ object LibUV:
   def uv_close(handle: TCPHandle, closeCB: CloseCB): Int = extern
   def uv_ip4_addr(address: CString, port: Int, out_addr: Ptr[Byte]): Int = extern
   def uv_ip4_name(address: Ptr[Byte], s: CString, size: Int): Int = extern
-
-object LibUVConstants:
-  import LibUV.*
-
-  // uv_run_mode
-  val UV_RUN_DEFAULT = 0
-  val UV_RUN_ONCE = 1
-  val UV_RUN_NOWAIT = 2
-
-  // UV_HANDLE_T
-  val UV_PIPE_T = 7
-  val UV_POLL_T = 8
-  val UV_PREPARE_T = 9
-  val UV_PROCESS_T = 10
-  val UV_TCP_T = 12
-  val UV_TIMER_T = 13
-  val UV_TTY_T = 14
-  val UV_UDP_T = 15
-
-  // UV_REQ_T
-  val UV_WRITE_REQ_T = 3
-  val UV_shutdownReq_T = 4
-
-  val UV_READABLE = 1
-  val UV_WRITABLE = 2
-  val UV_DISCONNECT = 4
-  val UV_PRIORITIZED = 8
-
-  def checkError(v: Int, label: String): Int =
-    if v == 0 then
-      println(s"$label returned $v")
-      v
-    else
-      val error = fromCString(uv_err_name(v))
-      val message = fromCString(uv_strerror(v))
-      println(s"$label returned $v: $error: $message")
-      v
