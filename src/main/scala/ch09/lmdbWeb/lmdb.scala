@@ -1,18 +1,17 @@
 package ch09
 package lmdbWeb
 
-import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
+import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt, UInt}
 import scala.scalanative.unsafe.*
-import scala.scalanative.unsigned.*
-import scala.scalanative.libc.*
-import argonaut.*
-import Argonaut.*
+import scala.scalanative.libc.{stdio, stdlib, string}
+import argonaut.{Argonaut, EncodeJson, DecodeJson}
+import Argonaut.{ToJsonIdentity, StringToParseWrap}
 
 object LMDB:
   import LmdbImpl.*
 
   def open(path: CString): Env =
-    val envPtr = stackalloc[Env](sizeof[Env])
+    val envPtr = stackalloc[Env](1)
     check(mdb_env_create(envPtr), "mdb_env_create")
     val env = !envPtr
     // Unix permissions for 0644 (read/write)
@@ -51,6 +50,7 @@ object LMDB:
     val k = stackalloc[Key](1)
     k._1 = string.strlen(key).toLong + 1.toLong
     k._2 = key
+
     val v = stackalloc[Value](1)
     v._1 = string.strlen(value).toLong + 1.toLong
     v._2 = value
@@ -71,8 +71,8 @@ object LMDB:
     val rKey = stackalloc[Key](1)
     rKey._1 = string.strlen(key).toLong + 1.toLong
     rKey._2 = key
-    val rValue = stackalloc[Value](1)
 
+    val rValue = stackalloc[Value](1)
     check(mdb_get(transaction, database, rKey, rValue), "mdb_get")
 
     stdio.printf(c"key: %s value: %s\n", rKey._2, rValue._2)
@@ -82,7 +82,7 @@ object LMDB:
     output
 
   def check(result: Int, label: String): Unit =
-    if result != 0 then throw new Exception(s"bad LMDB call: $label returned $result")
+    if result != 0 then throw Exception(s"bad LMDB call: $label returned $result")
     else println(s"$label returned $result")
 
 @link("lmdb")

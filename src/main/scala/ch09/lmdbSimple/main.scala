@@ -1,13 +1,9 @@
 package ch09
 package lmdbSimple
 
-import scalanative.unsigned.UnsignedRichInt // .toUSize
+import scalanative.unsigned.{UnsignedRichInt, UnsignedRichLong, UInt} // .toUSize
 import scalanative.unsafe.*
-import scalanative.libc.*
-import scalanative.unsigned.*
-import argonaut.*
-import Argonaut.*
-import LMDB.*
+import scalanative.libc.{stdlib, stdio, string}
 
 val lineBuffer = stdlib.malloc(1024) // 0.5
 val getKeyBuffer = stdlib.malloc(512) // 0.5
@@ -15,7 +11,7 @@ val putKeyBuffer = stdlib.malloc(512) // 0.5
 val valueBuffer = stdlib.malloc(512) // 0.5
 
 @main
-def lmdbSimple(args: String*): Unit =
+def lmdbSimple: Unit =
   val env = LMDB.open(c"./db")
   stdio.printf(c"opened db %p\n", env)
   stdio.printf(c"> ")
@@ -42,7 +38,7 @@ object LMDB:
   import LmdbImpl.*
 
   def open(path: CString): Env =
-    val envPtr = stackalloc[Env](sizeof[Env])
+    val envPtr = stackalloc[Env](1)
     check(mdb_env_create(envPtr), "mdb_env_create")
     val env = !envPtr
     // Unix permissions for octal 0644 (read/write)
@@ -53,10 +49,8 @@ object LMDB:
     val databasePtr = stackalloc[DB](1)
     val transactionPtr = stackalloc[Transaction](1)
 
-    check(
-      mdb_transactionn_begin(env, null, 0, transactionPtr),
-      "mdb_transactionn_begin"
-    )
+    check(mdb_transaction_begin(env, null, 0, transactionPtr), "mdb_transaction_begin")
+
     val transaction = !transactionPtr
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
     val db = !databasePtr
@@ -76,26 +70,24 @@ object LMDB:
     val databasePtr = stackalloc[DB](1)
     val transactionPtr = stackalloc[Transaction](1)
 
-    check(
-      mdb_transactionn_begin(env, null, 0, transactionPtr),
-      "mdb_transactionn_begin"
-    )
+    check(mdb_transaction_begin(env, null, 0, transactionPtr), "mdb_transaction_begin")
     val transaction = !transactionPtr
 
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
     val database = !databasePtr
 
-    val rk = stackalloc[Key]()
+    val rk = stackalloc[Key](1)
     rk._1 = string.strlen(key).toLong + 1.toLong
     rk._2 = key
-    val rv = stackalloc[Value]()
 
+    val rv = stackalloc[Value](1)
     check(mdb_get(transaction, database, rk, rv), "mdb_get")
-
     stdio.printf(c"key: %s value: %s\n", rk._2, rv._2)
-    val output = stdlib.malloc(rv._1.toUSize) // 0.5
+
+    val output = stdlib.malloc(rv._1) // 0.5
     string.strncpy(output, rv._2, rv._1.toUSize) // 0.5
     check(mdb_transactionn_abort(transaction), "mdb_transactionn_abort")
+
     output
 
   def check(result: Int, label: String): Unit =
@@ -113,7 +105,7 @@ object LmdbImpl:
 
   def mdb_env_create(env: Ptr[Env]): Int = extern
   def mdb_env_open(env: Env, path: CString, flags: Int, mode: Int): Int = extern
-  def mdb_transactionn_begin(
+  def mdb_transaction_begin(
       env: Env,
       parent: Ptr[Byte],
       flags: Int,

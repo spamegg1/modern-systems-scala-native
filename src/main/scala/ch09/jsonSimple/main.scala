@@ -1,10 +1,9 @@
 package ch09
 package jsonSimple
 
-import scala.scalanative.unsafe.*
-import scala.scalanative.libc.*
-import argonaut.*
-import Argonaut.*
+import scala.scalanative.unsafe.{toCString, CQuote, Zone}
+import scala.scalanative.libc.stdio
+import argonaut.{Argonaut, EncodeJson}, Argonaut.ToJsonIdentity
 
 @main
 def jsonSimple(args: String*): Unit =

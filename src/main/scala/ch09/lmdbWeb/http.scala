@@ -1,13 +1,9 @@
 package ch09
 package lmdbWeb
 
-import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
-import scalanative.unsafe.*
-import scalanative.unsigned.*
-import scalanative.libc.*
-import stdio.*
-import stdlib.*
-import string.*
+import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt, UShort}
+import scalanative.unsafe.{fromCString, Ptr, stackalloc, CQuote, CString, Zone, toCString}
+import scalanative.libc.{stdlib, string, stdio}
 import collection.mutable
 
 case class HeaderLine(
@@ -19,12 +15,12 @@ case class HeaderLine(
 case class HttpRequest(
     method: String,
     uri: String,
-    headers: collection.Map[String, String],
+    headers: collection.Map[String, String], // supertype of mutable & immutable Map
     body: String
 )
 case class HttpResponse(
     code: Int,
-    headers: collection.Map[String, String],
+    headers: collection.Map[String, String], // supertype of mutable & immutable Map
     body: String
 )
 
@@ -39,18 +35,13 @@ object HTTP:
   val MAX_URI_SIZE = 2048
   val MAX_METHOD_SIZE = 8
 
-  val methodBuffer = malloc(16) // 0.5
-  val uriBuffer = malloc(4096) // 0.5
+  val methodBuffer = stdlib.malloc(16) // 0.5
+  val uriBuffer = stdlib.malloc(4096) // 0.5
 
   def scanRequestLine(line: CString): (String, String, Int) =
     val lineLen = stackalloc[Int](1)
-    val scanResult = stdio.sscanf(
-      line,
-      c"%s %s %*s\r\n%n",
-      methodBuffer,
-      uriBuffer,
-      lineLen
-    )
+    val scanResult =
+      stdio.sscanf(line, c"%s %s %*s\r\n%n", methodBuffer, uriBuffer, lineLen)
     if scanResult == 2 then (fromCString(methodBuffer), fromCString(uriBuffer), !lineLen)
     else throw Exception("bad request line")
 
@@ -75,16 +66,19 @@ object HTTP:
       val startOfKey = line
       val endOfKey = line + !keyEnd
       !endOfKey = 0
+
       val startOfValue = line + !valueStart
       val endOfValue = line + !valueEnd
       !endOfValue = 0
+
       val key = fromCString(startOfKey)
       val value = fromCString(startOfValue)
       outMap(key) = value
+
       !lineLen
     else throw Exception("bad header line")
 
-  val lineBuffer = malloc(1024) // 0.5
+  val lineBuffer = stdlib.malloc(1024) // 0.5
 
   def parseRequest(req: CString, size: Long): HttpRequest =
     req(size) = 0.toByte // ensure null termination
@@ -97,8 +91,8 @@ object HTTP:
     val headers = mutable.Map[String, String]()
 
     val (method, uri, requestLen) = scanRequestLine(req)
-
     var bytesRead = requestLen
+
     while bytesRead < size do
       reqPosition = req + bytesRead
       val parseHeaderResult = scanHeaderLine(
@@ -119,15 +113,15 @@ object HTTP:
 
     throw Exception(s"bad scan, exceeded $size bytes")
 
-  val keyBuffer = malloc(512) // 0.5
-  val valueBuffer = malloc(512) // 0.5
-  val bodyBuffer = malloc(4096) // 0.5
+  val keyBuffer = stdlib.malloc(512) // 0.5
+  val valueBuffer = stdlib.malloc(512) // 0.5
+  val bodyBuffer = stdlib.malloc(4096) // 0.5
 
   def makeResponse(response: HttpResponse, buffer: Ptr[Buffer]): Unit =
     stdio.snprintf(buffer._1, 4096.toUSize, c"HTTP/1.1 200 OK\r\n") // 0.5
     var headerPos = 0
     val bufferStart = buffer._1
-    var bytesWritten = strlen(bufferStart)
+    var bytesWritten = string.strlen(bufferStart)
     var lastPos = bufferStart + bytesWritten
     var bytesRemaining = 4096.toUSize - bytesWritten // 0.5
     val headers = response.headers.keys.toSeq
@@ -138,17 +132,12 @@ object HTTP:
       Zone: // implicit z => // 0.5
         val keyTemp = toCString(k)
         val valueTemp = toCString(v)
-        strncpy(keyBuffer, keyTemp, 512.toUSize) // 0.5
-        strncpy(valueBuffer, valueTemp, 512.toUSize) // 0.5
+        string.strncpy(keyBuffer, keyTemp, 512.toUSize) // 0.5
+        string.strncpy(valueBuffer, valueTemp, 512.toUSize) // 0.5
 
-      stdio.snprintf(
-        lastPos,
-        bytesRemaining,
-        c"%s: %s\r\n",
-        keyBuffer,
-        valueBuffer
-      )
-      val len = strlen(lastPos)
+      stdio.snprintf(lastPos, bytesRemaining, c"%s: %s\r\n", keyBuffer, valueBuffer)
+
+      val len = string.strlen(lastPos)
       bytesWritten = bytesWritten + len + 1.toUSize // 0.5
       bytesRemaining = 4096.toUSize - bytesWritten // 0.5
       lastPos = lastPos + len
@@ -156,7 +145,7 @@ object HTTP:
 
     Zone: // implicit z => // 0.5
       val body = toCString(response.body)
-      val bodyLen = strlen(body)
-      strncpy(bodyBuffer, body, bodyLen) // 0.5 // was 4096.toUSize
+      val bodyLen = string.strlen(body)
+      string.strncpy(bodyBuffer, body, bodyLen) // 0.5 // was 4096.toUSize
 
     stdio.snprintf(lastPos, bytesRemaining, c"\r\n%s", bodyBuffer)

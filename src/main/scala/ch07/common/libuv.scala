@@ -7,7 +7,7 @@ import scalanative.unsafe.*
 object LibUV:
   type PipeHandle = Ptr[Byte]
   type PollHandle = Ptr[Ptr[Byte]]
-  type TCPHandle = Ptr[Byte]
+  type TCPHandle = Ptr[Byte] // different in ch09
   type TTYHandle = Ptr[Byte]
   type Loop = Ptr[Byte]
   type Buffer = CStruct2[Ptr[Byte], CSize]

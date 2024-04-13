@@ -3,11 +3,9 @@ package lmdbWeb
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
-import scalanative.libc.*
-import stdlib.*
-import string.*
-import argonaut.*
-import Argonaut.*
+import scalanative.libc.{stdlib, string}
+import argonaut.{Argonaut, EncodeJson, DecodeJson}
+import Argonaut.{StringToParseWrap, ToJsonIdentity}
 
 val addPatn = raw"/add/([^/]+)/([^/]+)".r
 val fetchPatn = raw"/fetch/([^/]+)".r
@@ -76,7 +74,7 @@ object Server:
   val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]:
     (handle: TCPHandle, status: Int) =>
       println("received connection")
-      val client = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
+      val client = stdlib.malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
       checkError(uv_tcp_init(loop, client), "uv_tcp_init(client)")
       checkError(uv_accept(handle, client), "uv_accept")
       checkError(uv_read_start(client, allocCB, readCB), "uv_read_start")
@@ -98,7 +96,7 @@ object Server:
   ): Unit =
     val addr = stackalloc[Byte](1)
     val addrConvert = uv_ip4_addr(address, port, addr)
-    val handle = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
+    val handle = stdlib.malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
     checkError(uv_tcp_init(loop, handle), "uv_tcp_init(server)")
     checkError(uv_tcp_bind(handle, addr, flags), "uv_tcp_bind")
     checkError(uv_listen(handle, backlog, callback), "uv_tcp_listen")
@@ -111,22 +109,25 @@ object Server:
       buffer._2 = 4096.toUSize // 0.5
 
   def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
-    val copyPosition = state._1 + state._3
+    val copyPosition: Ptr[Byte] = state._1 + state._3
     string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
     state._3 = state._3 + size.toUSize // 0.5
 
   def sendResponse(client: TCPHandle, response: HttpResponse): Unit =
-    val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
-    val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    responseBuffer._1 = malloc(4096) // 0.5
+    val req = stdlib.malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
+    val responseBuffer = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
+
+    responseBuffer._1 = stdlib.malloc(4096) // 0.5
     responseBuffer._2 = 4096.toUSize // 0.5
     HTTP.makeResponse(response, responseBuffer)
+
     responseBuffer._2 = string.strlen(responseBuffer._1)
     !req = responseBuffer.asInstanceOf[Ptr[Byte]]
     checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
 
   def shutdown(client: TCPHandle): Unit =
-    val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
+    val shutdownReq =
+      stdlib.malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
     !shutdownReq = client.asInstanceOf[Ptr[Byte]]
     checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
