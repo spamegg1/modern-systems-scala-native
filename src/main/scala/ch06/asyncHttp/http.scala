@@ -31,13 +31,8 @@ object HTTP:
 
   def scanRequestLine(line: CString): (String, String, Int) =
     val lineLen = stackalloc[Int](1)
-    val scanResult = stdio.sscanf(
-      line,
-      c"%s %s %*s\r\n%n",
-      methodBuffer,
-      uriBuffer,
-      lineLen
-    )
+    val scanResult =
+      stdio.sscanf(line, c"%s %s %*s\r\n%n", methodBuffer, uriBuffer, lineLen)
     if scanResult == 2 then (fromCString(methodBuffer), fromCString(uriBuffer), !lineLen)
     else throw Exception("bad request line")
 
@@ -62,12 +57,15 @@ object HTTP:
       val startOfKey = line
       val endOfKey = line + !keyEnd
       !endOfKey = 0
+
       val startOfValue = line + !valueStart
       val endOfValue = line + !valueEnd
       !endOfValue = 0
+
       val key = fromCString(startOfKey)
       val value = fromCString(startOfValue)
       outMap(key) = value
+
       !lineLen
     else throw Exception("bad header line")
 
