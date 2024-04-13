@@ -1,7 +1,7 @@
 package ch09
 package lmdbSimple
 
-import scalanative.unsigned.{UnsignedRichInt, UnsignedRichLong, UInt} // .toUSize
+import scalanative.unsigned.{UnsignedRichInt, UnsignedRichLong} // .toUSize
 import scalanative.unsafe.*
 import scalanative.libc.{stdlib, stdio, string}
 
@@ -49,7 +49,7 @@ object LMDB:
     val databasePtr = stackalloc[DB](1)
     val transactionPtr = stackalloc[Transaction](1)
 
-    check(mdb_transaction_begin(env, null, 0, transactionPtr), "mdb_transaction_begin")
+    check(mdb_txn_begin(env, null, 0, transactionPtr), "mdb_txn_begin")
 
     val transaction = !transactionPtr
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
@@ -64,13 +64,13 @@ object LMDB:
     v._2 = value
 
     check(mdb_put(transaction, db, k, v, 0), "mdb_put")
-    check(mdb_transactionn_commit(transaction), "mdb_transactionn_commit")
+    check(mdb_txn_commit(transaction), "mdb_tx_commit")
 
   def get(env: Env, key: CString): CString =
     val databasePtr = stackalloc[DB](1)
     val transactionPtr = stackalloc[Transaction](1)
 
-    check(mdb_transaction_begin(env, null, 0, transactionPtr), "mdb_transaction_begin")
+    check(mdb_txn_begin(env, null, 0, transactionPtr), "mdb_txn_begin")
     val transaction = !transactionPtr
 
     check(mdb_dbi_open(transaction, null, 0, databasePtr), "mdb_dbi_open")
@@ -86,50 +86,10 @@ object LMDB:
 
     val output = stdlib.malloc(rv._1) // 0.5
     string.strncpy(output, rv._2, rv._1.toUSize) // 0.5
-    check(mdb_transactionn_abort(transaction), "mdb_transactionn_abort")
+    check(mdb_txn_abort(transaction), "mdb_txn_abort")
 
     output
 
   def check(result: Int, label: String): Unit =
     if result != 0 then throw Exception(s"bad LMDB call: $label returned $result")
     else println(s"$label returned $result")
-
-@link("lmdb")
-@extern
-object LmdbImpl:
-  type Env = Ptr[Byte]
-  type DB = UInt
-  type Transaction = Ptr[Byte]
-  type Key = CStruct2[Long, Ptr[Byte]]
-  type Value = CStruct2[Long, Ptr[Byte]]
-
-  def mdb_env_create(env: Ptr[Env]): Int = extern
-  def mdb_env_open(env: Env, path: CString, flags: Int, mode: Int): Int = extern
-  def mdb_transaction_begin(
-      env: Env,
-      parent: Ptr[Byte],
-      flags: Int,
-      transaction: Ptr[Transaction]
-  ): Int = extern
-  def mdb_dbi_open(
-      transaction: Transaction,
-      name: CString,
-      flags: Int,
-      db: Ptr[DB]
-  ): Int = extern
-  def mdb_put(
-      transaction: Transaction,
-      db: DB,
-      key: Ptr[Key],
-      value: Ptr[Value],
-      flags: Int
-  ): Int = extern
-  def mdb_transactionn_commit(transaction: Transaction): Int = extern
-  def mdb_get(
-      transaction: Transaction,
-      db: DB,
-      key: Ptr[Key],
-      value: Ptr[Value]
-  ): Int =
-    extern
-  def mdb_transactionn_abort(transaction: Transaction): Int = extern

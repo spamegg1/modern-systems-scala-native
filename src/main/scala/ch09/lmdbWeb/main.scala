@@ -3,7 +3,7 @@ package lmdbWeb
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
-import scalanative.libc.{stdlib, string}
+import scalanative.libc.{stdlib, string}, stdlib.malloc
 import argonaut.{Argonaut, EncodeJson, DecodeJson}
 import Argonaut.{StringToParseWrap, ToJsonIdentity}
 
@@ -74,7 +74,7 @@ object Server:
   val connectionCB = CFuncPtr2.fromScalaFunction[TCPHandle, Int, Unit]:
     (handle: TCPHandle, status: Int) =>
       println("received connection")
-      val client = stdlib.malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
+      val client = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
       checkError(uv_tcp_init(loop, client), "uv_tcp_init(client)")
       checkError(uv_accept(handle, client), "uv_accept")
       checkError(uv_read_start(client, allocCB, readCB), "uv_read_start")
@@ -84,7 +84,7 @@ object Server:
 
   def serveHttp(port: Int, handler: RequestHandler): Unit =
     println(s"about to serve on port ${port}")
-    this.router = handler
+    router = handler
     serveTcp(c"0.0.0.0", port, 0, 4096, connectionCB)
 
   def serveTcp(
@@ -96,7 +96,7 @@ object Server:
   ): Unit =
     val addr = stackalloc[Byte](1)
     val addrConvert = uv_ip4_addr(address, port, addr)
-    val handle = stdlib.malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
+    val handle = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
     checkError(uv_tcp_init(loop, handle), "uv_tcp_init(server)")
     checkError(uv_tcp_bind(handle, addr, flags), "uv_tcp_bind")
     checkError(uv_listen(handle, backlog, callback), "uv_tcp_listen")
@@ -104,7 +104,7 @@ object Server:
 
   val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
     (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
-      val buf = stdlib.malloc(4096) // 0.5
+      val buf = malloc(4096) // 0.5
       buffer._1 = buf
       buffer._2 = 4096.toUSize // 0.5
 
@@ -114,10 +114,10 @@ object Server:
     state._3 = state._3 + size.toUSize // 0.5
 
   def sendResponse(client: TCPHandle, response: HttpResponse): Unit =
-    val req = stdlib.malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
-    val responseBuffer = stdlib.malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
+    val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
+    val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
 
-    responseBuffer._1 = stdlib.malloc(4096) // 0.5
+    responseBuffer._1 = malloc(4096) // 0.5
     responseBuffer._2 = 4096.toUSize // 0.5
     HTTP.makeResponse(response, responseBuffer)
 
@@ -126,8 +126,7 @@ object Server:
     checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
 
   def shutdown(client: TCPHandle): Unit =
-    val shutdownReq =
-      stdlib.malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
+    val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
     !shutdownReq = client.asInstanceOf[Ptr[Byte]]
     checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
@@ -194,6 +193,8 @@ object LibUV:
   def uv_run(loop: Loop, runMode: Int): Int = extern
   def uv_strerror(err: Int): CString = extern
   def uv_err_name(err: Int): CString = extern
+
+  // these are different than ch07 due to TCPHandle
   def uv_tcp_init(loop: Loop, tcp_handle: TCPHandle): Int = extern
   def uv_tcp_bind(tcp_handle: TCPHandle, address: Ptr[Byte], flags: Int): Int = extern
   def uv_listen(
