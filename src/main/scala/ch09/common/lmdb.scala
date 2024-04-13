@@ -1,5 +1,4 @@
 package ch09
-package lmdbWeb
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scala.scalanative.unsafe.*
@@ -17,25 +16,6 @@ object LMDB:
     // Unix permissions for 0644 (read/write)
     check(mdb_env_open(env, path, 0, 420), "mdb_env_open")
     env
-
-  def getJson[T](env: Env, key: String)(using dec: DecodeJson[T]): T =
-    val value = getString(env, key)
-    value.decodeOption[T].get
-
-  def putJson[T](env: Env, key: String, value: T)(using enc: EncodeJson[T]): Unit =
-    val valueString = value.asJson.nospaces
-    putString(env, key, valueString)
-
-  def getString(env: Env, key: String): String =
-    Zone: // implicit z => // 0.5
-      val k = toCString(key)
-      fromCString(get(env, k))
-
-  def putString(env: Env, key: String, value: String): Unit =
-    Zone: // implicit z => // 0.5
-      val k = toCString(key)
-      val v = toCString(value)
-      put(env, k, v)
 
   def put(env: Env, key: CString, value: CString): Unit =
     val databasePtr = stackalloc[DB](1)
@@ -74,13 +54,33 @@ object LMDB:
 
     val rValue = stackalloc[Value](1)
     check(mdb_get(transaction, database, rKey, rValue), "mdb_get")
-
     stdio.printf(c"key: %s value: %s\n", rKey._2, rValue._2)
+
     val output = stdlib.malloc(rValue._1) // 0.5
     string.strncpy(output, rValue._2, rValue._1.toUSize) // 0.5
     check(mdb_txn_abort(transaction), "mdb_txn_abort")
+
     output
 
   def check(result: Int, label: String): Unit =
     if result != 0 then throw Exception(s"bad LMDB call: $label returned $result")
     else println(s"$label returned $result")
+
+  def getJson[T](env: Env, key: String)(using dec: DecodeJson[T]): T =
+    val value = getString(env, key)
+    value.decodeOption[T].get
+
+  def putJson[T](env: Env, key: String, value: T)(using enc: EncodeJson[T]): Unit =
+    val valueString = value.asJson.nospaces
+    putString(env, key, valueString)
+
+  def getString(env: Env, key: String): String =
+    Zone: // implicit z => // 0.5
+      val k = toCString(key)
+      fromCString(get(env, k))
+
+  def putString(env: Env, key: String, value: String): Unit =
+    Zone: // implicit z => // 0.5
+      val k = toCString(key)
+      val v = toCString(value)
+      put(env, k, v)
