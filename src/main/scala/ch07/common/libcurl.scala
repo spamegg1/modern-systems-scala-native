@@ -7,7 +7,7 @@ import scalanative.unsafe.*
 object LibCurl:
   type Curl = Ptr[Byte]
   type CurlBuffer = CStruct2[CString, CSize]
-  type CurlOption = Int
+  type CurlOption = CInt // Int?
   type CurlAction = CInt
   type CurlInfo = CInt
   type MultiCurl = Ptr[Byte]
@@ -17,7 +17,7 @@ object LibCurl:
   type CurlDataCallback = CFuncPtr4[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]
   type CurlSocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
   type CurlTimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
-  type SocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
+  type SocketCallback = CFuncPtr5[Curl, Ptr[Byte], CurlAction, Ptr[Byte], Ptr[Byte], CInt]
   type TimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
 
   def curl_easy_strerror(code: Int): CString = extern

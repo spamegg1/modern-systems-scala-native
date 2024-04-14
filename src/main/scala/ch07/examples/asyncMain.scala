@@ -1,10 +1,12 @@
-// import scalanative.native.*
+package ch07
+package examples
+
 import scalanative.unsafe.*
 import util.{Success, Failure}
 import scala.concurrent.ExecutionContext
 
 @main
-def asyncMain(args: Array[String]): Unit =
+def asyncMain(args: String*): Unit =
   if args.length == 0 then
     println("usage: ./curl-out https://whatever.url/you/want?to=fetch")
 
@@ -13,7 +15,7 @@ def asyncMain(args: Array[String]): Unit =
 
   val resp = Zone:
     for arg <- args do
-      val url = toCString(arg)
+      val url: CString = toCString(arg)
       val resp = Curl.get(url)
 
       resp.onComplete:
@@ -22,9 +24,8 @@ def asyncMain(args: Array[String]): Unit =
           println(body.substring(0, 80))
           println("...")
           println(body.substring(body.size - 80))
-        case Failure(f) => println("request failed", f)
-
+        case Failure(f) => println(s"request failed $f")
   EventLoop.run()
   println("loop done, cleaning up")
-  Curl.cleanup()
+  Curl.cleanupRequests // Curl.cleanup() // ???
   println("done")

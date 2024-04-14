@@ -1,4 +1,5 @@
-package ch07.otherStuff
+package ch07
+package examples
 
 object EventLoop extends ExecutionContextExecutor:
   import LibUV.*

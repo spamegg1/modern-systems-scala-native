@@ -2,7 +2,7 @@ package ch07
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
-import scala.scalanative.runtime.{Boxes, Intrinsics}
+import scalanative.runtime.{Boxes, Intrinsics}
 import scalanative.libc.stdlib.{malloc, free}
 import scalanative.libc.string.strncpy
 
@@ -236,3 +236,5 @@ object Curl:
 
   def easySetopt(curl: Curl, option: CInt, parameters: CVarArg*): Int = Zone:
     curl_easy_setopt(curl, option, toCVarArgList(parameters.toSeq))
+
+  def get(url: CString): Future[String] = ??? // dummy to make examples/asyncMain work
