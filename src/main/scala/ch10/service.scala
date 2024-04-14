@@ -7,7 +7,7 @@ import concurrent.{Future, ExecutionContext}
 import argonaut.*
 import Argonaut.*
 
-import LibUVConstants.*, LibUV.uv_run, ServiceHelpers.*
+import ch07.LibUVConstants.*, ch07.LibUV.uv_run, ServiceHelpers.*
 given ec: ExecutionContext = EventLoop // changed implicit val
 
 @main

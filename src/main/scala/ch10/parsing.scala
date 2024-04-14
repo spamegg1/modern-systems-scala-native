@@ -15,7 +15,7 @@ case class RequestState(
 )
 
 trait Parsing:
-  import LibUV.*, HttpParser.*
+  import ch07.LibUV.*, HttpParser.*
   val requests: mutable.Map[Long, RequestState]
 
   def handleRequest(id: Long, handle: TCPHandle, request: RequestState): Unit

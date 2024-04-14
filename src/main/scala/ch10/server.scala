@@ -38,7 +38,7 @@ case class AsyncRoute(
 ) extends Route
 
 object Server extends Parsing:
-  import LibUVConstants.*, LibUV.*, HttpParser.*
+  import ch07.LibUVConstants.*, ch07.LibUV.*, HttpParser.*
 
   implicit val ec: ExecutionContext = EventLoop
   val loop = EventLoop.loop
@@ -75,11 +75,11 @@ object Server extends Parsing:
   def init(port: Int, f: Request[String] => Route): Unit =
     router = f
     val addr = malloc(64.toUSize) // 0.5
-    check(uv_ip4_addr(c"0.0.0.0", 9999, addr), "uv_ip4_addr")
+    checkError(uv_ip4_addr(c"0.0.0.0", 9999, addr), "uv_ip4_addr")
     val server = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
-    check(uv_tcp_init(loop, server), "uv_tcp_init")
-    check(uv_tcp_bind(server, addr, 0), "uv_tcp_bind")
-    check(uv_listen(server, 4096, connectCB), "uv_listen")
+    checkError(uv_tcp_init(loop, server), "uv_tcp_init")
+    checkError(uv_tcp_bind(server, addr, 0), "uv_tcp_bind")
+    checkError(uv_listen(server, 4096, connectCB), "uv_listen")
     this.activeRequests = 1
     println("running")
 
@@ -100,9 +100,9 @@ object Server extends Parsing:
 
       stdio.printf(c"initialized handle at %x, parser at %x\n", client, state)
 
-      check(uv_tcp_init(loop, client), "uv_tcp_init (client)")
-      check(uv_accept(server, client), "uv_accept")
-      check(uv_read_start(client, allocCB, readCB), "uv_read_start")
+      checkError(uv_tcp_init(loop, client), "uv_tcp_init (client)")
+      checkError(uv_accept(server, client), "uv_accept")
+      checkError(uv_read_start(client, allocCB, readCB), "uv_read_start")
 
   val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
     (handle: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
@@ -173,7 +173,7 @@ object Server extends Parsing:
 
     val writeReq = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
     !writeReq = buffer.asInstanceOf[Ptr[Byte]]
-    check(uv_write(writeReq, client, buffer, 1, writeCB), "uv_write")
+    checkError(uv_write(writeReq, client, buffer, 1, writeCB), "uv_write")
 
   val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]:
     (writeReq: WriteReq, status: Int) =>
