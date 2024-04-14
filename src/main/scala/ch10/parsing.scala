@@ -1,9 +1,7 @@
-package ch10.libUvService
+package ch10
 
 import scalanative.unsafe.*
-import scalanative.libc.*
-import scalanative.unsigned.*
-import stdlib.*, stdio.*, string.*
+import scalanative.unsigned.UShort
 import collection.mutable
 
 case class RequestState(

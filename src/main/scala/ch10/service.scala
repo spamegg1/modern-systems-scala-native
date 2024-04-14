@@ -1,4 +1,4 @@
-package ch10.libUvService
+package ch10
 
 import util.boundary, boundary.break
 import concurrent.{Future, ExecutionContext}

@@ -1,7 +1,7 @@
-package ch10.libUvService
+package ch10
 
 import scalanative.unsafe.*
-import scalanative.libc.stdlib
+import scalanative.libc.stdlib.malloc
 import collection.mutable.ListBuffer
 import concurrent.{ExecutionContext, ExecutionContextExecutor}
 import concurrent.{Future, Promise}
@@ -12,7 +12,7 @@ object EventLoop extends ExecutionContextExecutor:
 
   val loop = uv_default_loop()
   private val taskQueue = ListBuffer[Runnable]()
-  private val handle = stdlib.malloc(uv_handle_size(UV_PREPARE_T))
+  private val handle = malloc(uv_handle_size(UV_PREPARE_T))
   checkError(uv_prepare_init(loop, handle), "uv_prepare_init")
 
   val prepareCallback = CFuncPtr1.fromScalaFunction[PrepareHandle, Unit]:

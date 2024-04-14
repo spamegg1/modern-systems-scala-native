@@ -1,10 +1,9 @@
-package ch10.libUvService
+package ch10
 
 import scalanative.unsigned.UnsignedRichLong
 import scalanative.unsafe.*
-import scalanative.libc.*
-import scalanative.unsigned.*
-import stdlib.*, stdio.*, string.*
+import scalanative.libc.{stdlib, string, stdio}
+import stdlib.malloc, string.{strncpy, strlen}
 import collection.mutable
 import concurrent.{Future, ExecutionContext}
 
@@ -40,7 +39,7 @@ case class AsyncRoute(
 object Server extends Parsing:
   import ch07.LibUVConstants.*, ch07.LibUV.*, HttpParser.*
 
-  implicit val ec: ExecutionContext = EventLoop
+  given ec: ExecutionContext = EventLoop
   val loop = EventLoop.loop
   var serial = 1L
   override val requests = mutable.Map[Long, RequestState]()
@@ -90,8 +89,7 @@ object Server extends Parsing:
       val id = serial
       serial += 1
 
-      val state = malloc(sizeof[ConnectionState])
-        .asInstanceOf[Ptr[ConnectionState]]
+      val state = malloc(sizeof[ConnectionState]).asInstanceOf[Ptr[ConnectionState]]
       state._1 = serial
       state._2 = client
       http_parser_init(state.at3, HTTP_REQUEST)
@@ -158,7 +156,6 @@ object Server extends Parsing:
       else resp.headers
 
     for (k, v) <- headers do respString += s"${k}: $v\r\n"
-
     respString += s"\r\n${resp.body}"
 
     val buffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
