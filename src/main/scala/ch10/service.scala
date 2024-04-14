@@ -1,13 +1,12 @@
 package ch10.libUvService
 
-import scalanative.unsafe.*
-import scalanative.libc.*
 import util.boundary, boundary.break
 import concurrent.{Future, ExecutionContext}
-import argonaut.*
-import Argonaut.*
+import argonaut.{Argonaut, EncodeJson, DecodeJson, Parse}
+import Argonaut.ToJsonIdentity
 
 import ch07.LibUVConstants.*, ch07.LibUV.uv_run, ServiceHelpers.*
+
 given ec: ExecutionContext = EventLoop // changed implicit val
 
 @main
