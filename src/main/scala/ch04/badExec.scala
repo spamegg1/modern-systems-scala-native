@@ -5,7 +5,7 @@ package badExec
 def badExec(args: String*): Unit =
   println("about to exec")
   runCommand(Seq("/bin/ls", "-l", "."))
-  println("exec returned, we're done!")
+  println("exec returned, we're done!") // this won't print!
 
 // It is executed inside the .scala-build folder (does not see hidden .bloop folder).
 // It prints:

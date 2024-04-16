@@ -14,12 +14,19 @@ def nativePipeTwo(args: String*): Unit =
 // def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
 // def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
 
+// order:
+// Call pipe.
+// Call fork.
+// In the child, call dup2.
+// In the child, call execve (or do other work).
+// In the parent, call close on the pipe.
+// In the parent, call wait or waitpid.
 def runTwoAndPipe(input: Int, output: Int, proc1: Seq[String], proc2: Seq[String]): Int =
-  val pipeArray = stackalloc[Int](2)
-  val pipeRet = util.pipe(pipeArray)
-  println(s"pipe() returned ${pipeRet}")
-  val outputPipe = pipeArray(1)
-  val inputPipe = pipeArray(0)
+  val pipeArray = stackalloc[Int](2) // pipe takes integer array of size exactly 2.
+  val pipeRet = util.pipe(pipeArray) // call pipe! it will fill the array with 2 fds: r/w
+  println(s"pipe() returned ${pipeRet}") // this is just status code of pipe. 0 on success
+  val outputPipe = pipeArray(1) // we need to write data to this end of pipe.
+  val inputPipe = pipeArray(0) // data written needs to be read from this end of pipe.
 
   val proc1Pid = doFork: () =>
     if input != 0 then
@@ -53,3 +60,11 @@ def runTwoAndPipe(input: Int, output: Int, proc1: Seq[String], proc2: Seq[String
   val r2 = util.waitpid(-1, null, 0)
   println(s"proc $r2 returned")
   r2
+
+// You can compile this with: (at the root directory of the project)
+// scala-cli package . --main-class ch04.nativePipeTwo.nativePipeTwo
+// ...
+// Wrote /home/spam/Projects/modern-systems-scala-native/project, run it with
+//   ./project
+// Let's use it: it will sort the result of ls by piping it into sort:
+// ./project
