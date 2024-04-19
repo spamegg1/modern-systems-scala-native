@@ -33,7 +33,7 @@ def doAndAwait(task: Function0[Int]): Int = await(doFork(task))
 def runCommand(args: Seq[String], env: Map[String, String] = Map.empty): Int =
   if args.size == 0 then throw Exception("bad arguments of length 0")
   Zone: // implicit z => // 0.5
-    println(s"proc ${unistd.getpid()}: running command ${args.head} with args ${args}")
+    println(s"proc ${unistd.getpid()}: running cmd ${args.head} with args ${args.tail}")
     val fileName = toCString(args.head)
     val argArray = makeStringArray(args) // take Scala strings, lower them to C level
     val envStrings = env.map((k, v) => s"$k=$v") // convert env pairs to execve format
