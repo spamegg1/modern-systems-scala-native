@@ -219,6 +219,16 @@ stackalloc[Int]() // this defaults to n = 1
 stackalloc[Int](1) // same as previous
 ```
 
+### Type puns via `.cast`
+
+The book uses things like
+
+```scala
+val server_sockaddr = server_address.cast[Ptr[sockaddr]]
+```
+
+`.cast` is no longer available; we use `.asInstanceOf[...]` instead.
+
 ### Creating function pointers
 
 Function pointer classes now have different syntax. The book overrides classes like `CFuncPtr2` by providing a custom `apply` method like so:

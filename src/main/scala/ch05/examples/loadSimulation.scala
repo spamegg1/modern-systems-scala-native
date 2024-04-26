@@ -5,6 +5,7 @@ import io.gatling.core.Predef.*
 import io.gatling.http.Predef.*
 import concurrent.duration.DurationInt
 
+// I created these to avoid dealing with environment variables.
 val GATLING_URL = "http://localhost:8080"
 val GATLING_USERS = 10
 val GATLING_REQUESTS = 50
