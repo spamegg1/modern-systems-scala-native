@@ -9,6 +9,7 @@ import scalanative.libc.stdio.EOF
 
 import scala.util.boundary, boundary.break
 
+// an "echo server", just writes back whatever it reads.
 def handleConnection(connSocket: Int, maxSize: Int = 1024): Unit =
   val message = c"Connection accepted!  Enter a message and it will be echoed back\n"
   val promptWrite = unistd.write(connSocket, message, strlen(message))

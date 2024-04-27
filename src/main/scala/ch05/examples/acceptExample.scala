@@ -14,12 +14,14 @@ def acceptExample(serverSocket: CInt): Unit = // socket has to be listening alre
 
   // def accept(
   //   socket: CInt,               // should have called bind() and listen() first
-  //   address: Ptr[sockaddr],     // allocated, initialized
-  //   address_len: Ptr[socklen_t] // same as size of socket address, but pointer.
+  //   address: Ptr[sockaddr],     // allocated but uninitialized, will be set on success
+  //   address_len: Ptr[socklen_t] // same as size (UInt) of socket address, but pointer.
   // ): CInt = extern              // new connected socket fd different than listening fd
 
-  // this is completely distinct from the listening serverSocket fd
+  // this returns a completely distinct socket fd from the listening serverSocket fd
+  // it also sets clientSockAddr to the address of client who just connected to us
   val connectionSocket = accept(serverSocket, clientSockAddr, clientAddrSize)
+
   println(
     s"""accept returned fd $connectionSocket;
        |connected client address is
