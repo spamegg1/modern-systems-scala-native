@@ -108,7 +108,7 @@ Wrote /home/spam/Projects/modern-systems-scala-native/ch08.simplePipe.simplePipe
   ./ch08.simplePipe.simplePipe
 ```
 
-## Linking to external C libraries
+### Linking to external C libraries
 
 The book uses `@link` and `= extern` constructs of Scala Native to link with libraries such as `libuv`, `libcurl` and `liblmdb`. For example:
 
@@ -126,11 +126,109 @@ On Ubuntu I had to install these (I think `libcurl` might have been pre-installe
 sudo apt install libuv1 libuv1-dev libcurl4 libcurl4-dev liblmdb0 liblmdb-dev
 ```
 
-The author did all of this work. But if we wanted to do this on our own, it would be difficult to get right the type signatures of the functions. Scala Native main contributor's advice is to directly take [the header file of such a library](https://github.com/libuv/libuv/blob/v1.x/include/uv.h), and use [`sn-bindgen`](https://github.com/indoorvivants/sn-bindgen) to generate the bindings:
+The author did all of this work. But if we wanted to do this on our own,
+it would be difficult to get right the type signatures of the functions.
+Scala Native main contributor's advice is to directly take
+[the header file of such a library](https://github.com/libuv/libuv/blob/v1.x/include/uv.h),
+and use [`sn-bindgen`](https://github.com/indoorvivants/sn-bindgen) to generate the bindings:
 
 ![bindgen](images/bindgen.png)
 
 I haven't tried that myself, but that's the way to go.
+
+### Running the Gatling load simulation
+
+I modified the `install_gatling.sh` script from the book,
+now it's `installGatling.sh` with Gatling bundle version 3.10.5+.
+
+From the root directory, run
+
+```bash
+./installGatling.sh
+```
+
+This will download into a folder `gatling` in the root directory,
+and copy the simulation file from chapter 5 into the relevant subdirectory.
+
+You need to compile and run the HTTP server from chapter 5.
+Read the compilation message for the name of the binary executable:
+
+```bash
+scala-cli package . --main-class ch05.httpServer.httpServer
+...
+Wrote /home/spam/Projects/modern-systems-scala-native/project, run it with
+  ./project
+```
+
+Then run that to start the server. This starts the server listening on port 8080.
+
+I wrote another script `runGatling.sh` that sets up the needed environment variables.
+This will compile the simulation file under `gatling/user-files/simulations/`.
+These files have to be written in Scala 2.13 unfortunately! Gatling cannot handle Scala 3.
+So... run the interactive simulation with:
+
+```bash
+./runGatling.sh
+```
+
+The results are in `gatling/results/.../index.html`. Here's what it looks like:
+
+```bash
+./runGatling.sh
+GATLING_HOME is set to /home/spam/Projects/modern-systems-scala-native/gatling
+Do you want to run the simulation locally, on Gatling Enterprise, or just package it?
+Type the number corresponding to your choice and press enter
+[0] <Quit>
+[1] Run the Simulation locally
+[2] Package and upload the Simulation to Gatling Enterprise Cloud, and run it there
+[3] Package the Simulation for Gatling Enterprise
+[4] Show help and exit
+1
+Gatling 3.11.1 is available! (you're using 3.10.5)
+ch05.loadSimulation.GenericSimulation is the only simulation, executing it.
+Select run description (optional)
+
+Simulation ch05.loadSimulation.GenericSimulation started...
+
+================================================================================
+2024-04-28 17:58:31 GMT                                       0s elapsed
+---- Requests ------------------------------------------------------------------
+> Global                                                   (OK=50     KO=0     )
+> Web Server                                               (OK=50     KO=0     )
+
+---- Test scenario -------------------------------------------------------------
+[##########################################################################]100%
+          waiting: 0      / active: 0      / done: 10
+================================================================================
+
+Simulation ch05.loadSimulation.GenericSimulation completed in 0 seconds
+Parsing log file(s)...
+Parsing log file(s) done in 0s.
+Generating reports...
+
+================================================================================
+---- Global Information --------------------------------------------------------
+> request count                                         50 (OK=50     KO=0     )
+> min response time                                      2 (OK=2      KO=-     )
+> max response time                                     25 (OK=25     KO=-     )
+> mean response time                                     9 (OK=9      KO=-     )
+> std deviation                                          6 (OK=6      KO=-     )
+> response time 50th percentile                          6 (OK=6      KO=-     )
+> response time 75th percentile                          9 (OK=9      KO=-     )
+> response time 95th percentile                         20 (OK=20     KO=-     )
+> response time 99th percentile                         23 (OK=23     KO=-     )
+> mean requests/sec                                     50 (OK=50     KO=-     )
+---- Response Time Distribution ------------------------------------------------
+> t < 800 ms                                            50 (100%)
+> 800 ms <= t < 1200 ms                                  0 (  0%)
+> t >= 1200 ms                                           0 (  0%)
+> failed                                                 0 (  0%)
+================================================================================
+
+Reports generated, please open the following file: file:///home/spam/Projects/modern-systems-scala-native/gatling/results/genericsimulation-20240428175830462/index.html
+```
+
+![gatling-simul](images/simul.png)
 
 ## Differences from the book
 

@@ -1,24 +1,30 @@
 package ch05
 package loadSimulation
 
-import io.gatling.core.Predef.*
-import io.gatling.http.Predef.*
+import io.gatling.core.Predef._
+import io.gatling.http.Predef._
 import concurrent.duration.DurationInt
 
-// I created these to avoid dealing with environment variables.
-val GATLING_URL = "http://localhost:8080"
-val GATLING_USERS = 10
-val GATLING_REQUESTS = 50
-val GATLING_RAMP_TIME = 0
+// This file uses Scala 2.13 syntax because Gatling bundle does not support Scala 3.
+class GenericSimulation extends Simulation {
+  val url = System.getenv("GATLING_URL")
+  val requests = Integer.parseInt(System.getenv("GATLING_REQUESTS"))
+  val users = Integer.parseInt(System.getenv("GATLING_USERS"))
+  val rampTime = Integer.parseInt(System.getenv("GATLING_RAMP_TIME"))
+  val reqsPerUser: Int = requests / users
 
-class GenericSimulation extends Simulation:
-  val url = GATLING_URL // System.getenv("GATLING_URL")
-  val requests = GATLING_REQUESTS // Integer.parseInt(System.getenv("GATLING_REQUESTS"))
-  val users = GATLING_USERS // Integer.parseInt(System.getenv("GATLING_USERS"))
-  val rampTime = GATLING_RAMP_TIME // Integer.parseInt(System.getenv("GATLING_RAMP_TIME"))
+  val scn = scenario("Test scenario").repeat(reqsPerUser) {
+    exec(
+      http("Web Server")
+        .get(url)
+        .check(status.in(Seq(200, 304)))
+    )
+  }
 
-  val reqs_per_user: Int = requests / users
-  val scn = scenario("Test scenario").repeat(reqs_per_user):
-    exec(http("Web Server").get(url).check(status.in(Seq(200, 304))))
-
-  setUp(scn.inject(rampUsers(users).during(rampTime.seconds))) // .during replaced .over
+  setUp(
+    scn.inject(
+      rampUsers(users)
+        .during(rampTime.seconds) // .during replaced .over
+    )
+  )
+}
