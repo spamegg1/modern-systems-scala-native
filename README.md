@@ -171,10 +171,10 @@ So... run the interactive simulation with:
 ./runGatling.sh
 ```
 
-The results are in `gatling/results/.../index.html`. Here's what it looks like:
+Here's what the Terminal output looks like:
 
 ```bash
-./runGatling.sh
+$ ./runGatling.sh
 GATLING_HOME is set to /home/spam/Projects/modern-systems-scala-native/gatling
 Do you want to run the simulation locally, on Gatling Enterprise, or just package it?
 Type the number corresponding to your choice and press enter
@@ -187,46 +187,48 @@ Type the number corresponding to your choice and press enter
 Gatling 3.11.1 is available! (you're using 3.10.5)
 ch05.loadSimulation.GenericSimulation is the only simulation, executing it.
 Select run description (optional)
-
+fiveThousand
 Simulation ch05.loadSimulation.GenericSimulation started...
 
 ================================================================================
-2024-04-28 17:58:31 GMT                                       0s elapsed
+2024-04-28 18:21:04 GMT                                       2s elapsed
 ---- Requests ------------------------------------------------------------------
-> Global                                                   (OK=50     KO=0     )
-> Web Server                                               (OK=50     KO=0     )
+> Global                                                   (OK=5000   KO=0     )
+> Web Server                                               (OK=5000   KO=0     )
 
 ---- Test scenario -------------------------------------------------------------
 [##########################################################################]100%
-          waiting: 0      / active: 0      / done: 10
+          waiting: 0      / active: 0      / done: 100
 ================================================================================
 
-Simulation ch05.loadSimulation.GenericSimulation completed in 0 seconds
+Simulation ch05.loadSimulation.GenericSimulation completed in 2 seconds
 Parsing log file(s)...
 Parsing log file(s) done in 0s.
 Generating reports...
 
 ================================================================================
 ---- Global Information --------------------------------------------------------
-> request count                                         50 (OK=50     KO=0     )
-> min response time                                      2 (OK=2      KO=-     )
-> max response time                                     25 (OK=25     KO=-     )
-> mean response time                                     9 (OK=9      KO=-     )
-> std deviation                                          6 (OK=6      KO=-     )
-> response time 50th percentile                          6 (OK=6      KO=-     )
-> response time 75th percentile                          9 (OK=9      KO=-     )
-> response time 95th percentile                         20 (OK=20     KO=-     )
-> response time 99th percentile                         23 (OK=23     KO=-     )
-> mean requests/sec                                     50 (OK=50     KO=-     )
+> request count                                       5000 (OK=5000   KO=0     )
+> min response time                                      5 (OK=5      KO=-     )
+> max response time                                    116 (OK=116    KO=-     )
+> mean response time                                    38 (OK=38     KO=-     )
+> std deviation                                         15 (OK=15     KO=-     )
+> response time 50th percentile                         35 (OK=35     KO=-     )
+> response time 75th percentile                         50 (OK=50     KO=-     )
+> response time 95th percentile                         64 (OK=64     KO=-     )
+> response time 99th percentile                         72 (OK=72     KO=-     )
+> mean requests/sec                                   2500 (OK=2500   KO=-     )
 ---- Response Time Distribution ------------------------------------------------
-> t < 800 ms                                            50 (100%)
+> t < 800 ms                                          5000 (100%)
 > 800 ms <= t < 1200 ms                                  0 (  0%)
 > t >= 1200 ms                                           0 (  0%)
 > failed                                                 0 (  0%)
 ================================================================================
 
-Reports generated, please open the following file: file:///home/spam/Projects/modern-systems-scala-native/gatling/results/genericsimulation-20240428175830462/index.html
+Reports generated, please open the following file: file:///home/spam/Projects/modern-systems-scala-native/gatling/results/genericsimulation-20240428182101491/index.html
 ```
+
+The graphical results are in `gatling/results/.../index.html`.
 
 ![gatling-simul](images/simul.png)
 
