@@ -28,7 +28,7 @@ You can compile and run `@main` methods in VS Code with Metals by clicking the r
 There are 35+ `@main` methods in the project. To compile a specific one to a binary, you can use inside the root directory, for example:
 
 ```bash
-$ scala-cli package . --main-class ch08.simplePipe.simplePipe
+scala-cli package . --main-class ch08.simplePipe.simplePipe
 ```
 
 This will place the binary executable in the project root directory:
@@ -229,6 +229,8 @@ Reports generated, please open the following file: file:///home/spam/Projects/mo
 ```
 
 The graphical results are in `gatling/results/.../index.html`.
+With 1000 users and 50000 requests, I got 1% failure rate (connection timeouts), and 300ms average response time.
+Quite amazing!
 
 ![gatling-simul](images/simul.png)
 
@@ -354,6 +356,29 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
     val ngramPtr2 = p2.asInstanceOf[Ptr[NGramData]]
     ngramPtr2._2 - ngramPtr1._2
 ```
+
+### Typos, type puns and signatures for `libuv` (and other external C libraries)
+
+The book and the code have some inconsistencies.
+There are sometimes two different names for the same thing,
+and the types are also different: For example:
+
+```scala
+// these are supposed to be the same thing.
+type Timer = Ptr[Ptr[Byte]]       // book, ch06
+type TimerHandle = Ptr[Byte]      // book, later in the same chapter
+
+type TimerHandle = Ptr[Byte]      // code, in ch06
+type TimerHandle = Ptr[Ptr[Byte]] // code, in other chapters
+```
+
+The book clearly says, in a "warning box":
+
+![type-puns](images/typePuns.png)
+
+Not sure how to handle this, it will be guesswork.
+If compilation fails during linking phase then I'll know the types are wrong.
+But if linking does not fail, then I'll have to figure it out from the execution.
 
 ### String copying and null-terminating
 

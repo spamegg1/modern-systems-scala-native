@@ -69,22 +69,3 @@ def sendResponse(client: TCPHandle, response: HttpResponse): Unit =
   responseBuffer._2 = string.strlen(responseBuffer._1)
   !req = responseBuffer.asInstanceOf[Ptr[Byte]]
   checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
-
-def serveTcp(
-    address: CString,
-    port: Int,
-    flags: Int,
-    backlog: Int,
-    callback: ConnectionCB
-): Unit =
-  val addr = stackalloc[Byte](1)
-  val addrConvert = uv_ip4_addr(address, port, addr)
-  println(s"uv_ip4_addr returned $addrConvert")
-
-  val handle = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
-
-  checkError(uv_tcp_init(loop, handle), "uv_tcp_init(server)")
-  checkError(uv_tcp_bind(handle, addr, flags), "uv_tcp_bind")
-  checkError(uv_listen(handle, backlog, callback), "uv_tcp_listen")
-
-  uv_run(loop, UV_RUN_DEFAULT)

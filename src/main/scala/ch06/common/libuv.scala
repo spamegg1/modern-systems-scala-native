@@ -6,16 +6,16 @@ import scalanative.unsafe.{CStruct2, CFuncPtr1, CFuncPtr2, CFuncPtr3}
 @link("uv")
 @extern
 object LibUV:
-  type TimerHandle = Ptr[Byte]
+  type TimerHandle = Ptr[Byte] // book says Ptr[Ptr[Byte]], what should it be?
   type PipeHandle = Ptr[Ptr[Byte]]
-  type Loop = Ptr[Byte]
+  type Loop = Ptr[Byte] // book says Ptr[Ptr[Byte]], what should it be?
   type TCPHandle = Ptr[Ptr[Byte]]
   type WriteReq = Ptr[Ptr[Byte]]
   type ShutdownReq = Ptr[Ptr[Byte]]
   type Buffer = CStruct2[Ptr[Byte], CSize]
 
   type TimerCB = CFuncPtr1[TimerHandle, Unit]
-  type ConnectionCB = CFuncPtr2[TCPHandle, Int, Unit] // can't use!
+  type ConnectionCB = CFuncPtr2[TCPHandle, Int, Unit]
   type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit]
   type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit]
   type WriteCB = CFuncPtr2[WriteReq, Int, Unit]
@@ -29,7 +29,7 @@ object LibUV:
   def uv_req_size(r_type: Int): CSize = extern
   def uv_timer_init(loop: Loop, handle: TimerHandle): Int = extern
   def uv_timer_start(handle: TimerHandle, cb: TimerCB, timeout: Long, repeat: Long): Int =
-    extern
+    extern // timeout and repeat are in miliseconds.
   def uv_timer_stop(handle: TimerHandle): Int = extern
   def uv_run(loop: Loop, runMode: Int): Int = extern
   def uv_strerror(err: Int): CString = extern

@@ -9,7 +9,7 @@ object LibUVConstants:
   val UV_RUN_ONCE = 1
   val UV_RUN_NOWAIT = 2
 
-  // UV_HANDLE_T
+  // UV_HANDLE_T: exactly how many bytes we have to allocate for each handle
   val UV_PIPE_T = 7 // Pipes
   val UV_POLL_T = 8 // Polling external sockets
   val UV_PREPARE_T = 9 // Runs every loop iteration

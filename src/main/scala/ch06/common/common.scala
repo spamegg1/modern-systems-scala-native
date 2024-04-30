@@ -4,13 +4,12 @@ import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.{Ptr, CString, CSize, CSSize, stackalloc, sizeof, CQuote}
 import scalanative.unsafe.{CStruct3, CFuncPtr1, CFuncPtr2, CFuncPtr3}
 import scalanative.libc.{stdio, stdlib, string}, stdlib.malloc, string.strlen
-import LibUV.*
-import LibUVConstants.*
+import LibUV.*, LibUVConstants.*
 
 type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
-
 val loop = uv_default_loop()
 
+// main server function
 def serveTcp(
     address: CString,
     port: Int,
@@ -30,6 +29,7 @@ def serveTcp(
 
   uv_run(loop, UV_RUN_DEFAULT)
 
+// Utilities / helpers:
 def initializeClientState(client: TCPHandle): Ptr[ClientState] =
   val clientStatePtr = malloc(sizeof[ClientState]).asInstanceOf[Ptr[ClientState]]
 
@@ -43,9 +43,40 @@ def initializeClientState(client: TCPHandle): Ptr[ClientState] =
   clientStatePtr._1 = clientStateData
   clientStatePtr._2 = 4096.toUSize // total  // 0.5
   clientStatePtr._3 = 0.toUSize // used  // 0.5
+
   !client = clientStatePtr.asInstanceOf[Ptr[Byte]]
   clientStatePtr
 
+def makeResponse(state: Ptr[ClientState]): CString =
+  val responseFormat = c"received response:\n%s\n"
+  val responseData = malloc(strlen(responseFormat) + state._3)
+  stdio.sprintf(responseData, responseFormat, state._1)
+  responseData
+
+def sendResponse(client: TCPHandle, state: Ptr[ClientState]): Unit =
+  val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
+  responseBuffer._1 = makeResponse(state)
+  responseBuffer._2 = string.strlen(responseBuffer._1)
+
+  val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
+  !req = responseBuffer.asInstanceOf[Ptr[Byte]]
+
+  checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
+
+def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
+  val copyPosition = state._1 + state._3
+  string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
+
+  // be sure to update the length of the data since we have copied into it
+  state._3 = state._3 + size.toUSize // 0.5
+  stdio.printf(c"client %x: %d/%d bytes used\n", state, state._3, state._2)
+
+def shutdown(client: TCPHandle): Unit =
+  val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
+  !shutdownReq = client.asInstanceOf[Ptr[Byte]]
+  checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
+
+// Callbacks:
 val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
   (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
     println("allocating 4096 bytes")
@@ -61,11 +92,6 @@ val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]:
     stdlib.free(responseBuffer.asInstanceOf[Ptr[Byte]])
     stdlib.free(writeReq.asInstanceOf[Ptr[Byte]])
 
-def shutdown(client: TCPHandle): Unit =
-  val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
-  !shutdownReq = client.asInstanceOf[Ptr[Byte]]
-  checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
-
 val shutdownCB = CFuncPtr2.fromScalaFunction[ShutdownReq, Int, Unit]:
   (shutdownReq: ShutdownReq, status: Int) =>
     println("all pending writes complete, closing TCP connection")
@@ -79,24 +105,3 @@ val closeCB = CFuncPtr1.fromScalaFunction[TCPHandle, Unit]: (client: TCPHandle) 
   stdlib.free(clientStatePtr._1)
   stdlib.free(clientStatePtr.asInstanceOf[Ptr[Byte]])
   stdlib.free(client.asInstanceOf[Ptr[Byte]])
-
-def makeResponse(state: Ptr[ClientState]): CString =
-  val response_format = c"received response:\n%s\n"
-  val response_data = malloc(strlen(response_format) + state._3)
-  stdio.sprintf(response_data, response_format, state._1)
-  response_data
-
-def sendResponse(client: TCPHandle, state: Ptr[ClientState]): Unit =
-  val req = malloc(uv_req_size(UV_WRITE_REQ_T)).asInstanceOf[WriteReq]
-  val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-  responseBuffer._1 = makeResponse(state)
-  responseBuffer._2 = string.strlen(responseBuffer._1)
-  !req = responseBuffer.asInstanceOf[Ptr[Byte]]
-  checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
-
-def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
-  val copyPosition = state._1 + state._3
-  string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
-  // be sure to update the length of the data since we have copied into it
-  state._3 = state._3 + size.toUSize // 0.5
-  stdio.printf(c"client %x: %d/%d bytes used\n", state, state._3, state._2)
