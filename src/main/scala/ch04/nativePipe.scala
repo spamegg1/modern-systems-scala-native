@@ -6,7 +6,7 @@ import scalanative.posix.unistd // getpid
 import collection.mutable.ArrayBuffer
 
 @main
-def nativePipe(args: String*): Unit =
+def run(args: String*): Unit =
   val status = pipeMany(0, 1, Seq(Seq("/bin/ls", "."), Seq("/usr/bin/sort", "-r")))
   println(s"- wait returned ${status}")
 
@@ -14,7 +14,7 @@ def pipeMany(input: Int, output: Int, procs: Seq[Seq[String]]): Int =
   // to connect n processes, we need n-1 pipes.
   val pipeArray = stackalloc[Int](2 * (procs.size - 1)) // 2*(n-1)
   var inputFds = ArrayBuffer[Int](input) // input-o-o-o-...-o-o---o    = n
-  var outputFds = ArrayBuffer[Int]()     //   o---o-o-o-...-o-o-output = n
+  var outputFds = ArrayBuffer[Int]() //   o---o-o-o-...-o-o-output = n
 
   // pipeArray: in1 out1 in2 out2 ... in(n-1) out(n-1)
   for i <- 0 until procs.size - 1 do // create our array of pipes

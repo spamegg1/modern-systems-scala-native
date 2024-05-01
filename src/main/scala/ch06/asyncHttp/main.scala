@@ -9,21 +9,17 @@ import stdlib.malloc
 
 import LibUV.*, LibUVConstants.*
 import HTTP.RequestHandler
-import ch03.http.{HttpRequest, HttpResponse}
+import ch03.httpClient.{HttpRequest, HttpResponse}
 
 @main
-def asyncHttp(args: String): Unit =
-  serveHttp(
-    8080,
-    request => HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
-  )
+def run(args: String): Unit = serveHttp(8080, router)
 
-var router: RequestHandler = _ =>
+val router: RequestHandler = _ => // was var
   HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
 
 def serveHttp(port: Int, handler: RequestHandler): Unit =
   println(s"about to serve on port ${port}")
-  this.router = handler
+  // this.router = handler // ???
   serveTcp(c"0.0.0.0", port, 0, 4096, connectionCB)
 
 // cannot be factored out due to readCB differences.

@@ -1,11 +1,12 @@
-package ch01.badStuff
+package ch01
+package testingBadStuff
 
 import scalanative.unsigned.UnsignedRichInt // convert Int to ULong
 import scalanative.unsafe.{CQuote, CString, CSize, Ptr, CChar, sizeof}
 import scalanative.libc.{string, stdio, stdlib}
 
 @main
-def testingBadStuff: Unit =
+def run: Unit =
   // 1. Writing to read-only memory:
   val string: Ptr[CChar] = c"hello"
   stdio.printf(c"attempting to write to read-only memory!\n")

@@ -6,11 +6,10 @@ import scalanative.unsafe.{CStruct3, CFuncPtr1, CFuncPtr2, CFuncPtr3}
 import scalanative.libc.{stdio, stdlib, string}, stdlib.malloc, string.strlen
 import LibUV.*, LibUVConstants.*
 
-type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
+type ClientState = CStruct3[Ptr[Byte], CSize, CSize] // buffer, allocated, used
 val loop = uv_default_loop()
 
-// main server function
-def serveTcp(
+def serveTcp( // main server function
     address: CString,
     port: Int,
     flags: Int,
@@ -30,6 +29,8 @@ def serveTcp(
   uv_run(loop, UV_RUN_DEFAULT)
 
 // Utilities / helpers:
+
+// used in connection callback
 def initializeClientState(client: TCPHandle): Ptr[ClientState] =
   val clientStatePtr = malloc(sizeof[ClientState]).asInstanceOf[Ptr[ClientState]]
 
@@ -49,11 +50,15 @@ def initializeClientState(client: TCPHandle): Ptr[ClientState] =
 
 def makeResponse(state: Ptr[ClientState]): CString =
   val responseFormat = c"received response:\n%s\n"
-  val responseData = malloc(strlen(responseFormat) + state._3)
-  stdio.sprintf(responseData, responseFormat, state._1)
-  responseData
+  val responseData = malloc(strlen(responseFormat) + state._3) // buffer to write to
+  stdio.sprintf(responseData, responseFormat, state._1) // write clientState to buffer
+  responseData // return buffer. type pun: Ptr[Byte] = Ptr[CChar] = CString
 
-def sendResponse(client: TCPHandle, state: Ptr[ClientState]): Unit =
+// writes are tracked individually rather than per connection.
+def sendResponse(client: TCPHandle, state: Ptr[ClientState]): Unit = // used in readCB
+  // In the book, the type pun is WriteReq instead of Ptr[Buffer]. Which one should it be?
+  // WriteReq = Ptr[Ptr[Byte]], but Ptr[Buffer] = Ptr[CStruct2[Ptr[Byte], CSize]]
+  // very different! Is Ptr[Byte] = CStruct2[Ptr[Byte], CSize]? I suppose yes!
   val responseBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
   responseBuffer._1 = makeResponse(state)
   responseBuffer._2 = string.strlen(responseBuffer._1)
@@ -63,8 +68,9 @@ def sendResponse(client: TCPHandle, state: Ptr[ClientState]): Unit =
 
   checkError(uv_write(req, client, responseBuffer, 1, writeCB), "uv_write")
 
+// Used in readCB. Append data from buffer to client state. Then buffer is freed.
 def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit =
-  val copyPosition = state._1 + state._3
+  val copyPosition = state._1 + state._3 // beginning + offset (bytes used so far)
   string.strncpy(copyPosition, buffer._1, size.toUSize) // 0.5
 
   // be sure to update the length of the data since we have copied into it
@@ -77,9 +83,15 @@ def shutdown(client: TCPHandle): Unit =
   checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
 // Callbacks:
+
+// Used as buffer for reading / writing data over TCP connection.
+// We are responsible for giving the loop a buffer to safely read data into.
+// We disregard the size. libuv normally requests 65536 but we'll use 4096
+// (because it's a single line echo server, 65536 is overkill).
+// If more space is needed, the loop can call this as many times as it needs.
 val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
   (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
-    println("allocating 4096 bytes")
+    println("allocating 4096 bytes") // disregard size
     val buf = malloc(4096) // 0.5
     buffer._1 = buf
     buffer._2 = 4096.toUSize // 0.5

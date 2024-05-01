@@ -2,7 +2,7 @@ package ch04
 package badExec
 
 @main
-def badExec(args: String*): Unit =
+def run(args: String*): Unit =
   println("about to exec")
   runCommand(Seq("/bin/ls", "-l", "."))
   println("exec returned, we're done!") // this won't print!

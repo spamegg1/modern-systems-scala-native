@@ -1,5 +1,5 @@
 package ch02
-package sort
+package sortByCount
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.{Ptr, CQuote, CSize, sizeof}
@@ -58,7 +58,7 @@ def parseLine(lineBuffer: Ptr[Byte], data: Ptr[NGramData]): Unit =
 // word 19: and_CONJ 255677047
 // done.
 @main
-def sortByCount(args: String*): Unit =
+def run(args: String*): Unit =
   val blockSize = 1048576 // 2^20 NGramData items = 2^20 * 20 bytes = 20 MB
   val lineBuffer = stdlib.malloc(1024) // 0.5
   var array = makeWrappedArray(blockSize)

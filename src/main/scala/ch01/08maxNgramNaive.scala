@@ -1,4 +1,5 @@
-package ch01.maxNgramNaive
+package ch01
+package maxNgramNaive
 
 // every line is of this form: ngram TAB year TAB match_count TAB volume_count NEWLINE
 // Such as: A'Aang_NOUN 1879 45 5
@@ -9,7 +10,7 @@ package ch01.maxNgramNaive
 // 7315929 ms elapsed total.
 
 @main
-def maxNgramNaive(args: String*): Unit =
+def run(args: String*): Unit =
   var max = 0
   var maxWord = ""
   var maxYear = 0

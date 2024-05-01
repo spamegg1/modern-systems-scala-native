@@ -1,10 +1,11 @@
-package ch01.cStringExpr2
+package ch01
+package cStringExperiment2
 
 import scalanative.unsafe.{CQuote, CString, CSize, CChar, Ptr, sizeof}
 import scalanative.libc.{stdio, string}
 
 @main
-def cStringExperiment2: Unit =
+def run: Unit =
   // CStrings are unsafe mutable byte buffers: CString = Ptr[CChar] = Ptr[Byte]
   val str: Ptr[Byte] = c"hello, world" // CQuote is needed for c"..."
   val strLen: CSize = string.strlen(str) // 12 bytes long, 13 chars with null

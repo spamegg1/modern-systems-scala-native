@@ -1,5 +1,5 @@
 package ch03
-package tcp
+package tcpClient
 
 import scalanative.unsafe.{Zone, Ptr, toCString, fromCString, CQuote, CString}
 import scalanative.libc.{stdio, stdlib}
@@ -70,7 +70,7 @@ def handleConnection(sock: Int): Unit =
 // I got a response: yep!
 // done
 @main
-def tcpClient(args: String*): Unit =
+def run(args: String*): Unit =
   if args.length != 2 then
     println("Usage: ./tcp_test [address] [port]")
     () // exit

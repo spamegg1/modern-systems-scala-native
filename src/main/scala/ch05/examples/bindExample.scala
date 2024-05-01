@@ -25,7 +25,7 @@ def bindExample(port: UShort): Unit =
   println(s"bind returned $bindResult")
 
 @main
-def runBind = bindExample(65535.toUShort)
+def runBindExample = bindExample(65535.toUShort)
 
 // $ scala-cli package . --main-class ch05.examples.runBind
 // Wrote /home/spam/Projects/modern-systems-scala-native/ch05.examples.runBind, run it with

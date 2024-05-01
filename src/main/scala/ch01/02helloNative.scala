@@ -1,10 +1,11 @@
-package ch01.helloNative
+package ch01
+package helloNative
 
 import scalanative.unsafe.CQuote
 import scalanative.libc.stdio.printf
 
 @main
-def helloNative: Unit =
+def run: Unit =
   printf(c"hello native %s!\n", c"world")
 
 // here CQuote is needed for the c string interpolator, and

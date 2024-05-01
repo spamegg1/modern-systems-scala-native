@@ -4,7 +4,7 @@ package nativeFork
 import scalanative.libc.stdlib
 
 @main
-def nativeFork(args: String*): Unit =
+def run(args: String*): Unit =
   if args.size == 0 then // no arguments provided. Just exit.
     println("bye")
     stdlib.exit(1)
@@ -16,12 +16,6 @@ def nativeFork(args: String*): Unit =
     runCommand(args) // args: e.g. /bin/ls -l . First arg is the command.
 
   println(s"wait status ${status}") // child ran command with args, returned status code.
-
-// TODO
-// def badThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
-
-// TODO
-// def goodThrottle(commands: Seq[Seq[String]], maxParallel: Int) = ???
 
 // You can compile this with: (at the root directory of the project)
 // scala-cli package . --main-class ch04.nativeFork.nativeFork

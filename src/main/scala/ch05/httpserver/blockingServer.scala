@@ -54,7 +54,7 @@ def serve(port: UShort): Unit =
   // if it's a small amount of memory, freeing is not much of a waste.
 
 @main
-def simpleEchoServer = serve(65535.toUShort)
+def runSimpleEchoServer = serve(65535.toUShort)
 
 // compile with:
 // $ scala-cli package . --main-class ch05.blockingServer.simpleEchoServer

@@ -1,10 +1,11 @@
-package ch01.cStringExpr1
+package ch01
+package cStringExperiment1
 
 import scalanative.unsafe.{CString, CChar, CQuote, sizeof, CSize}
 import scalanative.libc.{string, stdio}
 
 @main
-def cStringExperiment1: Unit =
+def run: Unit =
   // a CString always has trailing 0 (null termination) by default.
   // type CString = Ptr[CChar] = Ptr[Byte]
   val str: CString = c"hello, world" // the c interpolator uses CQuote

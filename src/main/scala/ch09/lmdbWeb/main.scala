@@ -7,7 +7,7 @@ import scalanative.libc.{stdlib, string}, stdlib.malloc
 import argonaut.{Argonaut, EncodeJson, DecodeJson}
 import Argonaut.{StringToParseWrap, ToJsonIdentity}
 
-import ch03.http.{HttpRequest, HttpResponse}
+import ch03.httpClient.{HttpRequest, HttpResponse}
 
 val addPatn = raw"/add/([^/]+)/([^/]+)".r
 val fetchPatn = raw"/fetch/([^/]+)".r

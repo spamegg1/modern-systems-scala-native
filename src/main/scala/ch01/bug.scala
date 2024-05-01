@@ -1,3 +1,4 @@
+package ch01
 package bug
 
 import scalanative.unsafe.{CQuote, Ptr}

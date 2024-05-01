@@ -8,7 +8,7 @@ import scalanative.libc.{stdlib, string}, stdlib.malloc
 object Server:
   import LibUV.*, ch07.LibUVConstants.*
   import ch06.asyncHttp.HTTP, HTTP.RequestHandler
-  import ch03.http.{HttpRequest, HttpResponse}
+  import ch03.httpClient.{HttpRequest, HttpResponse}
 
   type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
 

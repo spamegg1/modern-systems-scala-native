@@ -1,5 +1,5 @@
 package ch03
-package http
+package httpClient
 
 import scalanative.unsafe.{Zone, Ptr, CInt, CString, toCString, fromCString, CQuote}
 import scalanative.unsafe.{stackalloc, extern}
@@ -125,7 +125,7 @@ def handleConnection(sock: Int, host: String, path: String): Unit =
   fclose(socketFileDesc) // don't forget to close file descriptor!
 
 @main
-def httpClient(args: String*): Unit =
+def run(args: String*): Unit =
   if args.length != 3 then // args = www.example.com 80 /
     println(s"${args.length} {args}")
     println("Usage: ./tcp_test [address] [port] [path]")

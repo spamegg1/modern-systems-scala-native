@@ -1,10 +1,8 @@
 package ch02
 
-import scalanative.unsigned.UnsignedRichInt // .toUSize
+import scalanative.unsigned.{UnsignedRichInt, USize} // .toUSize
 import scalanative.unsafe.{Ptr, sizeof, CString, CStruct4, CFuncPtr2, CQuote, extern}
 import scalanative.libc.{stdio, stdlib, string}
-import scala.scalanative.unsigned.{ULong, USize}
-import scalanative.unsafe.CSize
 
 // First, data definitions.
 type NGramData = CStruct4[CString, Int, Int, Int] // 8 + 4 + 4 + 4 = 20 bytes
@@ -59,7 +57,7 @@ val byCount = CFuncPtr2.fromScalaFunction[Ptr[Byte], Ptr[Byte], Int]:
     val count2 = nGramPtr2._3
     count2 - count1
 
-@extern
+@extern // no @link(???) necessary here, this is just C standard library, stdlib.h
 object qsort:
   def qsort(
       data: Ptr[Byte],

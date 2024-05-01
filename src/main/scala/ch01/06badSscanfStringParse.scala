@@ -1,4 +1,5 @@
-package ch01.badSscanf
+package ch01
+package badSscanfStringParse
 
 import scalanative.unsafe.{CString, CQuote, Ptr, stackalloc, sizeof}
 import scalanative.libc.stdio
@@ -22,7 +23,7 @@ def parseStrLine(line: CString): Unit =
   // stackalloc does not need to be freed!
 
 @main
-def badSscanfStringParse: Unit =
+def run: Unit =
   val lineInBuffer: Ptr[Byte] = stackalloc[Byte](1024) // this is to store stdin
   while stdio.fgets(lineInBuffer, 1024 - 1, stdio.stdin) != null
   do parseStrLine(lineInBuffer)

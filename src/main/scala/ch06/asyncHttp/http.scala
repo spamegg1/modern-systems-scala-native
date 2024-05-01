@@ -9,7 +9,7 @@ import scalanative.libc.stdio
 import scalanative.libc.string.{strlen, strncpy}
 
 object HTTP:
-  import ch03.http.{HttpRequest, HttpResponse}
+  import ch03.httpClient.{HttpRequest, HttpResponse}
 
   case class HeaderLine(
       key: CString,

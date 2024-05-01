@@ -1,5 +1,5 @@
 package ch02
-package agg
+package aggregateAndCount
 
 import scalanative.unsigned.UnsignedRichInt // .toUSize
 import scalanative.unsafe.{Ptr, CSize, CQuote, CString, sizeof, stackalloc}
@@ -10,7 +10,7 @@ val tempWordBuffer = stdlib.malloc(1024)
 val blockSize = 1048576 // ~ 1MB - too big? (same)
 
 @main
-def aggregateAndCount(args: String*): Unit =
+def run(args: String*): Unit =
   val array = makeWrappedArray(blockSize)
   val readStart = System.currentTimeMillis()
   val linesRead = readAllLines(stdio.stdin, array) // NEW, different

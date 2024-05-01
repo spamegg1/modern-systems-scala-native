@@ -4,12 +4,10 @@ package asyncTimer
 import scala.scalanative.unsafe.CFuncPtr1
 import scala.scalanative.libc.stdlib
 
-import LibUV.{uv_default_loop, uv_timer_init, uv_timer_start, uv_run, uv_handle_size}
-import LibUV.TimerHandle
-import LibUVConstants.{UV_TIMER_T, UV_RUN_DEFAULT}
+import LibUV.*, LibUVConstants.{UV_TIMER_T, UV_RUN_DEFAULT}
 
 @main
-def asyncTimer: Unit =
+def run: Unit =
   println("hello, world!") // println is a blocking synchronous I/O function.
   val loop = uv_default_loop()
   val timer = stdlib.malloc(uv_handle_size(UV_TIMER_T))

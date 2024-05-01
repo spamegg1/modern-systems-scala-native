@@ -6,7 +6,7 @@ import scalanative.posix.unistd // getpid
 import scalanative.libc.stdio
 
 @main
-def nativePipeTwo(args: String*): Unit =
+def run(args: String*): Unit =
   println("about to fork")
   // I don't understand the 0 / 1. Are they supposed to be stdin / stdout? YUP (see below)
   val status = runTwoAndPipe(0, 1, Seq("/bin/ls", "."), Seq("/usr/bin/sort", "-r"))

@@ -5,17 +5,7 @@ import scalanative.unsafe.{CString, CQuote, stackalloc, fromCString, toCString}
 import scalanative.unsafe.{Zone, extern, Ptr}
 import scalanative.libc.{stdio, stdlib, string, errno}, stdio.FILE
 
-case class HttpRequest(
-    method: String,
-    uri: String,
-    headers: collection.Map[String, String], // supertype of both mutable and immutable
-    body: String
-)
-case class HttpResponse(
-    code: Int,
-    headers: collection.Map[String, String],
-    body: String
-)
+import ch03.httpClient.{HttpRequest, HttpResponse}
 
 object Parsing:
   def parseHeaderLine(line: CString): (String, String) =

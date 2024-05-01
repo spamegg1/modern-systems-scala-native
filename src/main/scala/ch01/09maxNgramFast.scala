@@ -1,4 +1,5 @@
-package ch01.maxNgramFast
+package ch01
+package maxNgramFast
 
 import scalanative.unsafe.{Ptr, stackalloc, CQuote, CString}
 import scalanative.libc.{stdio, string}
@@ -16,7 +17,7 @@ import scalanative.libc.{stdio, string}
 // (just like the book! 4min -> 30sec)
 
 @main
-def maxNgramFast(args: String*): Unit =
+def run(args: String*): Unit =
   stdio.printf(c"running maxNgramFast\n")
 
   // to store the results of our search.

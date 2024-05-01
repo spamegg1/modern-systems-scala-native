@@ -9,8 +9,10 @@ import scalanative.posix.sys.socket, socket.{sockaddr, AF_INET, SOCK_STREAM}
 import scalanative.posix.netinet.in.{sockaddr_in, INADDR_ANY}
 import scalanative.posix.arpa.inet
 
+import ch03.httpClient.{HttpRequest, HttpResponse}
+
 @main
-def httpServer: Unit = serve(8080.toUShort)
+def run: Unit = serve(8080.toUShort)
 
 def serve(port: UShort): Unit =
   // Allocate and initialize the server address

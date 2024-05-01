@@ -1,4 +1,5 @@
-package ch01.testing
+package ch01
+package testNullTermination
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.{CQuote, CString, CSize, Ptr, CChar, sizeof}
@@ -6,7 +7,7 @@ import scalanative.libc.{string, stdio, stdlib}
 
 // Testing how malloc, strncpy work, how to handle null termination
 @main
-def testNullTermination: Unit =
+def run: Unit =
   val cString: CString = c"hello" // uses CQuote
   val strLen: CSize = string.strlen(cString) // 5
   val buffer: Ptr[Byte] = stdlib.malloc(strLen + 1.toUSize) // 0.5

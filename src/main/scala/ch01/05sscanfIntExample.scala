@@ -1,4 +1,5 @@
-package ch01.sscanfInt
+package ch01
+package sscanfIntExample
 
 import scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, sizeof, CInt}
 import scalanative.libc.stdio
@@ -12,7 +13,7 @@ import scalanative.libc.stdio
 // commonly when fgets reaches the end of a file, or EOF.
 
 @main
-def sscanfIntExample: Unit =
+def run: Unit =
   // allocate space on the stack for a line of up to 1KB input from user
   // inline def stackalloc[T](n: Int)(using Tag[T]): Ptr[T]
   val lineInBuffer: Ptr[Byte] = stackalloc[Byte](1024)

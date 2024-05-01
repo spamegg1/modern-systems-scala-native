@@ -1,4 +1,5 @@
-package ch01.goodSscanf
+package ch01
+package goodSscanfStringParse
 
 import scalanative.unsafe.{CString, Ptr, stackalloc, CQuote, CSize}
 import scalanative.libc.{stdio, string}
@@ -23,7 +24,7 @@ def parseLine(line: CString, wordOut: CString, bufferSize: Int): Unit =
 // second, lineInBuffer -> tempBuffer,    using sscanf
 // third,  tempBuffer   -> wordOutBuffer, using strncpy
 @main
-def goodSscanfStringParse: Unit =
+def run: Unit =
   val lineInBuffer = stackalloc[Byte](1024) // this size matches tempBuffer
   val wordOutBuffer = stackalloc[Byte](32) // to store result of parseLine
 

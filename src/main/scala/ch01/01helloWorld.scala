@@ -1,4 +1,5 @@
-package ch01.hello
+package ch01
+package helloWorld
 
 @main
-def helloWorld: Unit = println("hello, world!")
+def run: Unit = println("hello, world!")
