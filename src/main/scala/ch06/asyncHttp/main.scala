@@ -4,8 +4,7 @@ package asyncHttp
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.{CQuote, Ptr, CSize, CSSize, CString, sizeof, stackalloc}
 import scalanative.unsafe.{CStruct3, CFuncPtr1, CFuncPtr2, CFuncPtr3}
-import scalanative.libc.{stdlib, string, stdio}
-import stdlib.malloc
+import scalanative.libc.{stdlib, string, stdio}, stdlib.malloc
 
 import LibUV.*, LibUVConstants.*
 import HTTP.RequestHandler

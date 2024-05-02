@@ -1,4 +1,4 @@
-# Scala Native, using Scala 3
+# Modern Systems in Scala Native, using Scala 3 :rocket:
 
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
 
@@ -28,17 +28,17 @@ You can compile and run `@main` methods in VS Code with Metals by clicking the r
 There are 35+ `@main` methods in the project. To compile a specific one to a binary, you can use inside the root directory, for example:
 
 ```bash
-scala-cli package . --main-class ch08.simplePipe.simplePipe
+scala-cli package . --main-class ch08.simplePipe.run
 ```
 
 This will place the binary executable in the project root directory:
 
 ```bash
-Wrote /home/spam/Projects/modern-systems-scala-native/ch08.simplePipe.simplePipe, run it with
-  ./ch08.simplePipe.simplePipe
+Wrote /home/spam/Projects/modern-systems-scala-native/ch08.simplePipe.run, run it with
+  ./ch08.simplePipe.run
 ```
 
-Here the class is the import path to the method: `ch08` and `simplePipe` are package names, and `simplePipe` is the name of the `@main` method:
+Here the class is the import path to the method: `ch08` and `simplePipe` are package names, and `run` is the name of the `@main` method:
 
 ```scala
 package ch08
@@ -47,7 +47,7 @@ package simplePipe
 // ...
 
 @main
-def simplePipe: Unit = ??? // so this is ch08.simplePipe.simplePipe
+def run: Unit = ??? // so this is ch08.simplePipe.run
 ```
 
 If in doubt, you can use the `--interactive` mode, which lets you pick the `@main` method you want:
@@ -55,42 +55,42 @@ If in doubt, you can use the `--interactive` mode, which lets you pick the `@mai
 ```bash
 $ scala-cli package . --interactive
 Found several main classes. Which would you like to run?
-[0] ch01.hello.helloWorld
-[1] ch06.asyncTimer.asyncTimer
-[2] ch09.jsonSimple.jsonSimple
-[3] ch05.httpServer.httpServer05
-[4] ch08.fileOutputPipe
-[5] ch01.helloNative.helloNative
-[6] ch06.asyncHttp.asyncHttp
-[7] ch09.lmdbSimple.lmdbSimple
-[8] ch08.fileInputPipe
-[9] ch01.testing.testNullTermination
-[10] ch01.cStringExpr1.cStringExperiment1
-[11] ch01.sscanfInt.sscanfIntExample
-[12] ch01.badStuff.testingBadStuff
-[13] ch08.filePipeOut.filePipeOut
-[14] ch02.agg.aggregateAndCount
-[15] ch01.goodSscanf.goodSscanfStringParse
-[16] ch01.badSscanf.badSscanfStringParse
-[17] ch04.badExec.badExec
-[18] ch07.simpleAsync.simpleAsync
-[19] ch06.asyncTcp.asyncTcp
-[20] ch03.http.httpClient
-[21] ch08.simplePipe.simplePipe
-[22] ch01.maxNgramFast.maxNgramFast
-[23] ch07.curlAsync.curlAsync
-[24] ch02.sort.sortByCount
-[25] ch08.filePipe.filePipeMain
-[26] ch03.tcp.tcpClient
-[27] ch01.maxNgramNaive.maxNgramNaive
-[28] ch04.nativePipeTwo.nativePipeTwo
+[0] ch01.helloWorld.run
+[1] ch06.asyncTimer.run
+[2] ch09.jsonSimple.run
+[3] ch05.httpServer.run
+[4] ch08.fileOutputPipe.run
+[5] ch01.helloNative.run
+[6] ch06.asyncHttp.run
+[7] ch09.lmdbSimple.run
+[8] ch08.fileInputPipe.run
+[9] ch01.testNullTermination.run
+[10] ch01.cStringExperiment1.run
+[11] ch01.sscanfIntExample.run
+[12] ch01.testingBadStuff.run
+[13] ch08.filePipeOut.run
+[14] ch02.aggregateAndCount.run
+[15] ch01.goodSscanfStringParse.run
+[16] ch01.badSscanfStringParse.run
+[17] ch04.badExec.run
+[18] ch07.simpleAsync.run
+[19] ch06.asyncTcp.run
+[20] ch03.httpClient.run
+[21] ch08.simplePipe.run
+[22] ch01.maxNgramFast.run
+[23] ch07.curlAsync.run
+[24] ch02.sortByCount.run
+[25] ch08.filePipe.run
+[26] ch03.tcpClient.run
+[27] ch01.maxNgramNaive.run
+[28] ch04.nativePipeTwo.run
 [29] ch01.moreTesting.run
-[30] ch01.cStringExpr2.cStringExperiment2
-[31] ch04.nativeFork.nativeFork
-[32] ch04.nativePipe.nativePipe
-[33] ch10.libUvService.libuvService
-[34] bug.run
-[35] ch07.timerAsync.timerAsync
+[30] ch01.cStringExperiment2.run
+[31] ch04.nativeFork.run
+[32] ch04.nativePipe.run
+[33] ch10.libUvService.run
+[34] ch01.bug.run
+[35] ch07.timerAsync.run
 21
 [info] Linking (multithreadingEnabled=true, disable if not used) (2353 ms)
 [info] Discovered 1119 classes and 7040 methods after classloading
@@ -104,8 +104,8 @@ Found several main classes. Which would you like to run?
 [info] Linking native code (immix gc, none lto) (239 ms)
 [info] Postprocessing (0 ms)
 [info] Total (9395 ms)
-Wrote /home/spam/Projects/modern-systems-scala-native/ch08.simplePipe.simplePipe, run it with
-  ./ch08.simplePipe.simplePipe
+Wrote /home/spam/Projects/modern-systems-scala-native/ch08.simplePipe.run, run it with
+  ./ch08.simplePipe.run
 ```
 
 ### Linking to external C libraries
@@ -154,7 +154,7 @@ You need to compile and run the HTTP server from chapter 5.
 Read the compilation message for the name of the binary executable:
 
 ```bash
-scala-cli package . --main-class ch05.httpServer.httpServer
+scala-cli package . --main-class ch05.httpServer.run
 ...
 Wrote /home/spam/Projects/modern-systems-scala-native/project, run it with
   ./project
@@ -286,7 +286,7 @@ package badExec
 // then use code from common.scala here
 ```
 
-There is a lot of this duplication in later chapters. I'll fix them.
+There is a lot of this duplication in later chapters. I fixed them.
 
 ### `CSize / USize` instead of `Int`
 
@@ -375,6 +375,56 @@ type TimerHandle = Ptr[Ptr[Byte]] // code, in other chapters
 The book clearly says, in a "warning box":
 
 ![type-puns](images/typePuns.png)
+
+There are many more issues. For example, given:
+
+```scala
+type TCPHandle = Ptr[Ptr[Byte]] // book and code
+type ClientState = CStruct3[Ptr[Byte], CSize, CSize]
+```
+
+but then:
+
+```scala
+val closeCB = CFuncPtr1.fromScalaFunction[TCPHandle, Unit]:
+  (client: TCPHandle) =>
+    // ...
+    val clientStatePtr = (!client).asInstanceOf[Ptr[ClientState]]
+```
+
+Since `client` is `TCPHandle = Ptr[Ptr[Byte]]`, `!client` is `Ptr[Byte]`.
+So we are casting a `Ptr[Byte]` into a `Ptr[CStruct3[Ptr[Byte], CSize, CSize]]`!
+Does this imply `Byte = CStruct3[Ptr[Byte], CSize, CSize]`?
+No, it does not work that way I think... :confused:
+
+There are many more instances of this. For example, given
+
+```scala
+type TCPHandle = Ptr[Ptr[Byte]]
+type ShutdownReq = Ptr[Ptr[Byte]]
+```
+
+we have:
+
+```scala
+def shutdown(client: TCPHandle): Unit =
+  val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
+  !shutdownReq = client.asInstanceOf[Ptr[Byte]]
+```
+
+Again, here `!shutdownReq` is a `Ptr[Byte]`, but `client` is a `Ptr[Ptr[Byte]]`.
+So we are trying to squeeze a `Ptr[Ptr[Byte]]` into a `Ptr[Byte]`!
+We do this by pretending that the nested pointer does not exist with `asInstanceOf[]`.
+OK fine, we can trick the compiler this way, but can we later actually use the inner
+nested pointer of `client` correctly?
+Because later these are passed to actual `libuv` functions...
+
+:confused: :confused: :confused:
+
+***Big brain moment:*** basically, pretty much *anything* can be cast to `Ptr[Byte]`...
+Since "everything is a byte", the "beginning of a block of anything" is a `Ptr[Byte]`!
+
+:brain: :brain: :brain: :tada: :confetti_ball: :partying_face:
 
 Not sure how to handle this, it will be guesswork.
 If compilation fails during linking phase then I'll know the types are wrong.

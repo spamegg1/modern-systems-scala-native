@@ -79,6 +79,10 @@ def appendData(state: Ptr[ClientState], size: CSSize, buffer: Ptr[Buffer]): Unit
 
 def shutdown(client: TCPHandle): Unit =
   val shutdownReq = malloc(uv_req_size(UV_SHUTDOWN_REQ_T)).asInstanceOf[ShutdownReq]
+
+  // Here TCPHandle = Ptr[Byte] but actually TCPHandle = Ptr[Ptr[Byte]]! What's going on?
+  // ShutdownReq = Ptr[Ptr[Byte]] so !shutdownReq = Ptr[Byte]. To put TCPHandle in there,
+  // we have to pretend TCPHandle is not Ptr[Ptr[Byte]] but Ptr[Byte] instead?!
   !shutdownReq = client.asInstanceOf[Ptr[Byte]]
   checkError(uv_shutdown(shutdownReq, client, shutdownCB), "uv_shutdown")
 
@@ -93,27 +97,42 @@ val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
   (client: TCPHandle, size: CSize, buffer: Ptr[Buffer]) =>
     println("allocating 4096 bytes") // disregard size
     val buf = malloc(4096) // 0.5
-    buffer._1 = buf
+    buffer._1 = buf // Buffer = CStruct2[Ptr[Byte], CSize]
     buffer._2 = 4096.toUSize // 0.5
 
 val writeCB = CFuncPtr2.fromScalaFunction[WriteReq, Int, Unit]:
   (writeReq: WriteReq, status: Int) =>
     println("write completed")
-    val responseBuffer = (!writeReq).asInstanceOf[Ptr[Buffer]]
-    stdlib.free(responseBuffer._1)
-    stdlib.free(responseBuffer.asInstanceOf[Ptr[Byte]])
-    stdlib.free(writeReq.asInstanceOf[Ptr[Byte]])
+
+    // WriteReq = Ptr[Ptr[Byte]] so !writeReq = Ptr[Byte] = Ptr[Buffer].
+    val responseBuffer = (!writeReq).asInstanceOf[Ptr[Buffer]] // type puns galore!
+
+    // after done writing, we have to free everything.
+    // for freeing, we have to type pun / cast back to Ptr[Byte], annoying.
+    stdlib.free(responseBuffer._1) // Ptr[Buffer]._1 = first field of buffer = the buffer.
+    stdlib.free(responseBuffer.asInstanceOf[Ptr[Byte]]) // free the whole buffer CStruct2.
+    stdlib.free(writeReq.asInstanceOf[Ptr[Byte]]) // pun and free the write request too.
 
 val shutdownCB = CFuncPtr2.fromScalaFunction[ShutdownReq, Int, Unit]:
   (shutdownReq: ShutdownReq, status: Int) =>
     println("all pending writes complete, closing TCP connection")
+
+    // ShutdownReq = Ptr[Ptr[Byte]], so !shutdownReq = Ptr[Byte] = TCPHandle
+    // but TCPHandle = Ptr[Ptr[Byte]] too, so I don't get it!
     val client = (!shutdownReq).asInstanceOf[TCPHandle]
     checkError(uv_close(client, closeCB), "uv_close")
+
+    // to free, everything has to be cast back to Ptr[Byte]
     stdlib.free(shutdownReq.asInstanceOf[Ptr[Byte]])
 
 val closeCB = CFuncPtr1.fromScalaFunction[TCPHandle, Unit]: (client: TCPHandle) =>
   println("closed client connection")
+
+  // TCPHandle = Ptr[Ptr[Byte]] so !client = Ptr[Byte]
+  // So Ptr[Byte] = Ptr[ClientState] = Ptr[CStruct3[Ptr[Byte], CSize, CSize]]
+  // So Byte = CStruct3[Ptr[Byte], CSize, CSize]?
   val clientStatePtr = (!client).asInstanceOf[Ptr[ClientState]]
-  stdlib.free(clientStatePtr._1)
-  stdlib.free(clientStatePtr.asInstanceOf[Ptr[Byte]])
-  stdlib.free(client.asInstanceOf[Ptr[Byte]])
+
+  stdlib.free(clientStatePtr._1) // free the client state first field of CStruct3
+  stdlib.free(clientStatePtr.asInstanceOf[Ptr[Byte]]) // free the whole CStruct3
+  stdlib.free(client.asInstanceOf[Ptr[Byte]]) // free the whole TCPHandle

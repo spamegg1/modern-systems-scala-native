@@ -6,12 +6,15 @@ import scalanative.unsafe.{CStruct2, CFuncPtr1, CFuncPtr2, CFuncPtr3}
 @link("uv")
 @extern
 object LibUV:
+  // the book keeps calling these "opaque" but it was written in Scala 2.11.
+  // Should we make these actually opaque now in Scala 3 with: opaque type ...?
+  // If we do, there are many compiler errors to be fixed with .asInstanceOf[...].
   type TimerHandle = Ptr[Byte] // book says Ptr[Ptr[Byte]], what should it be?
   type PipeHandle = Ptr[Ptr[Byte]]
   type Loop = Ptr[Byte] // book says Ptr[Ptr[Byte]], what should it be?
-  type TCPHandle = Ptr[Ptr[Byte]]
+  type TCPHandle = Ptr[Ptr[Byte]] // code treats it as Ptr[Byte], what should it be?
   type WriteReq = Ptr[Ptr[Byte]]
-  type ShutdownReq = Ptr[Ptr[Byte]]
+  type ShutdownReq = Ptr[Ptr[Byte]] // should it be Ptr[TCPHandle]?
   type Buffer = CStruct2[Ptr[Byte], CSize]
 
   type TimerCB = CFuncPtr1[TimerHandle, Unit]
