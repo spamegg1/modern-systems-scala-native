@@ -8,6 +8,7 @@ import scalanative.libc.{stdio, stdlib, string, errno}, stdio.FILE
 import ch03.httpClient.{HttpRequest, HttpResponse}
 
 object Parsing:
+  // Example header: Content-Type: text/html; charset=UTF-8
   def parseHeaderLine(line: CString): (String, String) =
     val keyBuffer = stackalloc[Byte](64)
     val valueBuffer = stackalloc[Byte](64)
@@ -24,7 +25,7 @@ object Parsing:
     val urlBuffer = stackalloc[Byte](1024)
     val protocolBuffer = stackalloc[Byte](32)
 
-    val scanResult =
+    val scanResult = // GET /index.html HTTP/1.1
       stdio.sscanf(line, c"%s %s %s\n", methodBuffer, urlBuffer, protocolBuffer)
     if scanResult < 3 then throw Exception("bad request line")
     else (fromCString(methodBuffer), fromCString(urlBuffer))

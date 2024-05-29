@@ -10,15 +10,17 @@ import LibUV.*, LibUVConstants.*
 import HTTP.RequestHandler
 import ch03.httpClient.{HttpRequest, HttpResponse}
 
+// when run, and connecting on browser http://localhost:8080
+// I am always getting "error bad header line" from scanHeaderLine function!
 @main
-def run(args: String): Unit = serveHttp(8080, router)
+def run: Unit = serveHttp(8080, router)
 
-val router: RequestHandler = _ => // was var
+var router: RequestHandler = _ => // just dummy for now
   HttpResponse(200, Map("Content-Length" -> "12"), "hello world\n")
 
 def serveHttp(port: Int, handler: RequestHandler): Unit =
   println(s"about to serve on port ${port}")
-  // this.router = handler // ???
+  router = handler // keep router in mutable state, later bring back for onRead handler.
   serveTcp(c"0.0.0.0", port, 0, 4096, connectionCB)
 
 // cannot be factored out due to readCB differences.
