@@ -11,7 +11,7 @@ object LibUV:
   // If we do, there are many compiler errors to be fixed with .asInstanceOf[...].
   type TimerHandle = Ptr[Byte] // book says Ptr[Ptr[Byte]], what should it be?
   type PipeHandle = Ptr[Ptr[Byte]]
-  type Loop = Ptr[Byte] // book says Ptr[Ptr[Byte]], what should it be?
+  type Loop = Ptr[Ptr[Byte]] // book says Ptr[Ptr[Byte]], what should it be?
   type TCPHandle = Ptr[Ptr[Byte]] // code treats it as Ptr[Byte], what should it be?
   type WriteReq = Ptr[Ptr[Byte]]
   type ShutdownReq = Ptr[Ptr[Byte]] // should it be Ptr[TCPHandle]?

@@ -10,6 +10,7 @@ import scalanative.libc.string.{strlen, strncpy}
 
 object HTTP:
   import ch03.httpClient.{HttpRequest, HttpResponse}
+  import scala.util.boundary, boundary.break
 
   case class HeaderLine(
       key: CString,
@@ -51,7 +52,6 @@ object HTTP:
       valueEnd: Ptr[Int],
       lineLen: Ptr[Int]
   ): Int =
-    !lineLen = -1
     val scanResult = stdio.sscanf(
       line,
       c"%*[^\r\n:]%n: %n%*[^\r\n]%n%*[\r\n]%n", // Content-Type: text/html; charset=UTF-8
@@ -74,7 +74,7 @@ object HTTP:
       outMap(key) = value // add to Scala map
 
       !lineLen
-    else throw Exception("bad header line") // WE GET THIS!
+    else throw Exception("bad header line")
 
   val lineBuffer = malloc(1024) // 0.5
 
@@ -90,23 +90,28 @@ object HTTP:
     val (method, uri, requestLen) = scanRequestLine(req)
     var bytesRead = requestLen
 
-    while bytesRead < size do
-      reqPosition = req + bytesRead
-      val parseHeaderResult =
-        scanHeaderLine(reqPosition, headers, keyEnd, valueStart, valueEnd, lineLen)
-      if parseHeaderResult < 0 then throw Exception("HEADERS INCOMPLETE")
+    boundary:
+      while bytesRead < size do
+        println(s"bytesRead: $bytesRead")
+        reqPosition = req + bytesRead
+        val parseHeaderResult =
+          scanHeaderLine(reqPosition, headers, keyEnd, valueStart, valueEnd, lineLen)
+        if parseHeaderResult < 0 then throw Exception("HEADERS INCOMPLETE")
 
-      // if there are 2 bytes left, there is another header.
-      else if !lineLen - !valueEnd == 2 then bytesRead += parseHeaderResult
+        // if there are 2 bytes left, there is another header.
+        else if !lineLen - !valueEnd == 2 then
+          println("2 bytes left")
+          bytesRead += parseHeaderResult
 
-      // if there are 4 bytes left, this was the last header, now comes the body.
-      else if !lineLen - !valueEnd == 4 then
-        val remaining = size - bytesRead
-        val body = fromCString(req + bytesRead) // yep, the rest is the body.
-        HttpRequest(method, uri, headers, body) // return this value and finish.
-      else throw Exception("malformed header!")
+        // if there are 4 bytes left, this was the last header, now comes the body.
+        else if !lineLen - !valueEnd == 4 then
+          println("4 bytes left")
+          val remaining = size - bytesRead
+          val body = fromCString(req + bytesRead) // yep, the rest is the body.
+          break(HttpRequest(method, uri, headers, body)) // return this value and finish.
+        else throw Exception("malformed header!")
 
-    throw Exception(s"bad scan, exceeded $size bytes") // we shouldn't reach here!
+      throw Exception(s"bad scan, exceeded $size bytes") // we shouldn't reach here!
 
   val keyBuffer = malloc(512) // 0.5
   val valueBuffer = malloc(512) // 0.5
