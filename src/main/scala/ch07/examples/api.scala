@@ -1,4 +1,7 @@
-// This code is not meant to compile and run, it's conceptual.
+package ch07
+package examples
+
+// This code is not meant to compile and run, it's conceptual pseudocode.
 // I just made up some stuff to make it compile.
 
 import concurrent.Future

@@ -19,6 +19,12 @@ So I...
 
 ## Compiling and running
 
+We are using [Scala-cli](https://scala-cli.virtuslab.org/),
+so [SBT](https://www.scala-sbt.org/) is not needed.
+
+For Scala Native, you'll need the requirements such as Clang / LLVM stuff
+as listed on [Scala Native page](https://scala-native.org/en/stable/user/setup.html).
+
 You can compile and run `@main` methods in VS Code with Metals by clicking the run button above them:
 
 ![run](images/run.png)
