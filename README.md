@@ -229,10 +229,16 @@ Reports generated, please open the following file: file:///home/spam/Projects/mo
 ```
 
 The graphical results are in `gatling/results/.../index.html`.
-With 1000 users and 50000 requests, I got 1% failure rate (connection timeouts), and 300ms average response time.
+With 1000 users and 50000 requests, I got 1% failure rate
+(connection timeouts), and 300ms average response time.
 Quite amazing!
 
 ![gatling-simul](images/simul.png)
+
+If I use the async server using `libuv` with the event loop, then again with 1000
+users and 50000 requests, I get 100% success with 231ms mean response time! Great!
+
+![gatling-simul2](images/simul2.png)
 
 ## Differences from the book
 
