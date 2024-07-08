@@ -3,7 +3,7 @@ package examples
 
 import scalanative.unsafe.*
 import util.{Success, Failure}
-import scala.concurrent.ExecutionContext
+import concurrent.ExecutionContext
 
 @main
 def asyncMain(args: String*): Unit =

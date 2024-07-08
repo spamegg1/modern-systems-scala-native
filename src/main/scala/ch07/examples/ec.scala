@@ -1,11 +1,9 @@
-/***
- * Excerpted from "Modern Systems Programming with Scala Native",
- * published by The Pragmatic Bookshelf.
- * Copyrights apply to this code. It may not be used to create training material,
- * courses, books, articles, and the like. Contact us if you are in doubt.
- * We make no guarantees that this code is fit for any purpose.
- * Visit http://www.pragmaticprogrammer.com/titles/rwscala for more book information.
-***/
+package ch07
+package examples
+
+// This code is not meant to compile and run, it's conceptual pseudocode.
+// I just made up some stuff to make it compile.
+
 trait ExecutionContext:
   /** Runs a block of code on this execution context. */
   def execute(runnable: Runnable): Unit
@@ -13,7 +11,11 @@ trait ExecutionContext:
   /** Reports that an asynchronous computation failed. */
   def reportFailure(t: Throwable): Unit
 
+trait ExecutionContextExecutor // made it up!
+
 object ExecutionContext:
+  import collection.mutable.ListBuffer
+
   def global: ExecutionContextExecutor = QueueExecutionContext
 
   private object QueueExecutionContext extends ExecutionContextExecutor:
@@ -27,4 +29,3 @@ object ExecutionContext:
       val runnable = queue.remove(0)
       try runnable.run()
       catch case t: Throwable => QueueExecutionContext.reportFailure(t)
-

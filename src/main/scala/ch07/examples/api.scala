@@ -6,7 +6,7 @@ package examples
 
 import concurrent.Future
 import concurrent.ExecutionContext.Implicits.global
-import scala.util.{Success, Failure}
+import util.{Success, Failure}
 
 enum Method: // made up!
   case GET, POST, PUT, DELETE
