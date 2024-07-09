@@ -8,14 +8,12 @@ import collection.mutable.ListBuffer
 import scalanative.libc.stdlib
 import scalanative.unsafe.CFuncPtr1
 
-trait LoopExtension // made it up!
-
-object EventLoop extends ExecutionContextExecutor:
+object EventLoopExample extends ExecutionContextExecutor:
   import LibUV.*, LibUVConstants.*
 
   val loop = uv_default_loop()
   private val taskQueue = ListBuffer[Runnable]()
-  private val extensions = ListBuffer[LoopExtension]()
+  // private val extensions = ListBuffer[LoopExtension]()
 
   private def dispatch(handle: PrepareHandle): Unit =
     while taskQueue.nonEmpty do
