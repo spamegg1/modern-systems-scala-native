@@ -11,7 +11,7 @@ def asyncMain(args: String*): Unit =
     println("usage: ./curl-out https://whatever.url/you/want?to=fetch")
 
   println("initializing loop")
-  given ExecutionContext = EventLoop
+  given ExecutionContext = EventLoop // ch07.common.loop.scala
 
   val resp = Zone:
     for arg <- args do

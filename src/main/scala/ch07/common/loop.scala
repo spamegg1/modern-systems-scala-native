@@ -6,7 +6,7 @@ import collection.mutable.ListBuffer
 import concurrent.{ExecutionContext, ExecutionContextExecutor, Future, Promise}
 import util.{Try, Success}
 
-object EventLoop extends ExecutionContextExecutor:
+object EventLoop extends ExecutionContextExecutor: // is an ExecutionContext too.
   import LibUV.*, LibUVConstants.*
 
   val loop = uv_default_loop()
