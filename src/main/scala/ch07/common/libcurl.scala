@@ -6,6 +6,7 @@ import scalanative.unsafe.*
 @extern
 object LibCurl:
   type Curl = Ptr[Byte]
+  type IdleHandle = Ptr[Byte] // made it up! to make some examples compile.
   type CurlBuffer = CStruct2[CString, CSize]
   type CurlOption = CInt // Int?
   type CurlAction = CInt
@@ -31,10 +32,12 @@ object LibCurl:
   @name("curl_multi_cleanup") def multi_cleanup(multi: MultiCurl): Int = extern
 
   @name("curl_easy_setopt")
-  def curl_easy_setopt(handle: Curl, option: CInt, parameter: CVarArgList): CInt = extern
+  def curl_easy_setopt(handle: Curl, option: CurlOption, parameter: CVarArgList): CInt =
+    extern
 
   @name("curl_easy_setopt")
-  def curl_easy_setopt(handle: Curl, option: CInt, parameter: Ptr[Byte]): CInt = extern
+  def curl_easy_setopt(handle: Curl, option: CurlOption, parameter: Ptr[Byte]): CInt =
+    extern
 
   @name("curl_easy_getinfo")
   def easy_getinfo(handle: Curl, info: CInt, parameter: Ptr[Byte]): CInt = extern
