@@ -23,7 +23,7 @@ final case class RequestData(
 trait LoopExtension // made it up!
 trait LazyLogging // made it up!
 
-object Curl extends LazyLogging with LoopExtension:
+object CurlExample extends LazyLogging with LoopExtension:
   import LibCurl.*, LibCurlConstants.*
 
   var activeRequests = 0

@@ -16,7 +16,7 @@ def asyncMain(args: String*): Unit =
   val resp = Zone:
     for arg <- args do
       val url: CString = toCString(arg)
-      val resp = Curl.get(url)
+      val resp = Curl.get(url) // I added .get as dummy
 
       resp.onComplete:
         case Success(body) =>
