@@ -23,11 +23,11 @@ val sub = os
   )
 
 // Simulate the interactivity of the script here:
-sub.waitFor(2000L) // wait for Gatling script to start and give us a prompt
+sub.waitFor(3000L) // wait for Gatling script to start and give us a prompt
 println(">>>>> Choosing option [1] to run locally!") // show input
 sub.stdin.writeLine("1") // run simulation locally
 sub.stdin.flush() // send input
-sub.waitFor(8000L) // wait for Gatling to check for updates
+sub.waitFor(10000L) // wait for Gatling to check for updates
 
 println(">>>>> Providing optional name: testSim") // show input
 sub.stdin.writeLine("testSim") // give optional simulation name

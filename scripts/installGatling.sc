@@ -2,15 +2,15 @@
 //> using dep com.lihaoyi::os-lib:0.10.2
 
 // download Gatling Highcharts Bundle
-// println("Downloading Gatling 3.10.5 to directory ./gatling")
-// println()
+println("Downloading Gatling 3.10.5 to directory ./gatling")
+println()
 
 val repo = "https://repo1.maven.org/maven2/io/gatling/highcharts/"
-val sub = "gatling-charts-highcharts-bundle/"
-val ver = "3.10.5/gatling-charts-highcharts-bundle-3.10.5-bundle.zip"
-val url = repo + sub + ver
+val ver = "gatling-charts-highcharts-bundle/3.10.5/"
+val file = "gatling-charts-highcharts-bundle-3.10.5-bundle.zip"
+val url = repo + ver + file
 
-os.proc("curl", "-O", url).call()
+os.proc("curl", "-O", url).call() // download using curl
 
 // unzip, cleanup and rename folder
 os.proc("unzip", "gatling-charts-highcharts-bundle-3.10.5-bundle.zip").call()
@@ -38,6 +38,6 @@ os.proc(
 println("Copied ch05 load simulation into ./gatling/user-files/simulations/")
 println()
 
-println("Now start the Http server in another Terminal,")
+println("Now start the Http server on port 8080 in another Terminal,")
 println("and then run the simulation with:")
 println("./scripts/runGatling.sc")
