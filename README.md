@@ -2,9 +2,9 @@
 
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
 
-- [Scala](https://www.scala-lang.org/) 3.4.1+,
+- [Scala](https://www.scala-lang.org/) 3.5.0+,
 - [Scala Native](https://scala-native.org/en/stable/) version 0.5.0+,
-- `scala-cli` version 1.2.1+, and
+- `scala-cli` version 1.4.0+, and
 - not using the Docker container provided by the [book's website](https://media.pragprog.com/titles/rwscala/code/rwscala-code.zip).
 
 So I...
@@ -15,6 +15,7 @@ So I...
 - removed the `return` keyword, replaced `NonLocalReturns` usage with the new `util.boundary` and `boundary.break`,
 - changed all the `snake_case` names to `camelCase`,
 - got rid of unnecessary `main` object wrappings and used `@main` annotations instead,
+- changed Bash scripts to Scala-cli scripts,
 - and so on.
 
 ## Compiling and running
@@ -144,19 +145,19 @@ I haven't tried that myself, but that's the way to go.
 
 ### Running the Gatling load simulation
 
-I modified the `install_gatling.sh` script from the book,
-now it's `installGatling.sh` with Gatling bundle version 3.10.5+.
+I modified the `install_gatling.sh` script from the book, now it's a Scala-cli
+script `scripts/installGatling.sc` with Gatling bundle version 3.10.5+.
 
 From the root directory, run
 
 ```bash
-./installGatling.sh
+./scripts/installGatling.sc
 ```
 
 This will download into a folder `gatling` in the root directory,
 and copy the simulation file from chapter 5 into the relevant subdirectory.
 
-You need to compile and run the HTTP server from chapter 5.
+You need to compile and run the HTTP server from chapter 5. (Also on chapter 7.)
 Read the compilation message for the name of the binary executable:
 
 ```bash
@@ -168,19 +169,24 @@ Wrote /home/spam/Projects/modern-systems-scala-native/project, run it with
 
 Then run that to start the server. This starts the server listening on port 8080.
 
-I wrote another script `runGatling.sh` that sets up the needed environment variables.
+I wrote another script `scripts/runGatling.sc` that sets up the needed environment variables
+then handles the interactive simulation for you by providing necessary inputs.
 This will compile the simulation file under `gatling/user-files/simulations/`.
-These files have to be written in Scala 2.13 unfortunately! Gatling cannot handle Scala 3.
-So... run the interactive simulation with:
+These files have to be written in Scala 2.13 unfortunately!
+Gatling cannot handle Scala 3. So... run the simulation with:
 
 ```bash
-./runGatling.sh
+./scripts/runGatling.sc
 ```
 
 Here's what the Terminal output looks like:
 
 ```bash
-$ ./runGatling.sh
+$ ./scripts/runGatling.sc
+Finished setting up environment variables for Gatling simulation.
+
+Now running the Gatling binary:
+
 GATLING_HOME is set to /home/spam/Projects/modern-systems-scala-native/gatling
 Do you want to run the simulation locally, on Gatling Enterprise, or just package it?
 Type the number corresponding to your choice and press enter
@@ -189,11 +195,11 @@ Type the number corresponding to your choice and press enter
 [2] Package and upload the Simulation to Gatling Enterprise Cloud, and run it there
 [3] Package the Simulation for Gatling Enterprise
 [4] Show help and exit
-1
+>>>>> Choosing option [1] to run locally!
 Gatling 3.11.1 is available! (you're using 3.10.5)
 ch05.loadSimulation.GenericSimulation is the only simulation, executing it.
 Select run description (optional)
-fiveThousand
+>>>>> Providing optional name: testSim
 Simulation ch05.loadSimulation.GenericSimulation started...
 
 ================================================================================
@@ -241,8 +247,9 @@ Quite amazing!
 
 ![gatling-simul](images/simul.png)
 
-If I use the async server using `libuv` with the event loop, then again with 1000
-users and 50000 requests, I get 100% success with 231ms mean response time! Great!
+If I use the async server using `libuv` and the event loop in chapter 7,
+then again with 1000 users and 50000 requests,
+I get 100% success with 231ms mean response time! Great!
 
 ![gatling-simul2](images/simul2.png)
 
