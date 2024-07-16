@@ -33,7 +33,7 @@ object CurlExample extends LazyLogging with LoopExtension:
   var multi: MultiCurl = null
   var handle: IdleHandle = null
 
-  def init(): Unit =
+  def init: Unit =
     if multi == null then
       global_init(1)
       multi = multi_init()
@@ -54,7 +54,7 @@ object CurlExample extends LazyLogging with LoopExtension:
       request.allocated = newAllocatedSize
 
     memcpy(request.data + request.used, ptr, readSize)
-    // printf(c"req %d: got body line of size %d\n", !private_data._4, size) // ???
+    printf(c"req %d: got body line of size %d\n", !request.data, size) // ???
     request.used = newSize
     val stringEnd = request.data + newSize
     !stringEnd = 0
@@ -66,7 +66,7 @@ object CurlExample extends LazyLogging with LoopExtension:
 
     size * nmemb
 
-  val write_cb = CFuncPtr4.fromScalaFunction(dataReady) // changed this! 0.5
+  val writeCB = CFuncPtr4.fromScalaFunction(dataReady) // changed this! 0.5
 
   def writeHeader(
       ptr: Ptr[Byte],
@@ -75,7 +75,7 @@ object CurlExample extends LazyLogging with LoopExtension:
       data: Ptr[CurlBuffer]
   ): CSize =
     // Refactor!
-    val len = stackalloc[Double]()
+    val len = stackalloc[Double](1)
     !len = 0
     println(
       easy_getinfo(
@@ -97,10 +97,11 @@ object CurlExample extends LazyLogging with LoopExtension:
   ): CurlRequest =
     val data = RequestData(Promise[String](), 65536, 0, malloc(65536))
     val curlHandle = easy_init()
-    // Zone(curl_easy_setopt(curlHandle, URL, toCString(url)))
-    // curl_easy_setopt(curlHandle, WRITECALLBACK, write_cb) // !!!
-    // curl_easy_setopt(curlHandle, WRITEDATA, idCell) // what's idCell? no idea.
-    // curl_easy_setopt(curlHandle, PRIVATEDATA, idCell)
+    Zone:
+      curl_easy_setopt(curlHandle, URL, toCString(url))
+      // curl_easy_setopt(curlHandle, WRITECALLBACK, writeCB) // !!!
+      // curl_easy_setopt(curlHandle, WRITEDATA, idCell) // what's idCell? no idea.
+      // curl_easy_setopt(curlHandle, PRIVATEDATA, idCell)
     ???
 
   def simpleRequest( // made it up!
@@ -136,10 +137,11 @@ object CurlExample extends LazyLogging with LoopExtension:
     requests(id) = data
 
     val curlHandle = easy_init()
-    Zone(curl_easy_setopt(curlHandle, URL, toCString(url)))
-    // curl_easy_setopt(curlHandle, WRITECALLBACK, write_cb) // can't figure out
-    // curl_easy_setopt(curlHandle, WRITEDATA, idCell)
-    // curl_easy_setopt(curlHandle, PRIVATEDATA, idCell)
+    Zone:
+      curl_easy_setopt(curlHandle, URL, toCString(url))
+      // curl_easy_setopt(curlHandle, WRITECALLBACK, writeCB) // can't figure out
+      // curl_easy_setopt(curlHandle, WRITEDATA, idCell)
+      // curl_easy_setopt(curlHandle, PRIVATEDATA, idCell)
     multi_add_handle(multi, curlHandle)
     data.promise.future
 
@@ -153,7 +155,7 @@ object CurlExample extends LazyLogging with LoopExtension:
   def checkCurl(handle: IdleHandle): Unit =
     println("checking curl status")
     val multi = !(handle.asInstanceOf[Ptr[MultiCurl]])
-    val requests = stackalloc[Int]()
+    val requests = stackalloc[Int](1)
     val perform_result = multi_perform(multi, requests)
     activeRequests = !requests
 
@@ -179,8 +181,6 @@ object CurlExample extends LazyLogging with LoopExtension:
   val check_cb = CFuncPtr1.fromScalaFunction(checkCurl)
 
   private def initDispatcher(loop: LibUV.Loop, multi: MultiCurl): IdleHandle =
-    import LibUV.*, LibUVConstants.*
-
     println("initializing curl dispatcher")
 
     // can't find these UV functions and constants anywhere.

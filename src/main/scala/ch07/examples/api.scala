@@ -37,7 +37,7 @@ object HTTPAPI:
     makeRequest(Request(PUT, uri, headers, Some(body)))
 
 @main
-def libuvApi(args: String*): Unit =
+def libuvApi: Unit =
   HTTPAPI
     .get("http://example.com") // made up!
     .onComplete: attempt =>

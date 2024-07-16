@@ -13,7 +13,7 @@ object EventLoopExample extends ExecutionContextExecutor:
 
   val loop = uv_default_loop()
   private val taskQueue = ListBuffer[Runnable]()
-  // private val extensions = ListBuffer[LoopExtension]() // what is this? no idea.
+  private val extensions = ListBuffer[LoopExtension]()
 
   private def dispatch(handle: PrepareHandle): Unit =
     while taskQueue.nonEmpty do
