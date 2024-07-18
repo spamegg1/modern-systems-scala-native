@@ -1,5 +1,15 @@
 # Modern Systems in Scala Native, using Scala 3 :rocket:
 
+***Update (July 2024)***
+
+The book is getting really hard to understand.
+I'm on Chapter 7 and I don't really know what's going on.
+Promises, timer handles, `libcurl`...
+The book doesn't really explain what we're doing and why.
+It's probably written for much more experienced people
+who strongly internalized low-level stuff.
+Anyway, please keep on reading. Thanks for dropping by!
+
 Updating the code in [Modern Systems Programming with Scala Native](https://pragprog.com/titles/rwscala/modern-systems-programming-with-scala-native/) to
 
 - [Scala](https://www.scala-lang.org/) 3.5.0+,
