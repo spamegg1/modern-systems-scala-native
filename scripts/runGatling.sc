@@ -1,5 +1,5 @@
 #!/usr/bin/env -S scala-cli
-//> using dep com.lihaoyi::os-lib:0.10.2
+//> using dep com.lihaoyi::os-lib:0.10.3
 
 // set environment variables
 val gatlingEnv = Map(
