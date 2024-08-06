@@ -3,9 +3,7 @@ package curlSync
 
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
-import scalanative.libc.stdlib
-import scalanative.libc.stdio.{fwrite, stdout}
-import scalanative.libc.string
+import scalanative.libc.{stdlib, string, stdio}
 import LibCurl.*, LibCurlConstants.*
 import scala.collection.mutable.HashMap
 
@@ -16,29 +14,30 @@ object CurlBasic:
     curl_easy_setopt(curl, HTTPHEADER, slist.asInstanceOf[Ptr[Byte]])
     slist
 
-  def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] =
-    Zone(slist_append(slist, toCString(header))) // 0.5
+  def addHeader(slist: Ptr[CurlSList], header: String): Ptr[CurlSList] = Zone:
+    slist_append(slist, toCString(header))
 
   var requestSerial = 0L
   val responses = HashMap[Long, ResponseState]()
 
+  // initialize a request and set up all of its options, headers, and callbacks
   def getSync(url: String, headers: Seq[String] = Seq.empty): ResponseState =
     val reqIdPtr = stdlib.malloc(sizeof[Long]).asInstanceOf[Ptr[Long]]
-    !reqIdPtr = 1 + requestSerial
     requestSerial += 1
-    responses(requestSerial) = ResponseState()
+    !reqIdPtr = requestSerial // unique serial number for request
+    responses(requestSerial) = ResponseState() // 200, no headers, empty body
     val curl = easy_init()
 
     Zone:
-      val url_str = toCString(url)
-      println(curl_easy_setopt(curl, URL, url_str))
+      val urlStr = toCString(url)
+      println(curl_easy_setopt(curl, URL, urlStr))
 
     curl_easy_setopt(curl, WRITECALLBACK, Curl.funcToPtr(writeCB))
     curl_easy_setopt(curl, WRITEDATA, reqIdPtr.asInstanceOf[Ptr[Byte]])
     curl_easy_setopt(curl, HEADERCALLBACK, Curl.funcToPtr(headerCB))
     curl_easy_setopt(curl, HEADERDATA, reqIdPtr.asInstanceOf[Ptr[Byte]])
 
-    val res = easy_perform(curl)
+    val _ = easy_perform(curl)
     easy_cleanup(curl)
     responses(requestSerial)
 
@@ -52,16 +51,16 @@ object CurlBasic:
 
   val writeCB = CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]:
     (ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Byte]) =>
-      val serial = !(data.asInstanceOf[Ptr[Long]])
-      val len = stackalloc[Double]()
+      val serial: Long = !(data.asInstanceOf[Ptr[Long]])
+      val len: Ptr[Double] = stackalloc[Double](1)
       !len = 0
-      val strData = bufferToString(ptr, size, nmemb)
+      val strData: String = bufferToString(ptr, size, nmemb)
 
       val resp = responses(serial)
-      resp.body = resp.body + strData
+      resp.body += strData
       responses(serial) = resp
 
-      size * nmemb
+      size * nmemb // return size of data written
 
   // .+?   : match any chars one or more times, but shortest match possible until space.
   // (\d+) : match any digits one or more times. (capture group)
@@ -79,19 +78,19 @@ object CurlBasic:
 
   val headerCB = CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]:
     (ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Byte]) =>
-      val serial = !(data.asInstanceOf[Ptr[Long]])
-      val len = stackalloc[Double](1)
+      val serial: Long = !(data.asInstanceOf[Ptr[Long]])
+      val len: Ptr[Double] = stackalloc[Double](1)
       !len = 0
       val byteSize = size * nmemb
       val headerString = bufferToString(ptr, size, nmemb)
 
-      headerString match
+      headerString match // 200 OK
         case statusLine(code, description) => println(s"status code: $code $description")
-        case headerLine(k, v) =>
+        case headerLine(k, v) => // Port: 8080
           val resp = responses(serial)
-          resp.headers(k) = v
+          resp.headers(k) = v // Port -> 8080
           responses(serial) = resp
-        case l =>
+        case _ => // do nothing
 
-      fwrite(ptr, size, nmemb, stdout)
+      stdio.fwrite(ptr, size, nmemb, stdio.stdout)
       byteSize
