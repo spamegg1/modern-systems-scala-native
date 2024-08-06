@@ -14,7 +14,7 @@ object LibCurl:
   type MultiCurl = Ptr[Byte]
   type CurlRequest = CStruct4[Ptr[Byte], Long, Long, Int]
   type CurlMessage = CStruct3[Int, Curl, Ptr[Byte]]
-  type CurlSList = CStruct2[Ptr[Byte], CString]
+  type CurlSList = CStruct2[Ptr[Byte], CString] // linked list for Http headers
   type CurlDataCallback = CFuncPtr4[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]
   type CurlSocketCallback = CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
   type CurlTimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
@@ -35,12 +35,12 @@ object LibCurl:
   def curl_easy_setopt(handle: Curl, option: CurlOption, parameter: CVarArgList): CInt =
     extern
 
-  @name("curl_easy_setopt")
+  @name("curl_easy_setopt") // convert URL to CString, pass it to easy_setopt
   def curl_easy_setopt(handle: Curl, option: CurlOption, parameter: Ptr[Byte]): CInt =
     extern
 
   @name("curl_easy_getinfo")
-  def easy_getinfo(handle: Curl, info: CInt, parameter: Ptr[Byte]): CInt = extern
+  def easy_getinfo(handle: Curl, info: CurlInfo, parameter: Ptr[Byte]): CInt = extern
 
   @name("curl_multi_add_handle")
   def multi_add_handle(multi: MultiCurl, easy: Curl): Int = extern

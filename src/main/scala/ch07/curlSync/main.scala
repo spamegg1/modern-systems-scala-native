@@ -63,12 +63,24 @@ object CurlBasic:
 
       size * nmemb
 
+  // .+?   : match any chars one or more times, but shortest match possible until space.
+  // (\d+) : match any digits one or more times. (capture group)
+  // (.+)  : match any chars one or more times, as long as possible, until space. (group)
+  // For example:    .+?   (\d+) (.+)
+  //              HTTP/1.1  200   OK
   val statusLine = raw".+? (\d+) (.+)\n".r
+
+  // ([^:]+) : match any chars except : one or more times. (capture group)
+  // (.*)    : match any chars 0 or more times, as long as possible, until space. (group)
+  // For example, ([^:]+): (   .*    )
+  //                 Host: 192.168.1.1
+  //                 Port: 8080
   val headerLine = raw"([^:]+): (.*)\n".r
+
   val headerCB = CFuncPtr4.fromScalaFunction[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]:
     (ptr: Ptr[Byte], size: CSize, nmemb: CSize, data: Ptr[Byte]) =>
       val serial = !(data.asInstanceOf[Ptr[Long]])
-      val len = stackalloc[Double]()
+      val len = stackalloc[Double](1)
       !len = 0
       val byteSize = size * nmemb
       val headerString = bufferToString(ptr, size, nmemb)
