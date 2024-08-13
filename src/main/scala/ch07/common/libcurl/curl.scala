@@ -132,74 +132,76 @@ object Curl:
 
       size * nmemb
 
-  val socketCB =
-    CFuncPtr5.fromScalaFunction[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]:
-      (
-          curl: Curl,
-          socket: Ptr[Byte],
-          action: Int,
-          data: Ptr[Byte],
-          socketData: Ptr[Byte]
-      ) =>
-        println(s"socketCB called with action ${action}")
+  val socketCB: CurlSocketCallback = CFuncPtr5.fromScalaFunction:
+    (
+        curl: Curl,
+        socket: Ptr[Byte],
+        action: CurlAction,
+        data: Ptr[Byte],
+        socketData: Ptr[Byte]
+    ) =>
+      println(s"socketCB called with action ${action}")
 
-        val pollHandle =
-          if socketData == null then
-            println(s"initializing handle for socket ${socket}")
-            val buf = malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[Ptr[Ptr[Byte]]]
-            !buf = socket
-            checkError(uv_poll_init_socket(loop, buf, socket), "uv_poll_init_socket")
-            checkError(
-              multi_assign(multi, socket, buf.asInstanceOf[Ptr[Byte]]),
-              "multi_assign"
-            )
-            buf
-          else socketData.asInstanceOf[Ptr[Ptr[Byte]]]
+      val pollHandle: PollHandle =
+        if socketData == null then
+          println(s"initializing handle for socket ${socket}")
+          val buf = malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[PollHandle]
+          !buf = socket
+          checkError(uv_poll_init_socket(loop, buf, socket), "uv_poll_init_socket")
+          checkError(
+            multi_assign(multi, socket, buf.asInstanceOf[Ptr[Byte]]),
+            "multi_assign"
+          )
+          buf
+        else socketData.asInstanceOf[PollHandle]
 
-        val events = action match
-          case POLL_NONE   => None
-          case POLL_IN     => Some(UV_READABLE)
-          case POLL_OUT    => Some(UV_WRITABLE)
-          case POLL_INOUT  => Some(UV_READABLE | UV_WRITABLE)
-          case POLL_REMOVE => None
+      val events = action match
+        case POLL_NONE   => None
+        case POLL_IN     => Some(UV_READABLE)
+        case POLL_OUT    => Some(UV_WRITABLE)
+        case POLL_INOUT  => Some(UV_READABLE | UV_WRITABLE)
+        case POLL_REMOVE => None
 
-        events match
-          case Some(ev) =>
-            println(s"starting poll with events $ev")
-            uv_poll_start(pollHandle, ev, pollCB)
-          case None =>
-            println("stopping poll")
-            uv_poll_stop(pollHandle)
-            startTimerCB(multi, 1, null)
-        0
+      events match
+        case Some(ev) =>
+          println(s"starting poll with events $ev")
+          uv_poll_start(pollHandle, ev, pollCB)
+        case None =>
+          println("stopping poll")
+          uv_poll_stop(pollHandle)
+          startTimerCB(multi, 1, null)
+      0
 
-  val pollCB = CFuncPtr3.fromScalaFunction[PollHandle, Int, Int, Unit]:
+  // libuv callback for PollHandle, used above in socket callback
+  val pollCB: PollCB = CFuncPtr3.fromScalaFunction:
     (pollHandle: PollHandle, status: Int, events: Int) =>
       println(s"ready_for_curl fired with status ${status} and events ${events}")
-      val socket = !(pollHandle.asInstanceOf[Ptr[Ptr[Byte]]])
+      val socket = !pollHandle
       val actions = (events & 1) | (events & 2)
-      val running_handles = stackalloc[Int](1)
-      val result = multi_socket_action(multi, socket, actions, running_handles)
+      val runningHandles = stackalloc[Int](1) // number of sockets
+      val result = multi_socket_action(multi, socket, actions, runningHandles)
       println(s"multi_socket_action ${result}")
 
-  val startTimerCB = CFuncPtr3.fromScalaFunction[MultiCurl, Long, Ptr[Byte], CInt]:
+  // passed to libcurl as TIMERFUNCTION and controls a libuv TimerHandle
+  val startTimerCB: CurlTimerCallback = CFuncPtr3.fromScalaFunction:
     (curl: MultiCurl, timeoutMs: Long, data: Ptr[Byte]) =>
       println(s"start_timer called with timeout ${timeoutMs} ms")
-      val time =
-        if timeoutMs < 1 then
+      val time = // libcurl uses set_timeout in two ways
+        if timeoutMs < 1 then // either to tell libuv to call multi_socket_action NOW
           println("setting effective timeout to 1")
           1
-        else timeoutMs
+        else timeoutMs // or at some point in the future
       println("starting timer")
       checkError(uv_timer_start(timerHandle, timeoutCB, time, 0), "uv_timer_start")
       cleanupRequests
       0
 
-  val timeoutCB = CFuncPtr1.fromScalaFunction[TimerHandle, Unit]: (handle: TimerHandle) =>
+  // when timeout is reached, libuv should call multi_socket_action
+  val timeoutCB: TimerCB = CFuncPtr1.fromScalaFunction: (handle: TimerHandle) =>
     println("in timeout callback")
-    val running_handles = stackalloc[Int](1)
-    multi_socket_action(multi, intToPtr(-1), 0, running_handles)
-    println(s"on_timer fired, ${!running_handles} sockets running")
+    val runningHandles = stackalloc[Int](1) // number of sockets
+    multi_socket_action(multi, intToPtr(-1), 0, runningHandles)
+    println(s"on_timer fired, ${!runningHandles} sockets running")
 
   def cleanupRequests: Unit =
     val messages = stackalloc[Int](1)
@@ -207,16 +209,19 @@ object Curl:
     var message: Ptr[CurlMessage] = multi_info_read(multi, messages)
 
     while message != null do
-      println(s"""Got a message ${message._1} from multi_info_read,
-                ${!messages} left in queue""")
+      println(s"Got a message ${message._1} from multi_info_read,")
+      println(s"${!messages} left in queue")
       val handle: Curl = message._2
+
       checkError(
         easy_getinfo(handle, GET_PRIVATEDATA, privateDataPtr.asInstanceOf[Ptr[Byte]]),
         "getinfo"
       )
+
       val privateData = !privateDataPtr
       val reqId = !privateData
       val reqData = requests.remove(reqId).get
+
       val promise = Curl.requestPromises.remove(reqId).get
       promise.success(reqData)
       message = multi_info_read(multi, messages)

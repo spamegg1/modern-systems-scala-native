@@ -8,7 +8,7 @@ object LibCurl:
   type Curl = Ptr[Byte]
   type IdleHandle = Ptr[Byte] // made it up! to make some examples compile.
   type CurlBuffer = CStruct2[CString, CSize]
-  type CurlOption = CInt // Int?
+  type CurlOption = CInt
   type CurlAction = CInt
   type CurlInfo = CInt
   type MultiCurl = Ptr[Byte]
