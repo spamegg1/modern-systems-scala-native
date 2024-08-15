@@ -3,9 +3,7 @@ package ch07
 import scalanative.unsigned.UnsignedRichInt
 import scalanative.unsafe.*
 import scalanative.runtime.{Boxes, Intrinsics}
-import scalanative.libc.stdlib.{malloc, free}
-import scalanative.libc.string.strncpy
-
+import scalanative.libc.{stdlib, string}
 import collection.mutable.{Map => MMap}
 import concurrent.{Future, Promise}
 
@@ -17,15 +15,12 @@ object Curl:
   def intToPtr(i: Int): Ptr[Byte] = Boxes.boxToPtr[Byte](Intrinsics.castIntToRawPtr(i))
   def longToPtr(l: Long): Ptr[Byte] = Boxes.boxToPtr[Byte](Intrinsics.castLongToRawPtr(l))
 
-  var serial = 0L
   val loop = uv_default_loop()
-
+  var serial = 0L // lots of mutable state!
   var multi: MultiCurl = null
-  val timerHandle: TimerHandle = malloc(uv_handle_size(UV_TIMER_T))
-
+  val timerHandle: TimerHandle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
   val requestPromises = MMap[Long, Promise[ResponseState]]()
   val requests = MMap[Long, ResponseState]()
-
   var initialized = false
 
   def init: Unit =
@@ -34,23 +29,23 @@ object Curl:
       global_init(1)
 
       multi = multi_init()
-      println(s"initilized multiHandle $multi")
+      println(s"initialized multiHandle $multi")
 
-      println("socket function")
-      val setopt_r_1 = multi_setopt_ptr(multi, SOCKETFUNCTION, funcToPtr(socketCB))
+      println("setting up curl socket callback with multiHandle")
+      val _ = multi_setopt_ptr(multi, SOCKETFUNCTION, funcToPtr(socketCB))
 
-      println("timer function")
-      val setopt_r_2 = multi_setopt_ptr(multi, TIMERFUNCTION, funcToPtr(startTimerCB))
+      println("setting up curl timer callback with multiHandle")
+      val _ = multi_setopt_ptr(multi, TIMERFUNCTION, funcToPtr(startTimerCB))
 
-      println(s"timerCB: $startTimerCB")
+      println(s"initializing libuv loop timer with curl timer callback: $startTimerCB")
       checkError(uv_timer_init(loop, timerHandle), "uv_timer_init")
 
       initialized = true
-      println("done")
+      println("done initializing")
 
   def addHeaders(curl: Curl, headers: Seq[String]): Ptr[CurlSList] =
-    var slist: Ptr[CurlSList] = null
-    for h <- headers do addHeader(slist, h)
+    var slist: Ptr[CurlSList] = null // Curl uses linked list for headers
+    for header <- headers do addHeader(slist, header)
     curl_easy_setopt(curl, HTTPHEADER, slist.asInstanceOf[Ptr[Byte]])
     slist
 
@@ -58,25 +53,28 @@ object Curl:
     slist_append(slist, toCString(header)) // 0.5
 
   def startRequest(
-      method: Int,
+      method: CurlOption,
       url: String,
       headers: Seq[String] = Seq.empty,
       body: String = ""
   ): Future[ResponseState] =
     Zone:
-      init
+      init // initialize multiCurl, socketCB, timerCB, uv loop timer
       val curlHandle = easy_init()
-      serial += 1
-      val reqId = serial
-      println(s"initializing handle $curlHandle for request $reqId")
-      val reqIdPtr = malloc(sizeof[Long]).asInstanceOf[Ptr[Long]]
-      !reqIdPtr = reqId
-      requests(reqId) = ResponseState()
-      val promise = Promise[ResponseState]()
-      requestPromises(reqId) = promise
 
-      method match
-        case GET =>
+      serial += 1 // each request gets unique ID in multiCurl
+      val reqId = serial
+
+      println(s"initializing handle $curlHandle for request $reqId")
+      val reqIdPtr = stdlib.malloc(sizeof[Long]).asInstanceOf[Ptr[Long]]
+      !reqIdPtr = reqId
+
+      requests(reqId) = ResponseState() // 200 OK, no headers, empty body
+      val promise = Promise[ResponseState]() // create promise for this request
+      requestPromises(reqId) = promise // add this request's promise to mutable state
+
+      method match // why are we only handling GET?
+        case GET => // I guess it's because we are using Curl only to get webpages.
           checkError(curl_easy_setopt(curlHandle, URL, toCString(url)), "easy_setopt")
           checkError(
             curl_easy_setopt(curlHandle, WRITECALLBACK, funcToPtr(dataCB)),
@@ -145,7 +143,7 @@ object Curl:
       val pollHandle: PollHandle =
         if socketData == null then
           println(s"initializing handle for socket ${socket}")
-          val buf = malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[PollHandle]
+          val buf = stdlib.malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[PollHandle]
           !buf = socket
           checkError(uv_poll_init_socket(loop, buf, socket), "uv_poll_init_socket")
           checkError(
@@ -203,12 +201,16 @@ object Curl:
     multi_socket_action(multi, intToPtr(-1), 0, runningHandles)
     println(s"on_timer fired, ${!runningHandles} sockets running")
 
+  // completing the promises is trickier.
+  // we don't get a callback that fires every time a request is done.
+  // instead libcurl puts messages in a queue.
+  // we can read the queue with multi_info_read.
   def cleanupRequests: Unit =
     val messages = stackalloc[Int](1)
     val privateDataPtr = stackalloc[Ptr[Long]](1)
-    var message: Ptr[CurlMessage] = multi_info_read(multi, messages)
+    var message: Ptr[CurlMessage] = multi_info_read(multi, messages) // head of queue
 
-    while message != null do
+    while message != null do // queue is nonempty
       println(s"Got a message ${message._1} from multi_info_read,")
       println(s"${!messages} left in queue")
       val handle: Curl = message._2
@@ -224,16 +226,16 @@ object Curl:
 
       val promise = Curl.requestPromises.remove(reqId).get
       promise.success(reqData)
-      message = multi_info_read(multi, messages)
+      message = multi_info_read(multi, messages) // get next in queue
 
     println("done handling messages")
 
   def bufferToString(ptr: Ptr[Byte], size: CSize, nmemb: CSize): String =
     val byteSize = size * nmemb
-    val buffer = malloc(byteSize + 1.toUSize) // 0.5
-    strncpy(buffer, ptr, byteSize + 1.toUSize) // 0.5
+    val buffer = stdlib.malloc(byteSize + 1.toUSize) // 0.5
+    string.strncpy(buffer, ptr, byteSize + 1.toUSize) // 0.5
     val res = fromCString(buffer)
-    free(buffer)
+    stdlib.free(buffer)
     res
 
   def multiSetopt(curl: MultiCurl, option: CInt, parameters: CVarArg*): Int = Zone:

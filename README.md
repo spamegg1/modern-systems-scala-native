@@ -31,7 +31,8 @@ So I...
 ## Compiling and running
 
 We are using [Scala-cli](https://scala-cli.virtuslab.org/),
-so [SBT](https://www.scala-sbt.org/) is not needed.
+so [SBT](https://www.scala-sbt.org/)
+(or Mill, or any other build tool) is not needed.
 
 For Scala Native, you'll need the requirements such as Clang / LLVM stuff
 as listed on [Scala Native page](https://scala-native.org/en/stable/user/setup.html).
@@ -140,7 +141,7 @@ object LmdbImpl:
 On Ubuntu I had to install these (I think `libcurl` might have been pre-installed already?):
 
 ```bash
-sudo apt install libuv1 libuv1-dev libcurl4 libcurl4-dev liblmdb0 liblmdb-dev
+sudo apt install clang libuv1-dev libcurl4-gnutls-dev liblmdb-dev
 ```
 
 The author did all of this work. But if we wanted to do this on our own,

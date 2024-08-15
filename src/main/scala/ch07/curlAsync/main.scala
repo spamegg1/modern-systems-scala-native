@@ -7,14 +7,18 @@ import LibCurlConstants.GET
 import scala.concurrent.ExecutionContext
 
 @main
-def curlAsync(args: String*): Unit =
-  if args.length == 0 then println("usage: ./curl-out https://www.example.com")
-
+def run: Unit = // I got rid of command line arguments, easier to run.
   println("initializing loop")
   given ExecutionContext = EventLoop // used by onComplete
 
+  val urls = Seq(
+    "https://www.example.com",
+    "https://duckduckgo.com",
+    "https://www.google.com"
+  )
+
   val resp = Zone:
-    for url <- args do
+    for url <- urls do // asynchronously make GET requests to multiple websites
       val resp = Curl.startRequest(GET, url)
 
       resp.onComplete:
@@ -26,4 +30,4 @@ def curlAsync(args: String*): Unit =
         case Failure(f) => println(s"request failed ${f}")
 
   EventLoop.run()
-  println("done")
+  println("done running async event loop with multi curl requests")
