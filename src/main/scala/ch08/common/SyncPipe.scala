@@ -8,7 +8,7 @@ import scala.util.{Try, Success, Failure}
 import concurrent.{Future, ExecutionContext, Promise}
 
 case class SyncPipe[T, U](f: T => U) extends Pipe[T, U]:
-  override def feed(input: T): Unit =
+  def feed(input: T): Unit = // implements the unimplemented method in Pipe
     val output = f(input)
     for h <- handlers do h.feed(output)
 
@@ -21,27 +21,30 @@ object SyncPipe:
 
   def activeRequests: Int = activeStreams.size
 
-  def stream(fd: Int): Pipe[String, String] =
+  def apply(fd: Int): SyncPipe[String, String] = // book different than code, this is book
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
     uv_pipe_init(ch07.EventLoop.loop, handle, 0)
+
     val pipeData = handle.asInstanceOf[Ptr[Int]]
     !pipeData = serial
     activeStreams += serial
-    val pipe = Pipe.source[String]
+
+    val pipe = SyncPipe[String, String](identity) // book diffrent than code, this is book
     handlers(serial) = pipe
 
     serial += 1
     uv_pipe_open(handle, fd)
     uv_read_start(handle, allocCB, readCB)
+
     pipe
 
-  val allocCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSize, Ptr[Buffer], Unit]:
+  val allocCB: AllocCB = CFuncPtr3.fromScalaFunction:
     (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
-      val buf = stdlib.malloc(4096.toUSize) // 0.5
+      val buf = stdlib.malloc(4096) // malloc can take Int now! No need for .toUSize
       buffer._1 = buf
       buffer._2 = 4096.toUSize // 0.5
 
-  val readCB: ReadCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit]:
+  val readCB: ReadCB = CFuncPtr3.fromScalaFunction:
     (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
       val pipeData = handle.asInstanceOf[Ptr[Int]]
       val pipeId = !pipeData

@@ -1,6 +1,6 @@
 //> using scala 3.4.2
 //> using platform native
-//> using nativeVersion 0.5.4
+//> using nativeVersion 0.5.5
 //> using exclude "gatling/*"
 //> using options -explain-cyclic -Ydebug-cyclic
 //> using dep io.argonaut::argonaut:6.3.10

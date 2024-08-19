@@ -5,7 +5,7 @@ import scalanative.unsafe.*
 @link("uv")
 @extern
 object LibUV:
-  type PipeHandle = Ptr[Byte]
+  type PipeHandle = Ptr[Byte] // mentioned in ch08
   type PollHandle = Ptr[Ptr[Byte]]
   type TCPHandle = Ptr[Byte] // different in ch09
   type TTYHandle = Ptr[Byte]

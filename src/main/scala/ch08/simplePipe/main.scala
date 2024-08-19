@@ -3,8 +3,7 @@ package simplePipe
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
-import scalanative.libc.stdlib
-import scalanative.libc.string
+import scalanative.libc.{stdlib, string}
 import collection.mutable
 import scala.util.{Try, Success, Failure}
 import ch07.LibUV.*, ch07.LibUVConstants.*
@@ -30,13 +29,13 @@ object SyncPipe:
     uv_read_start(handle, SyncPipe.allocCB, SyncPipe.readCB)
     pipe
 
-  val allocCB = CFuncPtr3.fromScalaFunction[PipeHandle, CSize, Ptr[Buffer], Unit]:
+  val allocCB: AllocCB = CFuncPtr3.fromScalaFunction:
     (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
       val buf = stdlib.malloc(4096) // 0.5
       buffer._1 = buf
       buffer._2 = 4096.toUSize // 0.5
 
-  val readCB: ReadCB = CFuncPtr3.fromScalaFunction[TCPHandle, CSSize, Ptr[Buffer], Unit]:
+  val readCB: ReadCB = CFuncPtr3.fromScalaFunction:
     (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
       val pipeData = handle.asInstanceOf[Ptr[Int]]
       val pipeId = !pipeData
@@ -55,7 +54,7 @@ object SyncPipe:
         pipeDestination.feed(dataString.trim())
 
 @main
-def simplePipe(args: String*): Unit =
+def run: Unit =
   println("hello!")
   val p = SyncPipe(0)
   val q = p
