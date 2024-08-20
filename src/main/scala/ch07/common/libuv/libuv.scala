@@ -15,8 +15,8 @@ object LibUV:
   type ShutdownReq = Ptr[Ptr[Byte]]
   type Connection = Ptr[Byte]
   type ConnectionCB = CFuncPtr2[TCPHandle, Int, Unit]
-  type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit]
-  type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit]
+  type AllocCB = CFuncPtr3[TCPHandle, CSize, Ptr[Buffer], Unit] // CSize = Usize unsigned
+  type ReadCB = CFuncPtr3[TCPHandle, CSSize, Ptr[Buffer], Unit] // CSSize = Size signed
   type WriteCB = CFuncPtr2[WriteReq, Int, Unit]
   type ShutdownCB = CFuncPtr2[ShutdownReq, Int, Unit]
   type CloseCB = CFuncPtr1[TCPHandle, Unit]

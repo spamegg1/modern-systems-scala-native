@@ -1,4 +1,5 @@
 package ch08
+package syncPipe
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
@@ -41,25 +42,29 @@ object SyncPipe:
   val allocCB: AllocCB = CFuncPtr3.fromScalaFunction:
     (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) =>
       val buf = stdlib.malloc(4096) // malloc can take Int now! No need for .toUSize
-      buffer._1 = buf
+      buffer._1 = buf // Buffer = CStruct2[Ptr[Byte], CSize]
       buffer._2 = 4096.toUSize // 0.5
 
   val readCB: ReadCB = CFuncPtr3.fromScalaFunction:
-    (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) =>
+    (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) => // book has CSize
       val pipeData = handle.asInstanceOf[Ptr[Int]]
       val pipeId = !pipeData
       println(s"read $size bytes from pipe $pipeId")
 
-      if size < 0 then
+      if size < 0 then // need CSSize = Size = signed, to compare < 0
         println("size < 0, closing")
         activeStreams -= pipeId
-        val pipeDestination = handlers(pipeId)
-        pipeDestination.done()
+        val pipeDestination = handlers(pipeId) // not in the book
+        pipeDestination.done() // not in the book
         handlers.remove(pipeId)
       else
-        val dataBuffer = stdlib.malloc(size.toUSize) // removed +1 // 0.5
-        string.strncpy(dataBuffer, buffer._1, size.toUSize) // removed +1 // 0.5
+        val stringSize = size.toUSize + 1.toUSize
+
+        val dataBuffer = stdlib.malloc(stringSize)
+        string.strncpy(dataBuffer, buffer._1, stringSize)
+
         val dataString = fromCString(dataBuffer)
         stdlib.free(dataBuffer)
+
         val pipeDestination = handlers(pipeId)
         pipeDestination.feed(dataString.trim())

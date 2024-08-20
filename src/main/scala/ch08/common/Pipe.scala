@@ -10,6 +10,7 @@ import concurrent.{Future, ExecutionContext, Promise}
 
 trait Pipe[T, U]:
   def feed(input: T): Unit // unimplemented
+
   val handlers = mutable.Set[Pipe[U, ?]]() // the rest is implemented
   def done(): Unit = for h <- handlers do h.done()
 
@@ -17,7 +18,7 @@ trait Pipe[T, U]:
     handlers += dest
     dest
 
-  def map[V](g: U => V): Pipe[U, V] = addDestination(SyncPipe(g))
+  def map[V](g: U => V): Pipe[U, V] = addDestination(syncPipe.SyncPipe(g))
   def mapConcat[V](g: U => Seq[V]): Pipe[U, V] = addDestination(ConcatPipe(g))
   def mapOption[V](g: U => Option[V]): Pipe[U, V] = addDestination(OptionPipe(g))
 
