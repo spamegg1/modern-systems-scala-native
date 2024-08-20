@@ -3,7 +3,6 @@ package ch08
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
 import scalanative.libc.*, stdlib.*, string.strncpy
-
 import collection.mutable
 import scala.util.{Try, Success, Failure}
 import concurrent.{Future, ExecutionContext, Promise}
