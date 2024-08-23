@@ -16,7 +16,7 @@ object FilePipe:
 
   var activeStreams: mutable.Set[Int] = mutable.Set()
   var handlers = mutable.HashMap[Int, Pipe[String, String]]()
-  var serial = 0
+  var serial = 0 // keep mutable state, just like SyncPipe
 
   def apply(path: CString): Pipe[String, String] =
     val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
@@ -39,13 +39,15 @@ object FilePipe:
     println("about to read")
     uv_fs_read(ch07.EventLoop.loop, req, fd, buf, 1, -1, readCB)
     println("read started")
+
     val pipe = Pipe.source[String]
     handlers(fd) = pipe
+
     println("about to return")
     activeStreams += fd
     pipe
 
-  val readCB: FSCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]: (req: FSReq) =>
+  val readCB: FSCB = CFuncPtr1.fromScalaFunction: (req: FSReq) =>
     println("read callback fired!")
     val res = uv_fs_get_result(req)
     println(s"got result: $res")

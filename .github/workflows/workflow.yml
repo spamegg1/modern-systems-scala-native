@@ -5,11 +5,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4.1.1
       with:
         fetch-depth: 0
     - uses: coursier/cache-action@v6.4.5
-    - uses: VirtusLab/scala-cli-setup@v1.4.1
+    - uses: VirtusLab/scala-cli-setup@v1.4.3
     - run: scala-cli compile .
