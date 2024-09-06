@@ -1,45 +1,40 @@
 package ch08
+package filePipe
+package examples
 
 import scalanative.unsafe.CQuote
 import scala.util.Try
+import ch07.LibUV.*, ch07.LibUVConstants.*
 
-import ch07.LibUV.*, ch07.LibUVConstants.*, filePipe.FilePipe
+@main
+def fileInputPipeExample: Unit =
+  val p = FilePipe(c"./data.txt")
+    .map: d =>
+      println(s"consumed $d")
+      val parsed = Try(d.toInt)
+      println(s"parsed: $parsed")
+      parsed.toString // I changed this to make it type-check.
+    .addDestination(FileOutputPipe(c"./output.txt", false))
 
-object FileInputPipeExample:
-  @main
-  def fileInputPipe: Unit =
-    val p = FilePipe
-      .apply(c"./data.txt")
-      .map: d =>
-        println(s"consumed $d")
-        d
-      .map: d =>
-        val parsed = Try(d.toInt)
-        println(s"parsed: $parsed")
-        parsed
-    // .addDestination(FileOutputPipe(c"./output.txt", false))
-    uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
-    println("done")
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
+  println("done")
 
-object FileOutputPipeExample:
-  import filePipe.out.FileOutputPipe
-  @main
-  def fileOutputPipe: Unit =
-    println("hello!")
-    // val p = SyncPipe(0)
-    val p = FilePipe.apply(c"./data.txt")
+@main
+def fileOutputPipeExample: Unit =
+  println("hello!")
+  // val p = SyncPipe(0)
+  val p = FilePipe(c"./data.txt")
 
-    val q = p
-      .map: d =>
-        println(s"consumed $d")
-        d
-      .map: d =>
-        val parsed = Try(d.toInt)
-        println(s"parsed: $parsed")
-        parsed.toString
-      .addDestination(FileOutputPipe(c"./output.txt", false))
-    uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
-    println("done")
+  val q = p
+    .map: d =>
+      println(s"consumed $d")
+      val parsed = Try(d.toInt)
+      println(s"parsed: $parsed")
+      parsed.toString
+    .addDestination(FileOutputPipe(c"./output.txt", false))
+
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
+  println("done")
 
 // object Stuff:
 //   import filePipe.*

@@ -1,6 +1,5 @@
 package ch08
 package filePipe
-package out
 
 import scalanative.unsigned.{UnsignedRichLong, UnsignedRichInt}
 import scalanative.unsafe.*
@@ -76,7 +75,9 @@ def run: Unit =
   given ec: ExecutionContext = ch07.EventLoop
 
   val p = FilePipe(c"./data.txt")
-    .map(d => { println(s"consumed $d"); d })
+    .map: d =>
+      println(s"consumed $d")
+      d
     .addDestination(Tokenizer("\n"))
     .addDestination(Tokenizer(" "))
     .map(d => d + "\n")
