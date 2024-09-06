@@ -12,7 +12,6 @@ import ch07.LibUV.*, ch07.LibUVConstants.*
 
 case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     extends Pipe[String, Unit]:
-  import ch07.LibUV.*, ch07.LibUVConstants.*
 
   var offset = 0L
 
@@ -73,7 +72,7 @@ object FileOutputPipe:
   // val closeCB = CFunctionPtr.fromFunction1(onClose)
 
 @main
-def filePipeOut(args: String*): Unit =
+def run: Unit =
   given ec: ExecutionContext = ch07.EventLoop
 
   val p = FilePipe(c"./data.txt")
