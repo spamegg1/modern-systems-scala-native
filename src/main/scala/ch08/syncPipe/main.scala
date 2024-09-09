@@ -5,6 +5,23 @@ import scala.util.{Try, Success, Failure}
 import ch07.LibUV.uv_run, ch07.LibUVConstants.UV_RUN_DEFAULT
 
 @main
+def pipeChainFilterExample: Unit =
+  SyncPipe(0)
+    .map: d =>
+      println(s"consumed $d")
+      d
+    .map: d =>
+      Try(d.toInt)
+    .filter:
+      case Success(i) =>
+        println(s"saw number $i")
+        true
+      case Failure(f) =>
+        println(s"error: $f")
+        false
+  // ...
+
+@main
 def run: Unit =
   println("hello!")
   val p = SyncPipe(0)

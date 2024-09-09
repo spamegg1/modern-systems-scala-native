@@ -39,13 +39,13 @@ case class Tokenizer(separator: String) extends Pipe[String, String]:
 
   def scan(input: String): Seq[String] =
     println(s"scanning: '$input'")
-    buffer = buffer + input
-    var o: Seq[String] = Seq()
+    buffer += input
+    var o = Seq[String]()
     while buffer.contains(separator) do
-      val space_position = buffer.indexOf(separator)
-      val word = buffer.substring(0, space_position)
+      val spacePosition = buffer.indexOf(separator)
+      val word = buffer.substring(0, spacePosition)
       o = o :+ word
-      buffer = buffer.substring(space_position + 1)
+      buffer = buffer.substring(spacePosition + 1)
     o
 
   override def feed(input: String): Unit =

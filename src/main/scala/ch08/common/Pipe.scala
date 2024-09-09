@@ -21,6 +21,14 @@ trait Pipe[T, U]:
   def mapConcat[V](g: U => Seq[V]): Pipe[U, V] = addDestination(ConcatPipe(g))
   def mapOption[V](g: U => Option[V]): Pipe[U, V] = addDestination(OptionPipe(g))
 
+  // not sure about this one, the book has Pipe[T] which doesn't exist.
+  def filter(f: U => Boolean): Pipe[U, U] = addDestination(
+    mapOption: u =>
+      f(u) match
+        case true  => Some(u)
+        case false => None
+  )
+
   def mapAsync[V](g: U => Future[V])(using ec: ExecutionContext): Pipe[U, V] =
     addDestination(AsyncPipe(g))
 

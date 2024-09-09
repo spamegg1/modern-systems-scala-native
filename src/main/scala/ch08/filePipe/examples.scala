@@ -2,13 +2,16 @@ package ch08
 package filePipe
 package examples
 
-import scalanative.unsafe.CQuote
-import scala.util.Try
+import scalanative.unsafe.{CQuote, CString}
+import scala.util.{Try, Success, Failure}
 import ch07.LibUV.*, ch07.LibUVConstants.*
+import ch07.examples.ExecutionContext
+import ch07.EventLoop
 
 @main
 def fileInputPipeExample: Unit =
-  val p = FilePipe(c"./data.txt")
+  val path = c"../data.txt" // replace this with your own path
+  val p = FilePipe(path)
     .map: d =>
       println(s"consumed $d")
       val parsed = Try(d.toInt)
@@ -22,10 +25,7 @@ def fileInputPipeExample: Unit =
 @main
 def fileOutputPipeExample: Unit =
   println("hello!")
-  // val p = SyncPipe(0)
-  val p = FilePipe(c"./data.txt")
-
-  val q = p
+  val p = FilePipe(c"../data.txt")
     .map: d =>
       println(s"consumed $d")
       val parsed = Try(d.toInt)
@@ -36,63 +36,37 @@ def fileOutputPipeExample: Unit =
   uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
   println("done")
 
-// object Stuff:
-//   import filePipe.*
-//   import ch07.LibUV.*, ch07.LibUVConstants.*
+@main
+def asyncPipeExample: Unit =
+  val p4: Pipe[String, CString] = ???
+  p4.mapAsync(url => ch07.Curl.get(url))(using EventLoop)
+    .map(response => println(s"got back result: $response"))
 
-//   def filter[T](f: T => Boolean): Pipe[T] =
-//     addDestination(
-//       mapOption: t =>
-//         f(t) match
-//           case true  => Some(t)
-//           case false => None
-//     )
+@main
+def statefulProcessorExample: Unit =
+  val p1: Pipe[String, String] = ???
+  var counter = 0
+  p1.map: i =>
+    counter += 1
+    i
+  // ...
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
+  println(s"saw $counter elements")
 
-//   @main
-//   def stuff: Unit =
-//     val p1: Pipe[String, String] = ???
-//     var counter = 0
-//     p1.map: i =>
-//       counter += 1
-//       i
+@main
+def counterSinkExample: Unit =
+  // val p2: Pipe[String, String] = ??? // not sure how to make this work.
+  // val c = p2.addDestination(CounterSink())
+  val c = CounterSink()
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
+  println(s"saw ${c.counter} elements")
 
-//     // ...
-//     uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
-//     println(s"saw $counter elements")
+@main
+def tokenizerExample: Unit =
+  val p3: Pipe[String, String] = ???
+  p3.mapConcat(content => content.split("\n"))
+    .mapConcat(line => line.split(" "))
+    .map(word => println(s"saw word: ${word}"))
 
-//     val p2: Pipe[String] = ???
-//     val c = p2.addDestination(Counter())
-//     uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
-//     println(s"saw ${c.counter} elements")
-
-//     val p3: Pipe[String] = ???
-//     p3.mapConcat(content => content.split("\n"))
-//       .mapConcat(line => line.split(" "))
-//       .map(word => println(s"saw word: ${word}"))
-
-//     uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
-//     println(s"saw ${c.counter} elements")
-
-//     SyncPipe(0)
-//       .map(d =>
-//         println(s"consumed $d")
-//         d
-//       )
-//       .map(d =>
-//         val parsed = Try {
-//           d.toInt
-//         }
-//       )
-//       .filter {
-//         case Success(i) =>
-//           println(s"saw number $i")
-//           true
-//         case Failure(f) =>
-//           println(s"error: $f")
-//           false
-//       }
-//     // ...
-
-//     val p4: Pipe[String] = ???
-//     p4.mapAsync(url => Curl.get(url))
-//       .map(response => println(s"got back result: $response"))
+  uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
+  // println(s"saw ${c.counter} elements")

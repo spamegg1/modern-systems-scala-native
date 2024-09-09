@@ -18,10 +18,10 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
 
   override def feed(input: String): Unit =
     val outputSize = input.size
-    val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
+    val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq] // writeCB frees
 
-    val outputBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
-    outputBuffer._1 = malloc(outputSize.toUSize) // 0.5
+    val outputBuffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]] // freed where?
+    outputBuffer._1 = malloc(outputSize)
     Zone:
       val outputString = toCString(input)
       strncpy(outputBuffer._1, outputString, outputSize.toUSize) // 0.5
@@ -29,12 +29,13 @@ case class FileOutputPipe(fd: Int, serial: Int, async: Boolean)
     outputBuffer._2 = outputSize.toUSize // 0.5
     !req = outputBuffer.asInstanceOf[Ptr[Byte]]
 
+    // presumably, this frees outputBuffer
     uv_fs_write(ch07.EventLoop.loop, req, fd, outputBuffer, 1, offset, writeCB)
     offset += outputSize
 
   override def done(): Unit =
-    val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq]
-    uv_fs_close(ch07.EventLoop.loop, req, fd, null)
+    val req = stdlib.malloc(uv_req_size(UV_FS_REQ_T)).asInstanceOf[FSReq] // freed where?
+    uv_fs_close(ch07.EventLoop.loop, req, fd, null) // here?
     FileOutputPipe.activeStreams -= serial
 
 object FileOutputPipe:
@@ -55,10 +56,10 @@ object FileOutputPipe:
 
   val writeCB = CFuncPtr1.fromScalaFunction[FSReq, Unit]: (req: FSReq) =>
     println("write completed")
-    val resp_buffer = (!req).asInstanceOf[Ptr[Buffer]]
-    stdlib.free(resp_buffer._1)
-    stdlib.free(resp_buffer.asInstanceOf[Ptr[Byte]])
-    stdlib.free(req.asInstanceOf[Ptr[Byte]])
+    val respBuffer = (!req).asInstanceOf[Ptr[Buffer]]
+    stdlib.free(respBuffer._1)
+    stdlib.free(respBuffer.asInstanceOf[Ptr[Byte]])
+    stdlib.free(req.asInstanceOf[Ptr[Byte]]) // it's freed here!
 
   // def onShutdown(shutdownReq: ShutdownReq, status: Int): Unit =
   //   val client = (!shutdownReq).cast[PipeHandle]

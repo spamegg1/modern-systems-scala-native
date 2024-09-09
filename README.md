@@ -285,7 +285,14 @@ which does nothing. There is also
 val pid = unistd.getpid()
 ```
 
-which is never used. There are lots of other examples. There are also many unused / unnecessary imports in the files. Whenever I ran into these, I removed them.
+which is never used. There are also illegal things like:
+
+```scala
+val p = SyncPipe(0)
+val p = FilePipe(c"./data.txt")
+```
+
+There are lots of other examples. There are also many unused / unnecessary imports in the files. Whenever I ran into these, I removed them.
 
 There is also a lot of code duplication, I suppose, to make each individual file "runnable" by itself. I removed redundant code by adding package declarations, then importing the duplicated code from other files instead.
 
