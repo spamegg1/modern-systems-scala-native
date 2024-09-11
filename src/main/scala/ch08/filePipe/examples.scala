@@ -10,14 +10,14 @@ import ch07.EventLoop
 
 @main
 def fileInputPipeExample: Unit =
-  val path = c"../data.txt" // replace this with your own path
+  val path = c"../src/main/resources/data.txt" // replace this with your own path
   val p = FilePipe(path)
     .map: d =>
       println(s"consumed $d")
       val parsed = Try(d.toInt)
       println(s"parsed: $parsed")
       parsed.toString // I changed this to make it type-check.
-    .addDestination(FileOutputPipe(c"./output.txt", false))
+    .addDestination(FileOutputPipe(c"../src/main/resources/output.txt", false))
 
   uv_run(ch07.EventLoop.loop, UV_RUN_DEFAULT)
   println("done")

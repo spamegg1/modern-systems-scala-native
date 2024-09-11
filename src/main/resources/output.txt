@@ -1,0 +1,5 @@
+Failure(java.lang.NumberFormatException: For input string: "foo
+1
+2
+-4095
+")

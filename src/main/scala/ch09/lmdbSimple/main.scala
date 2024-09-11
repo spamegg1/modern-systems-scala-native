@@ -12,7 +12,7 @@ val valueBuffer = stdlib.malloc(512) // 0.5
 
 @main
 def lmdbSimple: Unit =
-  val env = LMDB.open(c"./db")
+  val env = LMDB.open(c"../src/main/resources/db")
   stdio.printf(c"opened db %p\n", env)
   stdio.printf(c"> ")
 

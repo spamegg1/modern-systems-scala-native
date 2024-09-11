@@ -9,12 +9,13 @@ import collection.mutable
 import scala.util.{Try, Success, Failure}
 import concurrent.{Future, ExecutionContext, Promise}
 import ch07.LibUV.*, ch07.LibUVConstants.*
+
 @main
 def filePipeMain(args: String*): Unit =
   given ec: ExecutionContext = ch07.EventLoop
 
   println("hello!")
-  val p = FilePipe.apply(c"./data.text")
+  val p = FilePipe.apply(c"./data.txt")
   println("ok")
   var buffer = ""
   val done = p

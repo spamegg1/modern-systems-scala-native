@@ -6,10 +6,9 @@ import scala.scalanative.libc.stdio
 import argonaut.{Argonaut, EncodeJson}, Argonaut.ToJsonIdentity
 
 @main
-def jsonSimple(args: String*): Unit =
+def jsonSimple: Unit =
   val l: List[String] = List("list", "of", "strings")
   println(l.asJson.spaces2)
-  // ...
 
   val m: Map[String, String] = Map("key1" -> "value1", "key2" -> "value2")
   printfJson(m)

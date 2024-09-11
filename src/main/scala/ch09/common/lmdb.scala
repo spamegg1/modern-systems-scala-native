@@ -13,7 +13,7 @@ object LMDB:
     val envPtr = stackalloc[Env](1)
     check(mdb_env_create(envPtr), "mdb_env_create")
     val env = !envPtr
-    // Unix permissions for 0644 (read/write)
+    // Unix permissions for octal 0644 (read/write)
     check(mdb_env_open(env, path, 0, 420), "mdb_env_open")
     env
 
@@ -28,11 +28,11 @@ object LMDB:
     val database = !databasePtr
 
     val k = stackalloc[Key](1)
-    k._1 = string.strlen(key).toLong + 1.toLong
+    k._1 = string.strlen(key).toLong + 1
     k._2 = key
 
     val v = stackalloc[Value](1)
-    v._1 = string.strlen(value).toLong + 1.toLong
+    v._1 = string.strlen(value).toLong + 1
     v._2 = value
 
     check(mdb_put(transaction, database, k, v, 0), "mdb_put")
@@ -49,7 +49,7 @@ object LMDB:
     val database = !databasePtr
 
     val rKey = stackalloc[Key](1)
-    rKey._1 = string.strlen(key).toLong + 1.toLong
+    rKey._1 = string.strlen(key).toLong + 1
     rKey._2 = key
 
     val rValue = stackalloc[Value](1)
@@ -74,13 +74,11 @@ object LMDB:
     val valueString = value.asJson.nospaces
     putString(env, key, valueString)
 
-  def getString(env: Env, key: String): String =
-    Zone: // implicit z => // 0.5
-      val k = toCString(key)
-      fromCString(get(env, k))
+  def getString(env: Env, key: String): String = Zone:
+    val k = toCString(key)
+    fromCString(get(env, k))
 
-  def putString(env: Env, key: String, value: String): Unit =
-    Zone: // implicit z => // 0.5
-      val k = toCString(key)
-      val v = toCString(value)
-      put(env, k, v)
+  def putString(env: Env, key: String, value: String): Unit = Zone:
+    val k = toCString(key)
+    val v = toCString(value)
+    put(env, k, v)

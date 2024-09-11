@@ -15,8 +15,8 @@ val listPatn = raw"/list/([^/]+)".r
 val listOffsetPatn = raw"/list/([^/]+)?offset=([^/]+)".r // ??? unused
 
 @main
-def lmbdWebMain1(args: String*): Unit =
-  val env = LMDB.open(c"./db")
+def lmbdWebMain1: Unit =
+  val env = LMDB.open(c"../src/main/resources/db")
   Server.serveHttp(
     8080,
     request =>
@@ -46,8 +46,8 @@ def makeResponse[T](resp: T)(using enc: EncodeJson[T]): HttpResponse =
   HttpResponse(200, Map("Content-Length" -> size), respString)
 
 @main
-def lmbdWebMain2(args: String*): Unit =
-  val env = LMDB.open(c"./db")
+def lmbdWebMain2: Unit =
+  val env = LMDB.open(c"../src/main/resources/db")
   Server.serveHttp(
     8080,
     request =>
