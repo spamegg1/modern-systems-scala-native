@@ -7,7 +7,7 @@ import stdlib.malloc, string.{strncpy, strlen}
 import collection.mutable
 import concurrent.{Future, ExecutionContext}
 
-case class Request[T](
+case class Request[T]( // different than earlier chapters, type parameter T
     method: String,
     url: String,
     headers: Map[String, String],
@@ -39,7 +39,7 @@ case class AsyncRoute(
 object Server extends Parsing:
   import ch07.LibUVConstants.*, ch07.LibUV.*, HttpParser.*
 
-  given ec: ExecutionContext = EventLoop
+  given ec: ExecutionContext = EventLoop // this is ch10's EventLoop, different
   val loop = EventLoop.loop
   var serial = 1L
   override val requests = mutable.Map[Long, RequestState]()

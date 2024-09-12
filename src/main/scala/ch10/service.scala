@@ -16,7 +16,7 @@ def libuvService: Unit =
     .get("/"): r =>
       OK(Map("message" -> s"got (routed) request $r"))
     .run(9999)
-  uv_run(EventLoop.loop, UV_RUN_DEFAULT)
+  uv_run(EventLoop.loop, UV_RUN_DEFAULT) // ch10's EventLoop, different than earlier chps.
   println("done")
 
 object ServiceHelpers:
