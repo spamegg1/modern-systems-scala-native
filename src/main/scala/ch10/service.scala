@@ -4,13 +4,12 @@ import util.boundary, boundary.break
 import concurrent.{Future, ExecutionContext}
 import argonaut.{Argonaut, EncodeJson, DecodeJson, Parse}
 import Argonaut.ToJsonIdentity
-
 import ch07.LibUVConstants.*, ch07.LibUV.uv_run, ServiceHelpers.*
 
-given ec: ExecutionContext = EventLoop // changed implicit val
+given ec: ExecutionContext = EventLoop
 
 @main
-def libuvService(args: String*): Unit =
+def libuvService: Unit =
   Service()
     .getAsync("/async/"): r =>
       Future(OK(Map("asyncMessage" -> s"got (async routed) request $r")))

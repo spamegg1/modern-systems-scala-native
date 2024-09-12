@@ -141,7 +141,7 @@ object LmdbImpl:
 On Ubuntu I had to install these (I think `libcurl` might have been pre-installed already?):
 
 ```bash
-sudo apt install clang libuv1-dev libcurl4-gnutls-dev liblmdb-dev
+sudo apt install clang libuv1-dev libcurl4-gnutls-dev liblmdb-dev libhttp-parser-dev
 ```
 
 The author did all of this work. But if we wanted to do this on our own,
@@ -153,6 +153,20 @@ and use [`sn-bindgen`](https://github.com/indoorvivants/sn-bindgen) to generate 
 ![bindgen](images/bindgen.png)
 
 I haven't tried that myself, but that's the way to go.
+
+#### Unmaintained Node HTTP parser library (WIP)
+
+The [`http-parse` library of Chapter 10](https://github.com/nodejs/http-parser) is no longer maintained.
+It was ported to [llhttp](https://github.com/nodejs/llhttp).
+It is possible to install this on Ubuntu with
+
+```bash
+sudo apt install node-llhttp
+```
+
+But I don't know how to link it with Scala Native.
+It's written in Typescript, which generates C output.
+The output then has to be compiled, and then linked to SN.
 
 ### Running the Gatling load simulation
 

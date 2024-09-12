@@ -83,6 +83,7 @@ trait Parsing:
     0
 
 @link("http_parser")
+// @link("llhttp")
 @extern
 object HttpParser:
   type Parser = CStruct8[
