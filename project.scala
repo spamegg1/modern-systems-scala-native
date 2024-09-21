@@ -1,4 +1,4 @@
-//> using scala 3.5.0
+//> using scala 3.5.1
 //> using platform native
 //> using nativeVersion 0.5.5
 //> using exclude "gatling/*"

@@ -1,5 +1,5 @@
 #!/usr/bin/env -S scala-cli
-//> using dep com.lihaoyi::os-lib:0.10.4
+//> using dep com.lihaoyi::os-lib:0.10.7
 
 // download Gatling Highcharts Bundle
 println("Downloading Gatling 3.10.5 to directory ./gatling")
